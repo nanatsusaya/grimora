@@ -69,7 +69,9 @@ packages/
   ai-agent/         Adapter(s): AiProviderPort (Claude/OpenAI/Ollama).          [adapter]
   (future) adapter-supabase, adapter-storage-r2, adapter-storage-minio, ...     [adapter]
 apps/
-  web/ mobile/ desktop/ (api?)  Composition roots + presentation.              [composition]
+  api/              Backend (modular monolith): inbound HTTP adapter + wiring;  [composition]
+                    the public API for web, plugins, and multi-device sync.
+  web/ mobile/ desktop/  Frontends: composition roots + presentation.           [composition]
 plugins/
   dsa5/             First rule-system plugin (mechanics/structure only).        [plugin]
 ```
@@ -145,6 +147,51 @@ following principles are binding at the architectural level and are directly sup
 | Plugin loader | `PluginHostPort` | in-process plugin loader (plugin-sdk) | ADR 0006 |
 | Logging | `LoggerPort` | pino / Sentry | ADR 0009 |
 | Clock / Id | `ClockPort`, `IdGeneratorPort` | system / deterministic (tests) | ADR 0004 |
+
+### 8. Architecture style, scope & decision map
+
+**Architecture style: modular monolith.** The backend is a single deployable **modular monolith**
+(`apps/api`) whose internal boundaries are the hexagon from §1–2 — not a network of microservices.
+Rationale: for a solo-owner + AI-agent team (Conway's Law), one deployable is simplest to build,
+test and operate; offline-first already pushes core logic to the client; module boundaries are
+enforced in-process by the conformance harness (#9). Services can be **extracted later** behind the
+existing ports if a real need arises (independent scaling/deployment). Serverless/edge functions may
+host individual adapters (e.g. an AI proxy) without changing the style.
+
+**The public API** (`apps/api`) is the primary integration boundary: an inbound (driving) adapter
+exposing the application's use cases, consumed by the web/mobile/desktop frontends, by external
+**plugin** integrations, and for multi-device **sync**. Offline clients run the same application
+core locally; the API serves the cloud/shared path. API specifics (protocol, versioning, contract
+format, error shape) are decided in ADR 0011 — **contract-first** is the principle.
+
+**Cross-cutting principles owned here (not separate ADRs):** testability is a first-class design
+criterion (the hexagon makes the core testable without infrastructure; strategy in ADR 0017);
+**build-vs-buy** is applied per decision (e.g. Supabase = buy auth), biased toward not reinventing
+commodities while avoiding lock-in (§4); **Conway's Law** favours the single modular deployable for
+this team shape; **sustainability / green coding** is a tracked consideration (efficient queries,
+bundle budgets — see ADR 0013).
+
+**Scope of this ADR.** 0003 owns the high-level structure (layers, dependency rule, module map,
+swappability, security principle, architecture style). Every other concern has a dedicated ADR so
+each decision stays reviewable in isolation (ADR 0001). Decision map:
+
+| Concern | Decided in |
+| --- | --- |
+| Event Sourcing & CQRS, data model, migrations | ADR 0004 |
+| Persistence, offline sync, object storage, at-rest crypto | ADR 0005 |
+| Plugin system, extensibility, plugin trust/permissions | ADR 0006 (+ 0010) |
+| Theming, design tokens, responsive/adaptive, code-sharing | ADR 0007 (+ 0002) |
+| AI integration (prompt-injection, cost, third-party data flow) | ADR 0008 (+ 0010) |
+| Error handling, logging & observability (OTel), auth mechanics (OAuth2/OIDC, RBAC/ABAC) | ADR 0009 |
+| Security & privacy by design, OWASP, secrets, threat model, supply chain | ADR 0010 |
+| API design & contracts (REST/GraphQL/gRPC, versioning, OpenAPI, error format) | ADR 0011 |
+| Web rendering & frontend state (SSR/SSG/CSR/hybrid) | ADR 0012 |
+| Scalability, performance, caching, async/queues, perf budgets (Core Web Vitals) | ADR 0013 |
+| DevOps: CI/CD, IaC, environments, deploy strategy, feature flags, backup/DR (RTO/RPO) | ADR 0014 |
+| Compliance & data protection (DSGVO ops, consent, EU residency, DPAs, erasure/DSAR) | ADR 0015 |
+| Accessibility (WCAG 2.2 AA / BFSG) & i18n | ADR 0016 |
+| Testing strategy (test pyramid, testability) | ADR 0017 |
+| Hosting & cost model (FinOps, anti-lock-in) | `docs/hosting.md` (+ ADR 0002) |
 
 ## Consequences
 
