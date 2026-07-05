@@ -1,7 +1,7 @@
 # ADR 0004 — Event Sourcing & CQRS model
 
-- **Status:** Proposed (→ Accepted on merge of the PR for issue #3)
-- **Date:** 2026-07-05
+- **Status:** Accepted
+- **Date:** 2026-07-05 (accepted via PR #20, issue #3)
 - **Deciders:** project owner + AI agents
 - **Depends on:** [ADR 0003](0003-overall-architecture.md) · **Feeds:** ADR 0005 (persistence/sync), 0009, 0017
 

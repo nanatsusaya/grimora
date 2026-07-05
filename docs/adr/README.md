@@ -13,7 +13,7 @@ listed here with a status.
 | [0001](0001-record-architecture-decisions.md) | Record architecture decisions | Accepted |
 | [0002](0002-tech-stack-and-tooling.md) | Tech stack and tooling | Accepted |
 | [0003](0003-overall-architecture.md) | Overall architecture: Hexagonal / Ports & Adapters | Accepted |
-| [0004](0004-event-sourcing-cqrs.md) | Event Sourcing & CQRS model | Proposed (issue #3) |
+| [0004](0004-event-sourcing-cqrs.md) | Event Sourcing & CQRS model | Accepted |
 | 0005 | Persistence & offline-first sync adapters | Planned (issue #4) |
 | 0006 | Plugin system & extensibility contract | Planned (issue #5) |
 | 0007 | Theming architecture (design tokens SSOT) | Planned (issue #6) |
@@ -27,5 +27,7 @@ listed here with a status.
 | 0015 | Compliance & data protection (DSGVO) | Planned (issue #17) |
 | 0016 | Accessibility (WCAG 2.2 AA / BFSG) & i18n | Planned (issue #18) |
 | 0017 | Testing strategy | Planned (issue #19) |
+| 0018 | Domain-Driven Design | Retired — folded into ADR 0003 §9 |
+| 0019 | Analytics & Telemetry | Planned (issue #23) |
 
 Status values: `Proposed` · `Accepted` · `Superseded` · `Planned` (ticketed, not yet written).
