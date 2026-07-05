@@ -1,0 +1,51 @@
+# Local Grimora stack — offline-first development without any cloud.
+# Usage: docker compose up -d
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: grimora-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: grimora
+      POSTGRES_PASSWORD: grimora
+      POSTGRES_DB: grimora
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./.docker-data/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U grimora"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    container_name: grimora-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: grimora
+      MINIO_ROOT_PASSWORD: grimora-dev-secret
+    ports:
+      - "9000:9000" # S3 API
+      - "9001:9001" # Web console
+    volumes:
+      - ./.docker-data/minio:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Optional: local LLM for the AI chat (fully offline, no API key).
+  # Enable with: docker compose --profile ai up -d
+  ollama:
+    image: ollama/ollama:latest
+    container_name: grimora-ollama
+    profiles: ["ai"]
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ./.docker-data/ollama:/root/.ollama
