@@ -17,5 +17,6 @@ listed here with a status.
 | 0007 | Theming architecture (design tokens SSOT) | Planned (issue #6) |
 | 0008 | AI provider abstraction | Planned (issue #7) |
 | 0009 | Cross-cutting: error handling, logging, security & auth | Planned (issue #8) |
+| 0010 | Security & Privacy by Design | Planned (issue #12) |
 
 Status values: `Proposed` · `Accepted` · `Superseded` · `Planned` (ticketed, not yet written).

@@ -82,8 +82,9 @@ corresponding *ports* live in `core-domain`.
 
 Every external technology **must** sit behind a port. Minimum set that must be swappable:
 
-- Persistence / **event store**, **read-model store**, **object storage**, **auth**, **sync**,
-  **AI provider**, **logging/telemetry**, **clock**, **id generation**.
+- Persistence / **event store**, **read-model store**, **object storage**, **auth**,
+  **authorization/policy**, **secrets**, **cryptography**, **sync**, **AI provider**,
+  **logging/telemetry**, **clock**, **id generation**.
 
 **"Swappable to a reasonable degree"** is defined operationally: replacing a technology means
 (a) adding a new adapter package that implements the existing port, and (b) changing the
@@ -104,7 +105,31 @@ so UI frameworks are contained, not entangled with business logic.
   failures throw and are handled at the composition root (detailed in ADR 0009).
 - Each package has a single public entry (`src/index.ts`); internals are not deep-imported.
 
-### 6. Ports catalog (stub — expanded by ADRs 0004–0009)
+### 6. Security & privacy by design (foundational)
+
+Security and data protection are **architectural drivers, applied by design and by default** — not a
+later add-on. This is both a product value and a legal obligation (DSGVO Art. 25 & 32, EU Cyber
+Resilience Act, EU AI Act). The **threat model and concrete mechanisms live in ADR 0010**; the
+following principles are binding at the architectural level and are directly supported by the hexagon:
+
+1. **No ambient authority in the core.** Domain/Application obtain all I/O, time, randomness, secrets
+   and network access *only* through injected ports — never directly. Security-relevant access is
+   therefore explicit and reviewable, and the attack surface is minimized.
+2. **Adapters are the trust boundaries.** Input validation, authentication, rate limiting and output
+   encoding happen at adapters; the core receives already-validated, typed data.
+3. **Authorization as an explicit policy.** Access decisions go through an `AuthorizationPort` /
+   `PolicyPort` enforced in the Application layer — not scattered across the codebase.
+4. **Secrets only at the composition root.** Secrets are injected into adapters there and must never
+   appear in Domain, Application, plugins, or logs.
+5. **Least privilege for plugins.** Plugins receive only the capabilities the plugin SDK grants; they
+   cannot reach core internals, secrets, other plugins, or raw I/O. The plugin permission /
+   sandboxing model is a key supply-chain trust boundary (ADR 0006 + ADR 0010).
+6. **Privacy by default.** Data minimization, PII-aware logging (no PII in logs), and encryption in
+   transit and at rest for stored/synced data (details in ADR 0005 / 0009 / 0010).
+7. **Secure SDLC.** Dependency and secret scanning run in CI; the conformance harness (#9) also
+   asserts security-relevant boundaries (see Enforcement).
+
+### 7. Ports catalog (stub — expanded by ADRs 0004–0010)
 
 | Capability | Port (in core-domain) | Planned adapters (local / cloud) | Detailed in |
 | --- | --- | --- | --- |
@@ -113,6 +138,9 @@ so UI frameworks are contained, not entangled with business logic.
 | Sync | `SyncPort` | offline-sync (PowerSync/Electric/RxDB/custom) | ADR 0005 |
 | Object storage | `ObjectStoragePort` | MinIO / Cloudflare R2 | ADR 0005 |
 | Auth | `AuthPort` | Supabase Auth / other IdP | ADR 0009 |
+| Authorization | `AuthorizationPort` / `PolicyPort` | in-core policy engine | ADR 0010 |
+| Secrets | `SecretsPort` | env / vault (composition root only) | ADR 0010 |
+| Cryptography | `CryptoPort` | WebCrypto / libsodium | ADR 0005, 0010 |
 | AI provider | `AiProviderPort` | Ollama / Claude / OpenAI | ADR 0008 |
 | Plugin loader | `PluginHostPort` | in-process plugin loader (plugin-sdk) | ADR 0006 |
 | Logging | `LoggerPort` | pino / Sentry | ADR 0009 |
@@ -142,6 +170,8 @@ The conformance harness will encode, at minimum:
 - `plugins/*` may import `@grimora/plugin-sdk` and `@grimora/shared-types` only.
 - No deep imports across packages; no dependency cycles.
 - Every adapter package exports an implementation of a declared port.
+- Security fitness functions: no `SecretsPort`/secrets import outside composition roots; plugins
+  cannot import adapters or secrets; dependency + secret scanning run in CI (ADR 0010).
 
 ## Alternatives considered
 
@@ -157,4 +187,4 @@ The conformance harness will encode, at minimum:
 - Vision & requirements: [`docs/vision.md`](../vision.md)
 - Tech stack: [`docs/adr/0002-tech-stack-and-tooling.md`](0002-tech-stack-and-tooling.md)
 - Follow-up ADRs: 0004 (ES/CQRS), 0005 (persistence/sync), 0006 (plugins), 0007 (theming),
-  0008 (AI), 0009 (cross-cutting). Enforcement: issue #9.
+  0008 (AI), 0009 (cross-cutting), 0010 (security & privacy by design). Enforcement: issue #9.
