@@ -38,7 +38,10 @@ We extend `EventEnvelope` from `@grimora/shared-types` (which already has `id`, 
 
 - `aggregateType: string` — the stream's aggregate type.
 - `schemaVersion: number` — payload schema version of this event **type** (for upcasting, §6).
-- `metadata: { actorId?; correlationId?; causationId? }` — provenance/audit; no PII in metadata.
+- `metadata: { actorId?; correlationId?; causationId?; context? }` — provenance/audit; **no PII**.
+  The optional `context` holds *situational* data for later correlation (not telemetry), e.g.
+  `{ sessionId?; deviceId?; online?: boolean; participantsPresent?: number }` — enough to later tell
+  whether a change happened alone or during a live play session (see §11).
 - `id` is a **globally unique** `EntityId`, generated via `IdGeneratorPort` as a **UUIDv7**
   (time-ordered → helps global ordering and sync).
 
@@ -165,6 +168,24 @@ Worked example — the owner's list as core events on one `character` stream, re
 | 8 | `character.lifePointsSet` | `{ value: 30 }` | „Lebenspunkte auf 30 gesetzt" |
 | 9 | `character.lifePointsChanged` | `{ by: 2 }` | „Lebenspunkte um 2 erhöht" |
 
+### 11. Scope: domain events vs. analytics/telemetry
+
+Event Sourcing here records **state-changing domain events** — the *source of truth* about aggregates.
+It deliberately does **not** record **reads/views** (opening a character sheet changes no state and
+emits no event) nor **product/behavioural telemetry** (logins, view counts, click paths), which have a
+different volume, lifecycle and privacy profile.
+
+Consequently:
+
+- Analytics about **state changes** (e.g. "how often are characters updated, by whom, when") are
+  answered by **projections over the domain event stream** — this ADR is sufficient.
+- Analytics about **behaviour or reads** (logins, "viewed alone vs. during a session", view counts)
+  are handled by a **separate telemetry stream** with its own consent/minimisation rules — decided in
+  **ADR 0019 (Analytics & Telemetry)**.
+- The optional `context` metadata (§2) lets the two be **correlated** (e.g. attributing a character
+  change to an active session) **without** turning the domain store into an analytics store or storing
+  behavioural PII in it.
+
 ## Consequences
 
 **Positive:** full history/audit and time-travel; read models are rebuildable (cheap new views &
@@ -187,4 +208,5 @@ plus the testing strategy (ADR 0017).
 
 - [ADR 0003](0003-overall-architecture.md) (layers, ports, swappability, **DDD §9**), ADR 0005
   (persistence & sync), ADR 0006 (plugin language), ADR 0009 (errors), ADR 0016 (i18n of event
-  descriptions), ADR 0017 (testing). `@grimora/shared-types` `EventEnvelope`. Issue #3.
+  descriptions), ADR 0017 (testing), ADR 0019 (analytics/telemetry boundary).
+  `@grimora/shared-types` `EventEnvelope`. Issue #3.
