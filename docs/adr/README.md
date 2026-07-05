@@ -16,7 +16,7 @@ listed here with a status.
 | [0004](0004-event-sourcing-cqrs.md) | Event Sourcing & CQRS model | Accepted |
 | [0005](0005-persistence-and-sync.md) | Persistence & offline-first sync adapters | Accepted |
 | [0006](0006-plugin-system.md) | Plugin system & extensibility contract | Accepted |
-| 0007 | Theming architecture (design tokens SSOT) | Planned (issue #6) |
+| [0007](0007-theming.md) | Theming architecture (design tokens SSOT) | Proposed (issue #6) |
 | 0008 | AI provider abstraction | Planned (issue #7) |
 | 0009 | Cross-cutting: error handling, logging, security & auth | Planned (issue #8) |
 | 0010 | Security & Privacy by Design | Planned (issue #12) |
