@@ -128,6 +128,43 @@ disposable — **events remain the source of truth**; a snapshot can always be r
   Cross-device ordering and conflict resolution are specified in **ADR 0005**; this ADR only ensures
   the model makes them possible.
 
+### 10. Event naming, granularity & human-readable descriptions
+
+The event list is what the owner (and auditors) actually read, so events must be **intention-revealing
+domain events in the ubiquitous language** (DDD, ADR 0003 §9) — not generic CRUD field-setters where a
+meaningful domain event exists.
+
+- **Past-tense, intent-first names.** Prefer `character.renamed`, `character.attributeRaised`,
+  `character.lifePointsChanged` over a catch-all `character.fieldChanged`. Capture the *operation's
+  intent*: an absolute assignment during generation (`attributeSet`) and a relative change during
+  advancement (`attributeRaised` with a delta) are **different events** because they mean different
+  things (and enable correct undo/replay).
+- **Right granularity.** Fine-grained where the domain acts in fine steps (each attribute raise during
+  point-buy is its own event → full history/undo); coarser where the domain acts atomically. Avoid both
+  "one giant event per save" and meaningless micro-events.
+- **Rule-agnostic core, plugin language at the edge.** DSA5 terms such as *Courage*, *Agility* or
+  *Life Points* belong to the **DSA5 plugin's bounded context** (ADR 0003 §9), not the core. So core
+  `character` events stay generic — payloads carry an **attribute id + value/delta** — while *which*
+  attributes exist and how they are labelled comes from the plugin. "Set Courage to 8" is the core
+  event `character.attributeSet` `{ attributeId: "COU", value: 8 }` rendered through the DSA5 plugin.
+- **Human-readable, localized descriptions.** The event-list/audit UI shows a rendered sentence, not the
+  raw type/payload. Each event type provides a **`describe()`** — in the core for generic events, in the
+  plugin for rule-specific labels — producing a ubiquitous-language, **localizable** string (i18n,
+  ADR 0016). The stored event keeps `type` + structured `payload`; the description is *derived*, so
+  history stays stable while wording/locale can change.
+
+Worked example — the owner's list as core events on one `character` stream, rendered via the DSA5 plugin:
+
+| ver | Event type (core) | Payload | Rendered (de) |
+| --- | --- | --- | --- |
+| 1 | `character.created` | `{}` | „Charakter erstellt" |
+| 2 | `character.renamed` | `{ name: "Alrik" }` | „Name auf ‚Alrik' gesetzt" |
+| 3 | `character.genderSet` | `{ gender: "female" }` | „Geschlecht auf weiblich gesetzt" |
+| 4 | `character.attributeSet` | `{ attributeId: "COU", value: 8 }` | „Mut auf 8 gesetzt" |
+| 7 | `character.attributeRaised` | `{ attributeId: "COU", by: 1 }` | „Mut um 1 erhöht" |
+| 8 | `character.lifePointsSet` | `{ value: 30 }` | „Lebenspunkte auf 30 gesetzt" |
+| 9 | `character.lifePointsChanged` | `{ by: 2 }` | „Lebenspunkte um 2 erhöht" |
+
 ## Consequences
 
 **Positive:** full history/audit and time-travel; read models are rebuildable (cheap new views &
@@ -148,5 +185,6 @@ plus the testing strategy (ADR 0017).
 
 ## References
 
-- [ADR 0003](0003-overall-architecture.md) (layers, ports, swappability), ADR 0005 (persistence &
-  sync), ADR 0009 (errors), ADR 0017 (testing). `@grimora/shared-types` `EventEnvelope`. Issue #3.
+- [ADR 0003](0003-overall-architecture.md) (layers, ports, swappability, **DDD §9**), ADR 0005
+  (persistence & sync), ADR 0006 (plugin language), ADR 0009 (errors), ADR 0016 (i18n of event
+  descriptions), ADR 0017 (testing). `@grimora/shared-types` `EventEnvelope`. Issue #3.
