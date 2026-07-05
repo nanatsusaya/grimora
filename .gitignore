@@ -34,3 +34,7 @@ Thumbs.db
 
 # Local data volumes (docker-compose)
 .docker-data/
+
+# Local reference rulebooks — copyright, NEVER commit (only the README is tracked)
+/rulebooks/*
+!/rulebooks/README.md

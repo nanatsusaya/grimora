@@ -29,5 +29,6 @@ listed here with a status.
 | 0017 | Testing strategy | Planned (issue #19) |
 | 0018 | Domain-Driven Design | Retired — folded into ADR 0003 §9 |
 | 0019 | Analytics & Telemetry | Planned (issue #23) |
+| [0020](0020-core-vs-plugin-boundary.md) | Core vs. plugin domain boundary | Accepted |
 
 Status values: `Proposed` · `Accepted` · `Superseded` · `Planned` (ticketed, not yet written).
