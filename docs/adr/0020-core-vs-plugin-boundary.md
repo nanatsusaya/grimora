@@ -1,7 +1,7 @@
 # ADR 0020 — Core vs. plugin domain boundary (rule-agnostic meta-model)
 
-- **Status:** Proposed (→ Accepted on merge of the PR for issue #26)
-- **Date:** 2026-07-05
+- **Status:** Accepted
+- **Date:** 2026-07-05 (accepted via PR #27, issue #26)
 - **Deciders:** project owner + AI agents
 - **Depends on:** [ADR 0003](0003-overall-architecture.md) (DDD §9) · **Precedes/gates:** ADR 0006
 - **Informed by:** [`docs/research/rule-systems-comparison.md`](../research/rule-systems-comparison.md)
