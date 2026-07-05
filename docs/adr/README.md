@@ -10,7 +10,7 @@ listed here with a status.
 | --- | --- | --- |
 | [0001](0001-record-architecture-decisions.md) | Record architecture decisions | Accepted |
 | [0002](0002-tech-stack-and-tooling.md) | Tech stack and tooling | Accepted |
-| [0003](0003-overall-architecture.md) | Overall architecture: Hexagonal / Ports & Adapters | Proposed |
+| [0003](0003-overall-architecture.md) | Overall architecture: Hexagonal / Ports & Adapters | Accepted |
 | 0004 | Event Sourcing & CQRS model | Planned (issue #3) |
 | 0005 | Persistence & offline-first sync adapters | Planned (issue #4) |
 | 0006 | Plugin system & extensibility contract | Planned (issue #5) |

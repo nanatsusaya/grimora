@@ -1,7 +1,7 @@
 # ADR 0003 — Overall architecture: Hexagonal / Ports & Adapters
 
-- **Status:** Proposed (→ Accepted on merge of the PR for issue #2)
-- **Date:** 2026-07-05
+- **Status:** Accepted
+- **Date:** 2026-07-05 (accepted via PR #11, issue #2)
 - **Deciders:** project owner + AI agents
 - **Supersedes:** —
 
