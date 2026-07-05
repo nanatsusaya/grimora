@@ -4,6 +4,7 @@
 - **Date:** 2026-07-05 (accepted via PR #11, issue #2)
 - **Deciders:** project owner + AI agents
 - **Supersedes:** —
+- **Amended:** 2026-07-05 — added §9 Domain-Driven Design (owner-authorized; see Amendments).
 
 ## Context
 
@@ -192,6 +193,48 @@ each decision stays reviewable in isolation (ADR 0001). Decision map:
 | Accessibility (WCAG 2.2 AA / BFSG) & i18n | ADR 0016 |
 | Testing strategy (test pyramid, testability) | ADR 0017 |
 | Hosting & cost model (FinOps, anti-lock-in) | `docs/hosting.md` (+ ADR 0002) |
+| Domain-Driven Design (bounded contexts, ubiquitous language, tactical patterns) | this ADR (§9) |
+
+### 9. Domain-Driven Design (strategic & tactical)
+
+Grimora is developed with **Domain-Driven Design (DDD)** as its modelling methodology. This is a
+deliberate decision, recorded here in the foundational ADR by owner-authorized amendment (the planned
+standalone DDD ADR, ticket #21, is folded into this section).
+
+**Tactical DDD** — already reflected in §1–2 and ADR 0004. The Domain layer is expressed as
+**Aggregates**, **Entities**, **Value Objects**, **Domain Events**, **Domain Services** and
+**Factories**. **Repositories are ports** (§1): the Application layer depends on repository
+interfaces; adapters implement them. Business rules live in the model, never in adapters/frameworks.
+
+**Strategic DDD** — new here, and central to a rule-agnostic core with plugins:
+
+- **Ubiquitous Language, per context.** Each bounded context keeps its own glossary. Crucially,
+  **rule-system terminology (e.g. DSA5 terms) stays inside that plugin's context** and must not leak
+  into the core's language.
+- **Bounded Contexts** (proposed cut — reviewable):
+  - **Rules** *(core)* — the generic, rule-agnostic model of a rule system (attributes, checks,
+    formulas as abstractions); defines the contracts plugins implement.
+  - **Characters** *(core)* — creating/managing player characters and their generic sheet/state.
+  - **Bestiary** *(core)* — enemies / monsters / NPC instances.
+  - **Campaigns** *(core)* — campaign authoring, sessions, GM tooling.
+  - **Assets** *(supporting)* — the asset library and attachments.
+  - **Identity** *(generic, largely bought)* — users/auth via Supabase (master data).
+  - **Each rule-system plugin (DSA5) = its own bounded context**, implementing the Rules contracts in
+    DSA5's ubiquitous language.
+- **Context Map** (relationships):
+  - `@grimora/shared-types` is a small **Shared Kernel** of truly generic concepts (`EntityId`,
+    `EventEnvelope`) shared by all contexts.
+  - The **plugin SDK is a *Published Language*** (ADR 0006): the stable, versioned contract between
+    the core Rules context and plugin contexts.
+  - An **Anti-Corruption Layer** at the plugin boundary keeps plugin/vendor specifics from corrupting
+    the core model; plugins adapt to the SDK, not to core internals.
+  - Core contexts relate mostly **Customer/Supplier**, with **Rules** upstream where it drives
+    character/bestiary behaviour.
+- **Modules ↔ contexts.** Bounded contexts map onto monorepo module/package boundaries (§3); the
+  dependency rule (§2) and the conformance harness (#9) keep them from bleeding into each other.
+
+**Enforcement hint for #9:** a fitness function should assert that plugin-context vocabulary and
+plugin packages never appear inside core packages (language/boundary-leak check).
 
 ## Consequences
 
@@ -235,3 +278,10 @@ The conformance harness will encode, at minimum:
 - Tech stack: [`docs/adr/0002-tech-stack-and-tooling.md`](0002-tech-stack-and-tooling.md)
 - Follow-up ADRs: 0004 (ES/CQRS), 0005 (persistence/sync), 0006 (plugins), 0007 (theming),
   0008 (AI), 0009 (cross-cutting), 0010 (security & privacy by design). Enforcement: issue #9.
+
+## Amendments
+
+- **2026-07-05** — Added §9 *Domain-Driven Design* and a decision-map row. This **amends an Accepted
+  ADR**, expressly **authorized by the project owner** (per the amended governance in
+  [ADR 0001](0001-record-architecture-decisions.md)). Ticket #21 (a planned standalone DDD ADR) is
+  folded into §9.

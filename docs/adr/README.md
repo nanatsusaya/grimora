@@ -1,7 +1,9 @@
 # Architecture Decision Records
 
-One file per significant decision, numbered `NNNN-title.md`. ADRs are immutable once `Accepted`; to
-change one, add a new ADR that supersedes it (see [ADR 0001](0001-record-architecture-decisions.md)).
+One file per significant decision, numbered `NNNN-title.md`. ADRs are immutable once `Accepted`
+**unless the project owner authorizes an amendment** (recorded in the ADR's *Amendments* section);
+otherwise, to change a decision, add a superseding ADR (see
+[ADR 0001](0001-record-architecture-decisions.md)).
 
 This index is checked by the architecture conformance harness (issue #9): every ADR file must be
 listed here with a status.
