@@ -1,7 +1,7 @@
 # ADR 0008 — AI provider abstraction (swappable, additional control layer)
 
-- **Status:** Proposed (→ Accepted on merge of the PR for issue #7)
-- **Date:** 2026-07-05
+- **Status:** Accepted
+- **Date:** 2026-07-05 (accepted via PR #29, issue #7)
 - **Deciders:** project owner + AI agents
 - **Depends on:** [ADR 0003](0003-overall-architecture.md) (ports, security §6, DDD),
   [ADR 0006](0006-plugin-system.md) (AI-tools capability), [ADR 0020](0020-core-vs-plugin-boundary.md)
