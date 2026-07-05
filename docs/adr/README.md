@@ -14,7 +14,7 @@ listed here with a status.
 | [0002](0002-tech-stack-and-tooling.md) | Tech stack and tooling | Accepted |
 | [0003](0003-overall-architecture.md) | Overall architecture: Hexagonal / Ports & Adapters | Accepted |
 | [0004](0004-event-sourcing-cqrs.md) | Event Sourcing & CQRS model | Accepted |
-| 0005 | Persistence & offline-first sync adapters | Planned (issue #4) |
+| [0005](0005-persistence-and-sync.md) | Persistence & offline-first sync adapters | Proposed (issue #4) |
 | 0006 | Plugin system & extensibility contract | Planned (issue #5) |
 | 0007 | Theming architecture (design tokens SSOT) | Planned (issue #6) |
 | 0008 | AI provider abstraction | Planned (issue #7) |
