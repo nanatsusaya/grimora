@@ -15,7 +15,7 @@ listed here with a status.
 | [0003](0003-overall-architecture.md) | Overall architecture: Hexagonal / Ports & Adapters | Accepted |
 | [0004](0004-event-sourcing-cqrs.md) | Event Sourcing & CQRS model | Accepted |
 | [0005](0005-persistence-and-sync.md) | Persistence & offline-first sync adapters | Accepted |
-| 0006 | Plugin system & extensibility contract | Planned (issue #5) |
+| [0006](0006-plugin-system.md) | Plugin system & extensibility contract | Proposed (issue #5) |
 | 0007 | Theming architecture (design tokens SSOT) | Planned (issue #6) |
 | 0008 | AI provider abstraction | Planned (issue #7) |
 | 0009 | Cross-cutting: error handling, logging, security & auth | Planned (issue #8) |
