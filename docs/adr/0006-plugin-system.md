@@ -3,7 +3,7 @@
 - **Status:** Proposed (→ Accepted on merge of the PR for issue #5)
 - **Date:** 2026-07-05
 - **Deciders:** project owner + AI agents
-- **Depends on:** [ADR 0003](0003-overall-architecture.md) (ports, DDD §9), [ADR 0004](0004-event-sourcing-cqrs.md)
+- **Depends on:** [ADR 0003](0003-overall-architecture.md) (ports, DDD §9), [ADR 0004](0004-event-sourcing-cqrs.md), [ADR 0020](0020-core-vs-plugin-boundary.md) (core/plugin boundary)
 
 ## Context
 
@@ -26,8 +26,10 @@ boundary (ACL). The conformance harness (#9) enforces that plugins import nothin
 
 A plugin declares one or more **capabilities** in its manifest and contributes only those:
 
-- **Rule system** — schemas for entities/attributes/skills, check/roll/formula logic, derived values,
-  advancement, and **generators** (fixed + random) for characters and monsters/NPCs.
+- **Rule system** — populates the core **generic trait meta-model** (ADR 0020) with concrete
+  attributes/skills/abilities/advantages/resources, derived-value **formulas**, the **dice/resolution
+  mechanic**, check logic, advancement, and **generators** (fixed + random) for characters and
+  monsters/NPCs. The core stores/edits them generically; the plugin gives them meaning.
 - **Theme** — a design-token set (+ optional assets), per ADR 0007.
 - **Content pack** — user-provided data conforming to a rule-system schema (see §8, legal boundary).
 - **UI extension** — components mounted into declared **UI slots** (frontend only).
@@ -92,6 +94,30 @@ or values (see [`docs/legal/dsa5-content-boundary.md`](../legal/dsa5-content-bou
 values/texts are **user-provided content packs**; the content-pack capability + import mechanism exist
 precisely so users bring their own licensed data.
 
+### 9. Activation & scoping — running multiple plugins at once
+
+Multiple plugins (of any kind) can be enabled and used **simultaneously**; each capability applies at a
+defined **scope**:
+
+- **Enablement = user/workspace scope.** A user may enable **many** plugins at once — e.g. **DSA5 *and*
+  Shadowrun** rule systems, plus a theme and several content packs — all installed and available together.
+- **Rule-system capability → binds per character/campaign.** Each character (and campaign) selects
+  **exactly one** active rule system, recorded as **provenance** (§4, ADR 0004). Different characters may
+  use different systems side by side; a *single* character is **never** governed by two rule systems
+  (incoherent — different attributes/dice). So "use DSA5 and Shadowrun" = both enabled, with DSA5
+  characters and Shadowrun characters coexisting.
+- **Theme capability → orthogonal (presentation scope).** A theme is chosen per user, optionally
+  overridden per campaign, **independently** of the rule system (ADR 0007). DSA5 rules + a completely
+  different theme is fully supported.
+- **Content packs → stack** on a rule system; **AI tools / UI extensions / import-export → additive**,
+  active where relevant.
+- **Isolation of coexisting plugins:** every plugin **namespaces** its contributions by plugin `id`
+  (traits, tokens, tools, sheet layouts) — the DDD bounded-context boundary (ADR 0003 §9) made concrete —
+  so DSA5 and Shadowrun never collide.
+- **Conflict resolution:** where only one contribution may be active at a scope (one bound rule system per
+  character; one active theme per user/campaign), the host requires an **explicit selection** — never
+  implicit or ambiguous. Otherwise contributions simply coexist as options.
+
 ## Consequences
 
 **Positive:** any rule system is supported via plugins; third parties can extend safely; FE/BE evolve
@@ -114,6 +140,7 @@ third-party sandbox matures.
 ## References
 
 - [ADR 0003](0003-overall-architecture.md) (ports, DDD §9), [ADR 0004](0004-event-sourcing-cqrs.md)
-  (events, provenance, upcasting), ADR 0007 (theme tokens), ADR 0008 (AI tools), ADR 0009
+  (events, provenance, upcasting), [ADR 0020](0020-core-vs-plugin-boundary.md) (core/plugin meta-model),
+  ADR 0007 (theme tokens), ADR 0008 (AI tools), ADR 0009
   (authorization), ADR 0010 (plugin sandbox & threat model), ADR 0017 (contract tests),
   [`docs/legal/dsa5-content-boundary.md`](../legal/dsa5-content-boundary.md). Issue #5.
