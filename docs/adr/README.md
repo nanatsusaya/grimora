@@ -18,5 +18,12 @@ listed here with a status.
 | 0008 | AI provider abstraction | Planned (issue #7) |
 | 0009 | Cross-cutting: error handling, logging, security & auth | Planned (issue #8) |
 | 0010 | Security & Privacy by Design | Planned (issue #12) |
+| 0011 | API design & contracts | Planned (issue #13) |
+| 0012 | Web rendering & frontend state | Planned (issue #14) |
+| 0013 | Scalability, performance & caching | Planned (issue #15) |
+| 0014 | DevOps: CI/CD, IaC, environments, backup/DR | Planned (issue #16) |
+| 0015 | Compliance & data protection (DSGVO) | Planned (issue #17) |
+| 0016 | Accessibility (WCAG 2.2 AA / BFSG) & i18n | Planned (issue #18) |
+| 0017 | Testing strategy | Planned (issue #19) |
 
 Status values: `Proposed` · `Accepted` · `Superseded` · `Planned` (ticketed, not yet written).
