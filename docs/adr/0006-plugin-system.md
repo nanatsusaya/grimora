@@ -106,17 +106,20 @@ defined **scope**:
   use different systems side by side; a *single* character is **never** governed by two rule systems
   (incoherent — different attributes/dice). So "use DSA5 and Shadowrun" = both enabled, with DSA5
   characters and Shadowrun characters coexisting.
-- **Theme capability → orthogonal (presentation scope).** A theme is chosen per user, optionally
-  overridden per campaign, **independently** of the rule system (ADR 0007). DSA5 rules + a completely
-  different theme is fully supported.
+- **Theme capability → orthogonal (presentation scope), multi-scope override.** Themes are independent
+  of the rule system and resolved by a **cascade — the most specific context wins:**
+  **character (displayed hero) › campaign › user preference › rule-system default › app base.** A rule
+  plugin (e.g. DSA5) may *ship a recommended default theme*; the user can override it **globally, per
+  campaign, or per individual hero**. So DSA5 rules with a completely different theme — or even a
+  different look per displayed hero — are fully supported. The resolution cascade is detailed in ADR 0007.
 - **Content packs → stack** on a rule system; **AI tools / UI extensions / import-export → additive**,
   active where relevant.
 - **Isolation of coexisting plugins:** every plugin **namespaces** its contributions by plugin `id`
   (traits, tokens, tools, sheet layouts) — the DDD bounded-context boundary (ADR 0003 §9) made concrete —
   so DSA5 and Shadowrun never collide.
 - **Conflict resolution:** where only one contribution may be active at a scope (one bound rule system per
-  character; one active theme per user/campaign), the host requires an **explicit selection** — never
-  implicit or ambiguous. Otherwise contributions simply coexist as options.
+  character; one *resolved* theme per rendered view via the cascade above), the host requires an
+  **explicit selection** — never implicit or ambiguous. Otherwise contributions simply coexist as options.
 
 ## Consequences
 
