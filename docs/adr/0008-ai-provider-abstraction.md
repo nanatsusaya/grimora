@@ -64,11 +64,17 @@ authorization — never raw DB access. The port makes the loop **testable** with
 - **PII minimization:** prompts include only what is needed; sensitive data is minimized/redacted
   (with ADR 0015).
 
-### 7. Provider config & data-flow policy
+### 7. Provider config & data-flow policy (decided)
 
 Config selects provider + model (per deployment, optionally per user), with an optional fallback chain.
-Whether **external** providers are allowed is a **policy toggle** (default may be local-only until the
-user consents to external data flow — decided with ADR 0015).
+
+- **External providers are disabled by default** and are enabled **only after the user's explicit
+  consent** to external data flow (DSGVO; detail in ADR 0015). Until consent, the AI uses a **local
+  provider (Ollama)** if available; otherwise AI features are simply unavailable — the app stays fully
+  usable via the UI (frontend-first).
+- **Default cloud model once consented: Anthropic Claude Haiku** (cheap, good tool-calling); larger
+  models (e.g. Sonnet) are opt-in for complex tasks.
+- Provider API keys live only at the composition root (ADR 0003 §6), never in domain/plugins/logs.
 
 ## Consequences
 
