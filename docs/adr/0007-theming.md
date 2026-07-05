@@ -1,7 +1,7 @@
 # ADR 0007 — Theming architecture (design tokens as single source of truth)
 
-- **Status:** Proposed (→ Accepted on merge of the PR for issue #6)
-- **Date:** 2026-07-05
+- **Status:** Accepted
+- **Date:** 2026-07-05 (accepted via PR #28, issue #6)
 - **Deciders:** project owner + AI agents
 - **Depends on:** [ADR 0002](0002-tech-stack-and-tooling.md) (modern CSS), [ADR 0003](0003-overall-architecture.md)
   (design-tokens module, presentation), [ADR 0006](0006-plugin-system.md) (theme capability),
