@@ -1,7 +1,7 @@
 # ADR 0006 — Plugin system & extensibility contract
 
-- **Status:** Proposed (→ Accepted on merge of the PR for issue #5)
-- **Date:** 2026-07-05
+- **Status:** Accepted
+- **Date:** 2026-07-05 (accepted via PR #25, issue #5)
 - **Deciders:** project owner + AI agents
 - **Depends on:** [ADR 0003](0003-overall-architecture.md) (ports, DDD §9), [ADR 0004](0004-event-sourcing-cqrs.md), [ADR 0020](0020-core-vs-plugin-boundary.md) (core/plugin boundary)
 
