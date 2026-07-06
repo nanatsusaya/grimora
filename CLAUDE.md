@@ -19,6 +19,7 @@ bun run dev                 # turbo dev (all workspaces)
 bun run lint                # biome check (lint + format check)
 bun run lint:fix            # biome auto-fix
 bun run typecheck           # turbo typecheck (all workspaces)
+bun run arch                # architecture conformance harness (dependency-cruiser + fitness tests)
 bun run test                # turbo test (all workspaces)
 bun run build                # turbo build (all workspaces)
 ```
@@ -32,8 +33,10 @@ bun test src/index.test.ts          # from inside the package dir
 bun test src/index.test.ts -t "ok"  # filter by test name
 ```
 
-CI (`.github/workflows/ci.yml`) runs, in order: install (frozen lockfile) → lint → typecheck → test →
-build. Keep changes green against all four before considering work done.
+CI (`.github/workflows/ci.yml`) runs, in order: install (frozen lockfile) → lint → typecheck → arch →
+test → build. Keep changes green against all of these before considering work done. The `arch` step is
+the architecture conformance harness (`scripts/arch/`, issue #9): it enforces the ADR 0003 §2
+dependency rule and related security boundaries — see `scripts/arch/README.md`.
 
 ## Architecture (read the ADRs before changing structure)
 

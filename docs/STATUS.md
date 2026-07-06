@@ -10,8 +10,9 @@
   `tsconfig.base.json` (strict), CI (`.github/workflows/ci.yml`), `docker-compose` (Postgres + MinIO
   + self-hosted Auth via `gotrue` + optional Ollama), `packages/shared-types`, ADR-/`docs/legal/`-Struktur.
 - **Phase 1 (Architektur als ADRs):** 🟡 läuft — das architektonische Fundament wird als ADRs
-  erarbeitet und einzeln per PR gemergt. **10 ADRs Accepted** (0001–0010 + 0020); als Nächstes das
-  erste Implementierungs-Ticket (Conformance-Harness, #9).
+  erarbeitet und einzeln per PR gemergt. **10 ADRs Accepted** (0001–0010 + 0020). Das erste
+  Implementierungs-Ticket (Conformance-Harness, #9) ist umgesetzt (`scripts/arch/` +
+  `.dependency-cruiser.cjs`, als CI-`arch`-Step verdrahtet) — PR offen.
 - **Repo-Zustand:** `main` synchron mit `origin/main`. `LICENSE` (MIT) liegt im Repo-Root. Alle
   gemergten Branches sind aufgeräumt (nur `main` verbleibt lokal wie remote).
 
@@ -42,11 +43,11 @@ Lücke für ADR 0010/0015.
 
 ## Nächste Schritte (in dieser Reihenfolge)
 
-1. **Conformance-Harness** — Architektur-Konformität automatisiert in CI prüfen · Issue #9
-   (erstes Implementierungs-Ticket; prüft Dependency-Regel, ADR-Index & die in ADR 0010 §7
-   aufgezählten Security-Fitness-Functions). **← aktueller Fokus.**
-2. **Danach / geplant:** ADR 0011–0017 (Issues #13–#19), ADR 0019 (Analytics/Telemetry, #23).
+1. **Conformance-Harness-PR mergen** (#9) — danach `main` syncen & Branch löschen.
+2. **Weitere ADRs**: ADR 0011–0017 (Issues #13–#19), ADR 0019 (Analytics/Telemetry, #23).
    Alles unter **Epic #1** (Phase-1-Architektur). Epic #10 = Phase 2 Kern-Engine (blocked).
+   Die Harness-Regeln parallel erweitern, sobald `core-domain`/Adapter/Plugins tatsächlich entstehen
+   (die vorausschauenden Regeln greifen dann automatisch).
 
 ### Offene Follow-ups aus ADR 0010
 

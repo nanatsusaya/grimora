@@ -20,12 +20,14 @@
     "dev": "turbo run dev",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
+    "arch": "bun test scripts/arch",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "format": "biome format --write ."
   },
   "devDependencies": {
     "@biomejs/biome": "^2.0.0",
+    "dependency-cruiser": "^18.0.0",
     "turbo": "^2.0.0",
     "typescript": "^5.6.0"
   }
