@@ -32,7 +32,11 @@ update the row here if research reveals a change, rather than re-deriving it ins
 | **Jugendschutz (JMStV/JuSchG)** | In force | **Depends on product decisions not yet made** — user-generated campaign content/images could be developmentally-sensitive; needs age-rating/labelling and possibly technical protections (age gate) if content moderation doesn't bound this. **Confirmed by the owner (2026-07-06): deliberately deferred, to be decided in ADR 0010** rather than here. | **ADR 0010** (owner-confirmed) |
 | **Digital Fairness Act (DFA)** | **Not yet law** — Commission proposal expected Q3/Q4 2026 (dark patterns, addictive design, unfair personalization) | **Not yet applicable** — track for when UI patterns (subscription flows, nudges) are designed | Watch-list; revisit when the proposal is tabled |
 | **`.game` gTLD** | Open, unrestricted generic TLD since 2015 (currently operated by XYZ.COM); standard UDRP for trademark disputes | No special legal obligations beyond standard ICANN reserved-names/UDRP rules; no gambling-law trigger identified (dice generate character values, not wagers) | `docs/naming.md` |
-| **Gewerbe-/Unternehmensregistrierung** (business registration & licensing, e.g. Gewerbeanmeldung, Kleinunternehmerregelung §19 UStG, Impressumspflicht) | **Not yet researched** | **Flagged as the next topic to investigate** (owner, 2026-07-06) — Grimora is currently run by a private individual with no registered business entity; this needs to change before any commercial activity (paid tiers) or several exemptions above (BFSG) stop applying by default | Not yet owned — next research task before ADR 0015 (compliance ops) |
+| **Impressumspflicht** (§5 DDG, imprint duty) | In force | **Likely applies already, right now** — courts interpret "geschäftsmäßig" broadly: an offer counts as such once it goes **beyond purely private/family use**, independent of whether money changes hands or a Gewerbe is registered. A public repo + a platform meant for other GMs/players (not just personal/family use) plausibly crosses that line **today**, before any Gewerbe/monetization decision. Fines up to **50,000 €** plus competitor cease-and-desist (*Abmahnung*) risk. | **Not yet owned by any ADR — highest-priority gap of this whole matrix**, since (unlike BFSG/NIS2) this doesn't wait for a size/revenue threshold |
+| **Gewerbeanmeldung** (business registration) | Required from the **first day** an activity is conducted *nachhaltig* (repeatedly) **and** with *Gewinnerzielungsabsicht* (profit intent) — no revenue threshold, no grace period. Freelancers under §18 EStG are exempt from registering (but see the next row — this likely doesn't apply to Grimora). | **Not required today** (no profit intent yet, per owner) — **will be required at the latest when any paid tier launches** (before it launches, not after). Register at the Gewerbeamt at that point. | Flagged for **ADR 0015** (compliance ops) — trigger this when the monetization decision is made, not before |
+| **Freiberufler vs. Gewerbe classification** | N/A (classification question, not a deadline) | **Grimora is very likely *gewerblich*, not *freiberuflich*, once monetized** — the Freiberufler exemption for software developers only covers individually-engineered, complex *client* solutions ("system-software"/consulting-like work); **operating your own product/platform** (exactly what Grimora is) is explicitly named in the sources researched as a commercial (*gewerblich*) activity, not a free profession. This matters because Freiberufler skip Gewerbeanmeldung entirely — Grimora likely can't rely on that exemption. | Feeds the Gewerbeanmeldung row above; **recommend confirming with a *Steuerberater*** before monetization, since the freelance/commercial line is fact-specific and contestable case by case |
+| **Kleinunternehmerregelung** (§19 UStG, VAT small-business exemption) | Current thresholds (since 1 Jan 2025, unchanged for 2026): **≤ 25,000 € previous-year revenue** *and* **≤ 100,000 € current-year revenue** (gross, incl. VAT) → exempt from charging VAT; exceeding 100k€ switches to full VAT liability **mid-year**, not just next year | **Applies once Gewerbe is registered and revenue stays under the thresholds** — a natural fit for Grimora's likely early scale; keeps invoicing simple (no VAT line items) | ADR 0015 (compliance ops) at monetization time |
+| **Rechtsform / Haftung** (legal form & liability exposure) | N/A (business decision, not a deadline) | **Not yet decided.** *Einzelunternehmen* (sole proprietorship) is simplest/cheapest but means **unlimited personal liability** with the owner's entire personal wealth — relevant because DSGVO fines can reach five figures even for small operators, and Grimora will process user personal data (ADR 0009) from day one of any real user base. A **UG (haftungsbeschränkt)** ("mini-GmbH") caps liability to company assets and needs as little as **1 € share capital** — commonly recommended over a bare sole proprietorship for exactly this liability-exposure reason, at modest extra setup effort. | **Open decision for the owner** — not an ADR concern per se (it's a business/legal-entity choice, not software architecture), but directly affects the risk calculus behind ADR 0009/0010's data-handling decisions |
 
 ## Notes
 
@@ -40,14 +44,19 @@ update the row here if research reveals a change, rather than re-deriving it ins
   reporting, Widerrufsbutton) fall within the next 2–12 months and should be re-verified closer to
   the date, since EU tech regulation has shown a pattern of last-minute delays (see the May 2026
   Digital Omnibus precedent for the AI Act).
-- Fernabsatzrecht/Widerrufsbutton and the new business-registration row currently have **no owning
-  ADR** — a known gap for ADR 0010/0015 to close, not an oversight to silently carry forward.
+- Fernabsatzrecht/Widerrufsbutton, Impressumspflicht, Gewerbeanmeldung and Rechtsform/Haftung currently
+  have **no owning ADR** — a known gap for ADR 0010/0015 to close, not an oversight to silently carry
+  forward.
 - "Applies to Grimora?" assessments assume the **current** project shape confirmed by the owner
   (2026-07-06): a **private individual**, no registered business entity, no employees, pre-revenue.
   Several exemptions (BFSG, NIS2 size threshold) are **status-dependent** — re-check this matrix once
-  a legal entity/Gewerbe is registered (flagged as the next topic to investigate) or the project
-  crosses a size/revenue milestone or ships a new distribution channel (mobile/desktop apps trigger
-  CRA product scope).
+  a legal entity/Gewerbe is registered or the project crosses a size/revenue milestone or ships a new
+  distribution channel (mobile/desktop apps trigger CRA product scope).
+- **Important distinction surfaced by the business-registration research**: unlike BFSG/NIS2/Gewerbe
+  (all **status- or revenue-gated**, i.e. genuinely not applicable yet), **Impressumspflicht is
+  plausibly already required today** regardless of Gewerbe/revenue status, purely because the offering
+  goes beyond private/family use. This is the one row in this matrix that may need action **before**,
+  not at, the monetization decision.
 
 ## Related
 
