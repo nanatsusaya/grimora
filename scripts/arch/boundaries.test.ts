@@ -27,5 +27,6 @@ describe("architecture boundaries (ADR 0003 §2)", () => {
     expect(report.errors).toBeGreaterThan(0);
     expect(firedRules.has("core-no-adapters")).toBe(true);
     expect(firedRules.has("plugins-only-sdk")).toBe(true);
+    expect(firedRules.has("shared-types-is-a-leaf")).toBe(true);
   });
 });
