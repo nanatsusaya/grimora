@@ -160,10 +160,10 @@ enforced in the Application layer); Postgres RLS is defense-in-depth, never the 
 - **Scale decisions to the project's actual stage** (solo, pre-revenue, no public launch): prefer a
   trigger-gated backlog over speculative up-front work and avoid over-engineering — but record deferred
   concerns so nothing is lost.
-- **Language:** code, code comments, ADRs, and normative docs (e.g. `SECURITY.md`), plus commit
-  messages, PR titles/bodies and issues, are written in **English**; operational handoff notes
-  (`docs/STATUS.md`, `docs/recurring-tasks.md`) are currently kept in **German**; direct conversation
-  with the owner is in **German**.
+- **Language:** **all repository artefacts are written in English** — code, code comments, ADRs and
+  every file under `docs/`, `README`s, `SECURITY.md`, commit messages, PR titles/bodies and issues.
+  **Direct conversation with the owner is in German.** The only exception is user-facing UI strings,
+  handled later via i18n (German and other languages) — never by writing project docs in German.
 
 ### Code documentation & comments
 
