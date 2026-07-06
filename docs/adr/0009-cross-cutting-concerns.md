@@ -50,6 +50,7 @@ code) builds against it.
   | `NotFound` | Referenced entity doesn't exist | 404 |
   | `Conflict` | State/business-rule conflict (e.g. optimistic concurrency) | 409 |
   | `Unauthorized` / `Forbidden` | Missing/insufficient authentication or authorization | 401 / 403 |
+  | `RateLimited` | Per-user/plan rate limit or token budget exceeded (ties to ADR 0008 §6 cost/abuse controls) | 429 |
   | `Infrastructure` | Unexpected adapter/dependency failure | 500 |
 
   The category set is owned here; the exact HTTP status mapping table is ADR 0011's to fix (API
@@ -96,10 +97,10 @@ code) builds against it.
 - **`AuthPort`** (authentication: login, session, token issuance/validation) — **one port, two
   adapters**:
   - **Supabase Cloud** (hosted deployments, EU region — ADR 0002/hosting.md), and
-  - the **official self-hosted Supabase stack** (GoTrue + supporting services) for local/self-hosted
-    Docker deployments — closing the self-hostability gap without introducing a second, divergent
-    auth technology. Wiring the self-hosted Supabase containers into `docker-compose.yml` is a
-    **follow-up implementation item** (Phase 2 / a dedicated infra ticket), not part of this ADR.
+  - the **official self-hosted Supabase stack** (GoTrue) for local/self-hosted Docker deployments —
+    closing the self-hostability gap without introducing a second, divergent auth technology. The
+    `gotrue` service is now wired into `docker-compose.yml` alongside Postgres, running against the
+    same local Postgres instance (GoTrue owns/migrates its own `auth` schema there on first boot).
   - Session/token handling follows Supabase's default: JWT access token + refresh token. Token
     validation happens **at the inbound adapter** (`apps/api`); nothing deeper in the stack re-parses
     or re-validates raw tokens.
@@ -107,8 +108,8 @@ code) builds against it.
   *who*; authorization answers *what they may do*; ADR 0003 §7 lists them as distinct ports).
   Enforced in the **Application layer**, as an explicit policy check per use case — never scattered
   across adapters or left implicit.
-  - **Minimum role set: Owner, GM, Player** (extensible by later amendment/ADR as new needs surface —
-    e.g. a read-only "Spectator" role is plausible but not decided here).
+  - **Minimum role set: Owner, GM, Player, Spectator** (read-only; e.g. someone following a campaign
+    without playing) — extensible by later amendment/ADR as further needs surface.
   - **Resource-level checks layer on top of roles** (e.g. "is this user the GM *of this specific
     campaign*"), not just global role membership.
   - This is the **concrete port/layer home** for the authorization principle already stated at
@@ -150,10 +151,12 @@ is authoritative.
 
 **Negative / costs:** a full error-class hierarchy per bounded context is more upfront design than the
 bare `Result` type alone — mitigated by keeping the category set small and closed for now (extend only
-via amendment/superseding ADR). Running/maintaining the self-hosted Supabase stack for local dev adds
-operational complexity beyond the current Postgres+MinIO+Ollama compose file — deferred to a follow-up
-infra ticket rather than blocking this ADR. Two Supabase deployment modes (cloud vs self-hosted) must
-be kept in sync as Supabase evolves.
+via amendment/superseding ADR). Adding `gotrue` to `docker-compose.yml` adds an extra local container
+and a JWT-secret/env to manage beyond the current Postgres+MinIO+Ollama stack. Two Supabase deployment
+modes (cloud vs self-hosted) must be kept in sync as Supabase evolves; the full self-hosted Supabase
+suite (Kong, Studio, Realtime, Storage-API) is intentionally **not** added — MinIO already covers
+object storage and `apps/api` already covers the REST/API surface, so only `gotrue` (Auth) is needed
+locally.
 
 ## Alternatives considered
 
