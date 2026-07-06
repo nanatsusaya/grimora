@@ -41,12 +41,43 @@ Fristen sind kurzfristig: **AI-Act Art. 50** (Chatbot-Offenlegung) am **2. Aug 2
 ab **19. Jun 2026**. Zwei Themen (Widerrufsbutton, JMStV) haben noch keine federführende ADR — offene
 Lücke für ADR 0010/0015.
 
-## Nächste Schritte (in dieser Reihenfolge)
+## Nächste Schritte (revidierte Reihenfolge)
 
-1. **Weitere ADRs**: ADR 0011–0017 (Issues #13–#19), ADR 0019 (Analytics/Telemetry, #23).
-   Alles unter **Epic #1** (Phase-1-Architektur). Epic #10 = Phase 2 Kern-Engine (blocked).
-   Die Harness-Regeln (#9, gemergt) parallel erweitern, sobald `core-domain`/Adapter/Plugins
-   tatsächlich entstehen (die vorausschauenden Regeln greifen dann automatisch).
+Reihenfolge nach externem ADR-Review (2026-07-07, s. u.) **umpriorisiert** — nicht mehr stur numerisch,
+sondern implementierungs-blockierende ADRs zuerst. Alles unter **Epic #1**; Epic #10 = Phase 2
+Kern-Engine (blocked).
+
+1. **ADR 0011 — API-Design & Contracts** (#13) — entsperrt UI/AI/Sync/MCP/Error-Mapping. **← nächster Fokus.**
+2. **ADR 0021 — Rules Execution: Formel/Würfel/deterministische Runtime** (#41, neu) — vor Plugin-SDK v0
+   & DSA5; hängt an der Sandbox-Frage (DSL vs. beliebiger TS-Code).
+3. **ADR 0017 — Testing-Strategie** (#19) — vorgezogen; muss vor Event-Store/Sync/SDK-Code stehen.
+4. **ADR 0022 — Walking Skeleton / Golden Use Cases** (#42, neu) — dünner Durchstich als
+   Architektur-Validierung, bevor breit Phase-2-Code entsteht.
+5. **ADR 0015 — Compliance-Ops + Consent** (#17) — früh (Impressum-Lücke, AI-Consent-Scoping = Constraint E).
+6. **ADR 0012** (#14, vor `apps/web`) · **ADR 0014** (#16, vor Cloud-Sync/echten Nutzern).
+7. **Backlog mit Auslöser** (nicht jetzt blockierend, trigger-gebunden): ADR 0023 Event-Payload-Privacy
+   (#43, vor echten Aggregaten), ADR 0024 Realtime/Presence (#44), ADR 0013 Perf-Budgets (#15),
+   ADR 0019 Analytics (#23), ADR 0016 a11y/i18n (#18); ferner Asset-Pipeline, Plugin-Registry/Signing,
+   Authz-Matrix-Tiefe, Conflict/Undo-UX, Search, Notifications, Monetization, Mobile-Security, Plugin-DX.
+
+Die Harness-Regeln (#9, gemergt) parallel erweitern, sobald `core-domain`/Adapter/Plugins tatsächlich
+entstehen (die vorausschauenden Regeln greifen dann automatisch).
+
+### Externes ADR-Review (2026-07-07) — Einordnung & Konsequenzen
+
+Ein externes Review bewertete die accepted ADRs (0001–0010, 0020) als **überdurchschnittlich starkes
+Fundament bei den statischen Architekturgrenzen**, mit echten Lücken beim *Laufzeitverhalten*. Daraus
+abgeleitet (bewusst **nicht** die vollen ~10 vorgeschlagenen ADRs — vieles ist für ein Solo-/pre-revenue-
+Projekt trigger-gebundenes Backlog):
+
+- **Neue ADRs angelegt:** 0021 Rules Execution (#41), 0022 Walking Skeleton (#42),
+  0023 Event-Payload-Privacy (#43), 0024 Realtime/Presence (#44).
+- **Umpriorisiert:** 0011 API & 0017 Testing vorgezogen; Walking Skeleton als Phase-2-Eintritts-Gate.
+- **Festgehaltene Constraints:**
+  - *A:* Conformance-Harness um `shared-types`-Leaf-Guard erweitert (kein Import anderer Pakete) —
+    eigener PR (`feat/arch-shared-types-guard`).
+  - *D:* Event-Description-API muss bei crypto-geshredderten Feldern **graceful degradieren** → in #43.
+  - *E:* AI-Consent muss **ressourcen-/gruppenbezogen** sein (fremde Spielerdaten im Prompt) → in #17.
 
 ### Follow-ups aus ADR 0010
 
