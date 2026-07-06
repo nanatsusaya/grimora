@@ -43,19 +43,21 @@ Lücke für ADR 0010/0015.
 
 ## Nächste Schritte (in dieser Reihenfolge)
 
-1. **Conformance-Harness-PR mergen** (#9) — danach `main` syncen & Branch löschen.
-2. **Weitere ADRs**: ADR 0011–0017 (Issues #13–#19), ADR 0019 (Analytics/Telemetry, #23).
+1. **Weitere ADRs**: ADR 0011–0017 (Issues #13–#19), ADR 0019 (Analytics/Telemetry, #23).
    Alles unter **Epic #1** (Phase-1-Architektur). Epic #10 = Phase 2 Kern-Engine (blocked).
-   Die Harness-Regeln parallel erweitern, sobald `core-domain`/Adapter/Plugins tatsächlich entstehen
-   (die vorausschauenden Regeln greifen dann automatisch).
+   Die Harness-Regeln (#9, gemergt) parallel erweitern, sobald `core-domain`/Adapter/Plugins
+   tatsächlich entstehen (die vorausschauenden Regeln greifen dann automatisch).
 
-### Offene Follow-ups aus ADR 0010
+### Follow-ups aus ADR 0010
 
 - ✅ **Private Vulnerability Reporting** aktiviert (Owner, 2026-07-06).
-- ⬜ **`SECURITY.md`** im Repo-Root anlegen (verweist auf PVR, „keine öffentlichen Issues für
-  Sicherheitslücken", unterstützte Versionen).
-- ⬜ **Dependabot security updates** aktivieren (Repo-Setting; Secret-Scanning + Push-Protection sind
-  bereits an) — gehört zur CI-Dependency-Scanning-Anforderung aus ADR 0010 §7.
+- ✅ **`SECURITY.md`** im Repo-Root (verweist auf PVR, „keine öffentlichen Issues für
+  Sicherheitslücken", unterstützte Versionen) — PR (chore/adr-0010-followups).
+- ✅ **`.github/dependabot.yml`** angelegt (npm + github-actions, wöchentliche Version-Update-PRs) —
+  deckt die Dependency-Scanning-Anforderung aus ADR 0010 §7 ab.
+- ⬜ **Owner-Toggle:** unter *Settings → Code security* zusätzlich **Dependabot alerts** +
+  **Dependabot security updates** aktivieren (Repo-Setting, wie PVR). Secret-Scanning +
+  Push-Protection sind bereits an.
 
 ## Arbeits-Workflow pro ADR
 
