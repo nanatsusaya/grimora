@@ -76,11 +76,32 @@ Config selects provider + model (per deployment, optionally per user), with an o
   models (e.g. Sonnet) are opt-in for complex tasks.
 - Provider API keys live only at the composition root (ADR 0003 §6), never in domain/plugins/logs.
 
+### 8. MCP server as a future additional inbound adapter (no plugin-specific APIs)
+
+Grimora is expected to eventually expose an **MCP (Model Context Protocol) server** so external AI
+agents (not just the in-app chat) can drive the application. This does **not** require plugins to
+grow their own network-facing API:
+
+- The MCP server is **another inbound (driving) adapter** — like the in-app agent loop (§4) — sitting
+  in front of the **same tool registry** assembled from core + plugin AI-tool descriptors (§3,
+  ADR 0006 AI-tools capability). It translates MCP tool-call requests into calls against the existing
+  public API use-cases; it does not talk to plugins directly.
+- **Plugins never need a separate API.** A plugin only needs to declare its AI-tool descriptors via
+  the plugin SDK (ADR 0006 §2–3); the core validates and registers them once, and every inbound
+  adapter (in-app chat, MCP, future channels) shares that one registry.
+- **No new privilege path.** Exactly as in §2/§6: MCP-originated tool calls go through the same
+  authorization (ADR 0009), validation and confirmation-for-destructive-actions rules as any other
+  tool call — an external agent can do no more than the authenticated user it acts on behalf of.
+- **Deferred:** the concrete MCP transport/session/auth wiring (how an external agent authenticates,
+  how the tool registry is serialized to MCP's schema format) is a **protocol/contract detail**, fixed
+  when **ADR 0011** (API design & contracts) is written — this section only fixes the *shape*
+  (one shared tool registry, no plugin-specific APIs), not the wire format.
+
 ## Consequences
 
 **Positive:** provider-swappable (incl. local data-sovereign option); AI is a thin, non-privileged
 additional layer; AI-Act/DSGVO-aware; testable via a fake adapter; plugins extend the AI without core
-changes.
+changes; the same tool registry model scales to external agent access (MCP) without new plugin APIs.
 
 **Negative / costs:** an agent loop + tool-authorization plumbing to build; tool descriptors must stay in
 sync with the public API; cost/abuse controls needed; confirmation UX for destructive actions.
@@ -97,5 +118,12 @@ sync with the public API; cost/abuse controls needed; confirmation UX for destru
 
 - [ADR 0003](0003-overall-architecture.md) (ports, security §6, DDD §9), [ADR 0006](0006-plugin-system.md)
   (AI-tools capability), ADR 0009 (authorization), ADR 0010 (prompt-injection threat model), ADR 0011
-  (API/tool mapping), ADR 0013 (cost controls), ADR 0015 (DSGVO/consent, external data flow), ADR 0019
-  (analytics), ADR 0017 (fake-adapter tests). Issue #7.
+  (API/tool mapping, MCP transport detail), ADR 0013 (cost controls), ADR 0015 (DSGVO/consent, external
+  data flow), ADR 0019 (analytics), ADR 0017 (fake-adapter tests). Issue #7.
+
+## Amendments
+
+- **2026-07-06** — Added §8 *MCP server as a future additional inbound adapter*: clarifies that
+  external-agent access (MCP) is another inbound adapter over the existing core+plugin tool registry,
+  not a reason for plugins to expose their own APIs. No prior decision changed, only made explicit.
+  Authorized by the project owner.
