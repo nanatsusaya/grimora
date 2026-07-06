@@ -1,0 +1,30 @@
+# Dependabot version updates — keeps dependencies current so security patches land promptly.
+# Complements the secure-SDLC gate from ADR 0010 §7 (dependency scanning). This file enables
+# *version-update* PRs; the *security-update* / *alerts* side is a repo setting the owner enables
+# under Settings → Code security (like Private Vulnerability Reporting).
+#
+# Note: the JS ecosystem is declared as "npm" (Dependabot reads the package.json manifests across
+# the bun workspaces). Grouped minor/patch bumps keep PR noise low.
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    groups:
+      minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    groups:
+      actions:
+        update-types:
+          - "minor"
+          - "patch"
