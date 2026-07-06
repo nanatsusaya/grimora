@@ -1,7 +1,7 @@
 # ADR 0010 — Security & Privacy by Design
 
-- **Status:** Proposed
-- **Date:** 2026-07-06
+- **Status:** Accepted
+- **Date:** 2026-07-06 (accepted via PR #36, issue #12)
 - **Deciders:** project owner + AI agents
 - **Depends on:** [ADR 0003](0003-overall-architecture.md) (§6 security-by-design principle, §7 ports
   catalog, §1 dependency rule), [ADR 0005](0005-persistence-and-sync.md) (sync/storage surface for

@@ -10,9 +10,10 @@
   `tsconfig.base.json` (strict), CI (`.github/workflows/ci.yml`), `docker-compose` (Postgres + MinIO
   + self-hosted Auth via `gotrue` + optional Ollama), `packages/shared-types`, ADR-/`docs/legal/`-Struktur.
 - **Phase 1 (Architektur als ADRs):** 🟡 läuft — das architektonische Fundament wird als ADRs
-  erarbeitet und einzeln per PR gemergt.
-- **Repo-Zustand:** `main` synchron mit `origin/main`; PR #32 (`docs/legal/eu-de-compliance-matrix.md`)
-  offen, wartet auf Merge.
+  erarbeitet und einzeln per PR gemergt. **10 ADRs Accepted** (0001–0010 + 0020); als Nächstes das
+  erste Implementierungs-Ticket (Conformance-Harness, #9).
+- **Repo-Zustand:** `main` synchron mit `origin/main`. `LICENSE` (MIT) liegt im Repo-Root. Alle
+  gemergten Branches sind aufgeräumt (nur `main` verbleibt lokal wie remote).
 
 ### Angenommene ADRs (Accepted)
 
@@ -27,6 +28,7 @@
 | 0007 | Theming (Design-Tokens SSOT, GM/Player/Hero-Cascade) |
 | 0008 | KI-Provider-Abstraktion (Default Claude Haiku, extern erst nach Consent; §8 MCP als Future-Adapter) |
 | 0009 | Cross-cutting: Error-Taxonomie, Logging (pino+Sentry), Auth (Supabase Cloud + self-hosted GoTrue), RBAC (Owner/GM/Player/Spectator) |
+| 0010 | Security & Privacy by Design (STRIDE-Threat-Model, Plugin-Sandbox, `SecretsPort`/`CryptoPort`, Crypto-Shredding für DSGVO-Löschung, Security-Fitness-Functions für #9) |
 | 0020 | Core-vs-Plugin-Grenze (regel-agnostisches Meta-Modell) |
 
 ### Neu: EU/DE-Compliance-Matrix
@@ -40,17 +42,19 @@ Lücke für ADR 0010/0015.
 
 ## Nächste Schritte (in dieser Reihenfolge)
 
-Die **coding-blockierenden** ADRs zuerst — danach ist Phase 2 (echter Kern-Code) startklar:
+1. **Conformance-Harness** — Architektur-Konformität automatisiert in CI prüfen · Issue #9
+   (erstes Implementierungs-Ticket; prüft Dependency-Regel, ADR-Index & die in ADR 0010 §7
+   aufgezählten Security-Fitness-Functions). **← aktueller Fokus.**
+2. **Danach / geplant:** ADR 0011–0017 (Issues #13–#19), ADR 0019 (Analytics/Telemetry, #23).
+   Alles unter **Epic #1** (Phase-1-Architektur). Epic #10 = Phase 2 Kern-Engine (blocked).
 
-1. **PR #32 mergen** (Compliance-Matrix) — kein Blocker, aber sollte vor ADR 0010 rein, da ADR 0010
-   direkt darauf referenziert.
-2. **ADR 0010** — Security & Privacy by Design (Threat-Model, Plugin-Sandbox) · Issue #12 — soll laut
-   Owner-Vorgabe explizit auf DSGVO/AI-Act/CRA/BFSG **und** die übrigen Matrix-Punkte eingehen.
-3. **Conformance-Harness** — Architektur-Konformität automatisiert in CI prüfen · Issue #9
-   (erstes Implementierungs-Ticket; prüft u. a. Dependency-Regel & ADR-Index)
+### Offene Follow-ups aus ADR 0010
 
-**Danach / geplant:** ADR 0011–0017 (Issues #13–#19), ADR 0019 (Analytics/Telemetry, #23).
-Alles unter **Epic #1** (Phase-1-Architektur). Epic #10 = Phase 2 Kern-Engine (blocked).
+- ✅ **Private Vulnerability Reporting** aktiviert (Owner, 2026-07-06).
+- ⬜ **`SECURITY.md`** im Repo-Root anlegen (verweist auf PVR, „keine öffentlichen Issues für
+  Sicherheitslücken", unterstützte Versionen).
+- ⬜ **Dependabot security updates** aktivieren (Repo-Setting; Secret-Scanning + Push-Protection sind
+  bereits an) — gehört zur CI-Dependency-Scanning-Anforderung aus ADR 0010 §7.
 
 ## Arbeits-Workflow pro ADR
 

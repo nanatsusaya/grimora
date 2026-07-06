@@ -19,7 +19,7 @@ listed here with a status.
 | [0007](0007-theming.md) | Theming architecture (design tokens SSOT) | Accepted |
 | [0008](0008-ai-provider-abstraction.md) | AI provider abstraction | Accepted |
 | [0009](0009-cross-cutting-concerns.md) | Cross-cutting: error handling, logging, security & auth | Accepted |
-| [0010](0010-security-and-privacy-by-design.md) | Security & Privacy by Design | Proposed (issue #12) |
+| [0010](0010-security-and-privacy-by-design.md) | Security & Privacy by Design | Accepted |
 | 0011 | API design & contracts | Planned (issue #13) |
 | 0012 | Web rendering & frontend state | Planned (issue #14) |
 | 0013 | Scalability, performance & caching | Planned (issue #15) |
