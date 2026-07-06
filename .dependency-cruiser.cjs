@@ -81,6 +81,19 @@ module.exports = {
       },
     },
     {
+      name: "shared-types-is-a-leaf",
+      severity: "error",
+      comment:
+        "ADR 0003 §3 — shared-types is the leaf (pure types, importable everywhere); it must not " +
+        "import any other workspace package, so Domain/adapter/plugin vocabulary can't creep into it " +
+        "(external ADR review follow-up, point A).",
+      from: { path: "(?:^|/)packages/shared-types/" },
+      to: {
+        path: "(?:^|/)(?:packages|apps|plugins)/",
+        pathNot: "(?:^|/)packages/shared-types/",
+      },
+    },
+    {
       name: "no-deep-import",
       severity: "error",
       comment:
