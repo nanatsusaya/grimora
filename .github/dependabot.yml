@@ -1,23 +1,15 @@
-# Dependabot version updates — keeps dependencies current so security patches land promptly.
-# Complements the secure-SDLC gate from ADR 0010 §7 (dependency scanning). This file enables
-# *version-update* PRs; the *security-update* / *alerts* side is a repo setting the owner enables
-# under Settings → Code security (like Private Vulnerability Reporting).
+# Dependabot version updates — github-actions only.
 #
-# Note: the JS ecosystem is declared as "npm" (Dependabot reads the package.json manifests across
-# the bun workspaces). Grouped minor/patch bumps keep PR noise low.
+# JS/TS dependency *version* updates are intentionally NOT managed by Dependabot: it does not
+# update bun.lock in bun *workspace* monorepos (dependabot/dependabot-core#14223 — the `npm`
+# ecosystem never touches bun.lock, and the `bun` ecosystem currently skips it under workspaces),
+# so every JS PR fails CI's `bun install --frozen-lockfile`. Until that bug is fixed:
+#   - JS *security* fixes are still covered by **Dependabot alerts / security updates** (repo
+#     setting, enabled) — the secure-SDLC dependency gate from ADR 0010 §7,
+#   - routine JS freshening is done manually via `bun update` (which regenerates bun.lock).
+# GitHub Actions have no lockfile, so Dependabot manages them here cleanly.
 version: 2
 updates:
-  - package-ecosystem: "npm"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-    open-pull-requests-limit: 10
-    groups:
-      minor-and-patch:
-        update-types:
-          - "minor"
-          - "patch"
-
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
