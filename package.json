@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "description": "Grimora — engine-agnostic tabletop RPG platform (DSA5 as the first rule-system plugin).",
+  "license": "MIT",
   "packageManager": "bun@1.3.14",
   "engines": {
     "node": ">=20",
