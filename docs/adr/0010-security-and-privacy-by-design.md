@@ -188,12 +188,19 @@ This section makes ADR 0006 §5 ("concrete sandbox + threat model live in ADR 00
   4. Every Application use case reaches a `PolicyPort` check (or is explicitly annotated public) —
      default-deny lint (§2).
   5. No `Math.random`/wall-clock in plugin behaviour or Domain (determinism, §3).
-- **Vulnerability handling / disclosure (CRA).** A **coordinated disclosure** process: a documented
-  contact (`SECURITY.md` with a security contact + supported-versions + reporting instructions), an
-  acknowledgement/triage SLA, and fixes shipped through the normal update mechanism. Actually
-  **required** once CRA product scope attaches (mobile/desktop ship / reporting from 11 Sep 2026);
-  established early because it is cheap and the matrix flags the date. The `SECURITY.md` file itself is
-  a follow-up implementation task, not part of this ADR.
+- **Vulnerability handling / disclosure (CRA).** A **coordinated disclosure** process is established
+  **now** (owner decision, R5), ahead of the 11 Sep 2026 CRA reporting date, because it is cheap and
+  the matrix flags the date:
+  - **Reporting channel = GitHub Private Vulnerability Reporting (PVR)**, not public issues. Public
+    issues are the wrong channel for a security report — they disclose the vulnerability to everyone
+    before a fix exists (a zero-day window). PVR gives reporters a repo-native **"Report a
+    vulnerability"** button that opens a **private** security advisory draft (no email inbox to
+    maintain). Enabling PVR (*Settings → Security → Private vulnerability reporting*) is a one-time repo
+    setting, tracked as a follow-up task.
+  - A **`SECURITY.md`** at the repo root documents: the PVR channel (with an explicit "do **not** file
+    public issues for security bugs" instruction), supported/covered versions, and an
+    acknowledgement/triage expectation. Fixes ship through the normal update mechanism. Writing
+    `SECURITY.md` and enabling PVR are follow-up implementation tasks, not part of this ADR text.
 
 ### 8. Content-safety obligations routed here (DSA & Jugendschutz)
 
@@ -226,8 +233,8 @@ notes it may already apply today (offer beyond purely private/family use), indep
 Gewerbe/revenue. This is a **content/operational** obligation (publishing a legally compliant imprint),
 **not** a software-architecture decision, so it does **not** belong in this ADR. It is routed to
 **ADR 0015** (compliance ops) and to the practical step of adding an imprint when a public
-website/service goes live. Recorded here only so the gap is not silently carried forward. **Open
-question O4** asks the owner to confirm this routing.
+website/service goes live. Recorded here only so the gap is not silently carried forward. The owner
+confirmed this routing (R4).
 
 ## Consequences
 
@@ -265,24 +272,27 @@ landing.
   into legal-ops content; rejected in favor of architectural hooks here + routing the operational
   detail to ADR 0015 (with owner confirmation, O4).
 
-## Open questions (for owner review)
+## Resolved questions (owner decisions, 2026-07-06)
 
-- **O1 — Sandbox timing.** Confirm the phased approach: ship first-party plugins **in-process** now and
-  build the untrusted-plugin sandbox only when a third-party registry is actually opened (ADR 0006 §5)?
-  Or should the sandbox be a Phase-2 prerequisite even before third-party plugins exist?
-- **O2 — Erasure mechanism.** Is **crypto-shredding** (per-subject key, destroy-to-erase) the accepted
-  strategy for DSGVO erasure against the immutable event log, versus pseudonymization/tombstones alone?
-  This choice shapes the event schema and key management from the first aggregate.
-- **O3 — Field-level encryption scope.** Accept "transparent-at-rest by default, selective field
-  encryption only where identified"? If yes, which fields (if any) are sensitive enough to encrypt at
-  the field level from day one — or defer that list to when concrete aggregates are designed?
-- **O4 — Impressum & JMStV routing.** Confirm that **Impressum** operational detail is routed to
-  ADR 0015 (not this ADR), and that the **JMStV** decision here (private-campaign-scoped visibility +
-  reserved labelling/age-gate hook, no age-verification tech now) matches your intent for the product's
-  content-sharing model.
-- **O5 — SECURITY.md / disclosure now or later.** Add a `SECURITY.md` + coordinated-disclosure process
-  now (cheap, ahead of the 11 Sep 2026 CRA reporting date), or defer until mobile/desktop actually
-  bring Grimora into CRA product scope?
+All five review questions were resolved by the owner; the decisions above already reflect them.
+
+- **R1 — Sandbox timing.** *Phased approach confirmed.* First-party plugins run **in-process** now; the
+  untrusted-plugin sandbox (§3) is built only when a third-party registry is actually opened (ADR 0006
+  §5). Not a Phase-2 prerequisite.
+- **R2 — Erasure mechanism.** *Crypto-shredding confirmed* (§6) as the DSGVO-erasure strategy against
+  the immutable event log — per-subject key, destroy-to-erase — over pseudonymization/tombstones alone.
+  The event schema and key management are designed for this from the first aggregate.
+- **R3 — Field-level encryption scope.** *Confirmed:* transparent-at-rest by default (§5), with
+  selective field-level encryption applied **only where identified**. No day-one field-encryption list;
+  the concrete "which fields are sensitive" decision is deferred to when real aggregates are designed.
+- **R4 — Impressum & JMStV routing.** *Confirmed.* **Impressum** operational detail is routed to
+  ADR 0015 (§9), not this ADR. The **JMStV** decision here (§8) — private-campaign-scoped visibility by
+  default + reserved labelling/age-gate hook, no age-verification technology built now — matches the
+  intended content-sharing model.
+- **R5 — SECURITY.md / disclosure now.** *Confirmed: establish now* (§7), ahead of the 11 Sep 2026 CRA
+  reporting date. **Reporting channel = GitHub Private Vulnerability Reporting**, explicitly **not**
+  public issues (public issues would disclose a vulnerability before a fix exists). `SECURITY.md` +
+  enabling PVR are tracked as follow-up tasks.
 
 ## References
 
