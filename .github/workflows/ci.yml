@@ -29,6 +29,9 @@ jobs:
       - name: Typecheck
         run: bun run typecheck
 
+      - name: Architecture conformance
+        run: bun run arch
+
       - name: Test
         run: bun run test
 
