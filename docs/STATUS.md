@@ -84,11 +84,14 @@ Projekt trigger-gebundenes Backlog):
 - ✅ **Private Vulnerability Reporting** aktiviert (Owner, 2026-07-06).
 - ✅ **`SECURITY.md`** im Repo-Root (verweist auf PVR, „keine öffentlichen Issues für
   Sicherheitslücken", unterstützte Versionen) — PR (chore/adr-0010-followups).
-- ✅ **`.github/dependabot.yml`** angelegt (npm + github-actions, wöchentliche Version-Update-PRs) —
-  deckt die Dependency-Scanning-Anforderung aus ADR 0010 §7 ab.
-- ⬜ **Owner-Toggle:** unter *Settings → Code security* zusätzlich **Dependabot alerts** +
-  **Dependabot security updates** aktivieren (Repo-Setting, wie PVR). Secret-Scanning +
-  Push-Protection sind bereits an.
+- ✅ **`.github/dependabot.yml`** — **nur `github-actions`** (wöchentlich). JS/TS-Version-Updates
+  bewusst *nicht* über Dependabot: es aktualisiert `bun.lock` in bun-Workspace-Monorepos nicht
+  ([dependabot-core#14223](https://github.com/dependabot/dependabot-core/issues/14223)), daher scheitert
+  jeder JS-PR an `--frozen-lockfile`. JS-Sicherheitslücken deckt **Dependabot alerts** ab;
+  Routine-Freshening manuell via `bun update`.
+- ✅ **Owner-Toggle:** **Dependabot alerts** + **security updates** aktiviert (Owner, 2026-07-07,
+  org-weit). Secret-Scanning + Push-Protection ebenfalls an → Dependency-Scanning-Gate aus ADR 0010 §7
+  abgedeckt.
 
 ## Arbeits-Workflow pro ADR
 
