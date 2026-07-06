@@ -1,122 +1,119 @@
-# Grimora — Projektstatus & nächste Schritte
+# Grimora — Project status & next steps
 
-> Lebende Handoff-Notiz zwischen Arbeits-Sessions. Zuletzt aktualisiert: **2026-07-06**.
-> Verbindliche Architektur steht in den ADRs (`docs/adr/`); diese Datei ist nur die Fortschritts-/Übergabe-Übersicht.
-> Stabile Arbeitsregeln (nicht der aktuelle Stand) stehen in `CLAUDE.md`.
+> Living handoff note between working sessions. Last updated: **2026-07-07**.
+> The binding architecture lives in the ADRs (`docs/adr/`); this file is only the progress/handoff overview.
+> Stable working rules (not the current state) live in `CLAUDE.md`.
 
-## Wo wir stehen
+## Where we stand
 
-- **Phase 0 (Fundament):** ✅ abgeschlossen — Monorepo-Gerüst (bun + Turborepo + biome),
+- **Phase 0 (foundation):** ✅ complete — monorepo scaffold (bun + Turborepo + biome),
   `tsconfig.base.json` (strict), CI (`.github/workflows/ci.yml`), `docker-compose` (Postgres + MinIO
-  + self-hosted Auth via `gotrue` + optional Ollama), `packages/shared-types`, ADR-/`docs/legal/`-Struktur.
-- **Phase 1 (Architektur als ADRs):** 🟡 läuft — das architektonische Fundament wird als ADRs
-  erarbeitet und einzeln per PR gemergt. **10 ADRs Accepted** (0001–0010 + 0020). Das erste
-  Implementierungs-Ticket (Conformance-Harness, #9) ist umgesetzt (`scripts/arch/` +
-  `.dependency-cruiser.cjs`, als CI-`arch`-Step verdrahtet) — PR offen.
-- **Repo-Zustand:** `main` synchron mit `origin/main`. `LICENSE` (MIT) liegt im Repo-Root. Alle
-  gemergten Branches sind aufgeräumt (nur `main` verbleibt lokal wie remote).
+  + self-hosted auth via `gotrue` + optional Ollama), `packages/shared-types`, ADR / `docs/legal/` structure.
+- **Phase 1 (architecture as ADRs):** 🟡 in progress — the architectural foundation is worked out as
+  ADRs and merged one PR at a time. **10 ADRs Accepted** (0001–0010 + 0020). The first implementation
+  ticket (conformance harness, #9) is done and merged (`scripts/arch/` + `.dependency-cruiser.cjs`,
+  wired as the CI `arch` step).
+- **Repo state:** `main` in sync with `origin/main`. `LICENSE` (MIT) is at the repo root. All merged
+  branches are cleaned up (only `main` remains locally and remote).
 
-### Angenommene ADRs (Accepted)
+### Accepted ADRs
 
-| ADR | Thema |
+| ADR | Topic |
 | --- | --- |
-| 0001 | ADR-Prozess (+ Owner-autorisierte Amendments) |
-| 0002 | Tech-Stack & Tooling (bun/biome/Supabase/Expo) |
-| 0003 | Gesamtarchitektur: Hexagonal / Ports & Adapters + DDD (§9) + Security-by-Design (§6) |
+| 0001 | ADR process (+ owner-authorized amendments) |
+| 0002 | Tech stack & tooling (bun/biome/Supabase/Expo) |
+| 0003 | Overall architecture: Hexagonal / Ports & Adapters + DDD (§9) + security-by-design (§6) |
 | 0004 | Event Sourcing & CQRS |
-| 0005 | Persistenz & Offline-first-Sync |
-| 0006 | Plugin-System (Multi-Plugin-Aktivierung, Theme-Cascade) |
-| 0007 | Theming (Design-Tokens SSOT, GM/Player/Hero-Cascade) |
-| 0008 | KI-Provider-Abstraktion (Default Claude Haiku, extern erst nach Consent; §8 MCP als Future-Adapter) |
-| 0009 | Cross-cutting: Error-Taxonomie, Logging (pino+Sentry), Auth (Supabase Cloud + self-hosted GoTrue), RBAC (Owner/GM/Player/Spectator) |
-| 0010 | Security & Privacy by Design (STRIDE-Threat-Model, Plugin-Sandbox, `SecretsPort`/`CryptoPort`, Crypto-Shredding für DSGVO-Löschung, Security-Fitness-Functions für #9) |
-| 0020 | Core-vs-Plugin-Grenze (regel-agnostisches Meta-Modell) |
+| 0005 | Persistence & offline-first sync |
+| 0006 | Plugin system (multi-plugin activation, theme cascade) |
+| 0007 | Theming (design-tokens SSOT, GM/Player/Hero cascade) |
+| 0008 | AI provider abstraction (default Claude Haiku, external only after consent; §8 MCP as future adapter) |
+| 0009 | Cross-cutting: error taxonomy, logging (pino+Sentry), auth (Supabase Cloud + self-hosted GoTrue), RBAC (Owner/GM/Player/Spectator) |
+| 0010 | Security & Privacy by Design (STRIDE threat model, plugin sandbox, `SecretsPort`/`CryptoPort`, crypto-shredding for DSGVO erasure, security fitness functions for #9) |
+| 0020 | Core-vs-plugin boundary (rule-agnostic meta-model) |
 
-### Neu: EU/DE-Compliance-Matrix
+### New: EU/DE compliance matrix
 
-`docs/legal/eu-de-compliance-matrix.md` (PR #32) — lebende Tabelle aller recherchierten EU/DE-Regelungen
-(DSGVO-Transfers, AI-Act Art. 50, Cyber Resilience Act, BFSG, DSA, NIS2, Data Act, Widerrufsbutton,
-JMStV, Digital Fairness Act) mit Anwendbarkeits-Einschätzung, Frist und federführender ADR. Zwei
-Fristen sind kurzfristig: **AI-Act Art. 50** (Chatbot-Offenlegung) am **2. Aug 2026**, **Widerrufsbutton**
-ab **19. Jun 2026**. Zwei Themen (Widerrufsbutton, JMStV) haben noch keine federführende ADR — offene
-Lücke für ADR 0010/0015.
+`docs/legal/eu-de-compliance-matrix.md` (PR #32) — living table of every researched EU/DE regulation
+(DSGVO transfers, AI Act Art. 50, Cyber Resilience Act, BFSG, DSA, NIS2, Data Act, Widerrufsbutton,
+JMStV, Digital Fairness Act) with an applicability assessment, deadline and lead ADR. Two deadlines
+are near-term: **AI Act Art. 50** (chatbot disclosure) on **2 Aug 2026**, **Widerrufsbutton** from
+**19 Jun 2026**. Two topics (Widerrufsbutton, JMStV) have no lead ADR yet — open gap for ADR 0010/0015.
 
-## Nächste Schritte (revidierte Reihenfolge)
+## Next steps (revised order)
 
-Reihenfolge nach externem ADR-Review (2026-07-07, s. u.) **umpriorisiert** — nicht mehr stur numerisch,
-sondern implementierungs-blockierende ADRs zuerst. Alles unter **Epic #1**; Epic #10 = Phase 2
-Kern-Engine (blocked).
+Order **reprioritized** after the external ADR review (2026-07-07, see below) — no longer strictly
+numeric, but implementation-blocking ADRs first. All under **Epic #1**; Epic #10 = Phase 2 core engine
+(blocked).
 
-1. **ADR 0011 — API-Design & Contracts** (#13) — entsperrt UI/AI/Sync/MCP/Error-Mapping. **← nächster Fokus.**
-2. **ADR 0021 — Rules Execution: Formel/Würfel/deterministische Runtime** (#41, neu) — vor Plugin-SDK v0
-   & DSA5; hängt an der Sandbox-Frage (DSL vs. beliebiger TS-Code).
-3. **ADR 0017 — Testing-Strategie** (#19) — vorgezogen; muss vor Event-Store/Sync/SDK-Code stehen.
-4. **ADR 0022 — Walking Skeleton / Golden Use Cases** (#42, neu) — dünner Durchstich als
-   Architektur-Validierung, bevor breit Phase-2-Code entsteht.
-5. **ADR 0015 — Compliance-Ops + Consent** (#17) — früh (Impressum-Lücke, AI-Consent-Scoping = Constraint E).
-6. **ADR 0012** (#14, vor `apps/web`) · **ADR 0014** (#16, vor Cloud-Sync/echten Nutzern).
-7. **Backlog mit Auslöser** (nicht jetzt blockierend, trigger-gebunden): ADR 0023 Event-Payload-Privacy
-   (#43, vor echten Aggregaten), ADR 0024 Realtime/Presence (#44), ADR 0013 Perf-Budgets (#15),
-   ADR 0019 Analytics (#23), ADR 0016 a11y/i18n (#18); ferner Asset-Pipeline, Plugin-Registry/Signing,
-   Authz-Matrix-Tiefe, Conflict/Undo-UX, Search, Notifications, Monetization, Mobile-Security, Plugin-DX.
+1. **ADR 0011 — API design & contracts** (#13) — unblocks UI/AI/sync/MCP/error mapping. **← current focus.**
+2. **ADR 0021 — Rules Execution: formula/dice/deterministic runtime** (#41, new) — before plugin-SDK v0
+   & DSA5; hinges on the sandbox question (DSL vs. arbitrary TS code).
+3. **ADR 0017 — Testing strategy** (#19) — pulled forward; must precede event-store/sync/SDK code.
+4. **ADR 0022 — Walking Skeleton / Golden Use Cases** (#42, new) — a thin vertical slice as
+   architecture validation, before broad Phase-2 code.
+5. **ADR 0015 — Compliance ops + consent** (#17) — early (Impressum gap, AI-consent scoping = constraint E).
+6. **ADR 0012** (#14, before `apps/web`) · **ADR 0014** (#16, before cloud sync / real users).
+7. **Trigger-gated backlog** (not blocking now): ADR 0023 Event-Payload-Privacy (#43, before real
+   aggregates), ADR 0024 Realtime/Presence (#44), ADR 0013 perf budgets (#15), ADR 0019 Analytics (#23),
+   ADR 0016 a11y/i18n (#18); further: asset pipeline, plugin registry/signing, authz-matrix depth,
+   conflict/undo UX, search, notifications, monetization, mobile security, plugin DX.
 
-Die Harness-Regeln (#9, gemergt) parallel erweitern, sobald `core-domain`/Adapter/Plugins tatsächlich
-entstehen (die vorausschauenden Regeln greifen dann automatisch).
+Extend the harness rules (#9, merged) in parallel as `core-domain`/adapters/plugins actually appear
+(the forward-looking rules then bite automatically).
 
-### Externes ADR-Review (2026-07-07) — Einordnung & Konsequenzen
+### External ADR review (2026-07-07) — assessment & consequences
 
-Ein externes Review bewertete die accepted ADRs (0001–0010, 0020) als **überdurchschnittlich starkes
-Fundament bei den statischen Architekturgrenzen**, mit echten Lücken beim *Laufzeitverhalten*. Daraus
-abgeleitet (bewusst **nicht** die vollen ~10 vorgeschlagenen ADRs — vieles ist für ein Solo-/pre-revenue-
-Projekt trigger-gebundenes Backlog):
+An external review rated the accepted ADRs (0001–0010, 0020) as an **above-average foundation on the
+static architecture boundaries**, with real gaps in *runtime behaviour*. Derived from it (deliberately
+**not** the full ~10 proposed ADRs — much is trigger-gated backlog for a solo/pre-revenue project):
 
-- **Neue ADRs angelegt:** 0021 Rules Execution (#41), 0022 Walking Skeleton (#42),
+- **New ADRs created:** 0021 Rules Execution (#41), 0022 Walking Skeleton (#42),
   0023 Event-Payload-Privacy (#43), 0024 Realtime/Presence (#44).
-- **Umpriorisiert:** 0011 API & 0017 Testing vorgezogen; Walking Skeleton als Phase-2-Eintritts-Gate.
-- **Festgehaltene Constraints:**
-  - *A:* Conformance-Harness um `shared-types`-Leaf-Guard erweitert (kein Import anderer Pakete) —
-    eigener PR (`feat/arch-shared-types-guard`).
-  - *D:* Event-Description-API muss bei crypto-geshredderten Feldern **graceful degradieren** → in #43.
-  - *E:* AI-Consent muss **ressourcen-/gruppenbezogen** sein (fremde Spielerdaten im Prompt) → in #17.
+- **Reprioritized:** 0011 API & 0017 Testing pulled forward; Walking Skeleton as the Phase-2 entry gate.
+- **Captured constraints:**
+  - *A:* conformance harness extended with a `shared-types` leaf guard (no import of other packages) —
+    own PR (`feat/arch-shared-types-guard`).
+  - *D:* event-description API must **degrade gracefully** for crypto-shredded fields → in #43.
+  - *E:* AI consent must be **resource-/group-scoped** (other players' data in the prompt) → in #17.
 
-### Follow-ups aus ADR 0010
+### Follow-ups from ADR 0010
 
-- ✅ **Private Vulnerability Reporting** aktiviert (Owner, 2026-07-06).
-- ✅ **`SECURITY.md`** im Repo-Root (verweist auf PVR, „keine öffentlichen Issues für
-  Sicherheitslücken", unterstützte Versionen) — PR (chore/adr-0010-followups).
-- ✅ **`.github/dependabot.yml`** — **nur `github-actions`** (wöchentlich). JS/TS-Version-Updates
-  bewusst *nicht* über Dependabot: es aktualisiert `bun.lock` in bun-Workspace-Monorepos nicht
-  ([dependabot-core#14223](https://github.com/dependabot/dependabot-core/issues/14223)), daher scheitert
-  jeder JS-PR an `--frozen-lockfile`. JS-Sicherheitslücken deckt **Dependabot alerts** ab;
-  Routine-Freshening manuell via `bun update`.
-- ✅ **Owner-Toggle:** **Dependabot alerts** + **security updates** aktiviert (Owner, 2026-07-07,
-  org-weit). Secret-Scanning + Push-Protection ebenfalls an → Dependency-Scanning-Gate aus ADR 0010 §7
-  abgedeckt.
+- ✅ **Private Vulnerability Reporting** enabled (owner, 2026-07-06).
+- ✅ **`SECURITY.md`** at the repo root (points to PVR, "no public issues for security bugs", supported
+  versions) — PR (chore/adr-0010-followups).
+- ✅ **`.github/dependabot.yml`** — **github-actions only** (weekly). JS/TS version updates deliberately
+  *not* via Dependabot: it does not update `bun.lock` in bun workspace monorepos
+  ([dependabot-core#14223](https://github.com/dependabot/dependabot-core/issues/14223)), so every JS PR
+  fails `--frozen-lockfile`. JS security fixes are covered by **Dependabot alerts**; routine freshening
+  manually via `bun update`.
+- ✅ **Owner toggle:** **Dependabot alerts** + **security updates** enabled (owner, 2026-07-07,
+  org-wide). Secret scanning + push protection also on → ADR 0010 §7 dependency-scanning gate covered.
 
-## Arbeits-Workflow pro ADR
+## Per-ADR workflow
 
-1. Branch `adr/NNNN-slug` von aktuellem `main`.
-2. ADR-Datei schreiben; Index-Zeile in `docs/adr/README.md` auf **Proposed** setzen.
-3. PR öffnen (`Closes #<issue>`) mit den offenen Review-Fragen an den Owner.
-4. Owner reviewt & merged.
-5. `main` synchronisieren, Status **Proposed → Accepted** (ADR-Datei + Index), Branch löschen.
+1. Branch `adr/NNNN-slug` from current `main`.
+2. Write the ADR file; set the index row in `docs/adr/README.md` to **Proposed**.
+3. Open a PR (`Closes #<issue>`) with the open review questions for the owner.
+4. Owner reviews & merges.
+5. Sync `main`, flip status **Proposed → Accepted** (ADR file + index), delete the branch.
 
-## Wichtige Randbedingungen (dürfen nicht verletzt werden)
+## Key constraints (must not be violated)
 
-- **Accepted ADRs** dürfen nur mit **ausdrücklicher Owner-Freigabe** geändert werden → Eintrag in der
-  *Amendments*-Section (ADR 0001).
-- **Bugs vor Features.**
-- **DSA5-Plugin:** nur Mechanik/Struktur, **keine** urheberrechtlich geschützten Ulisses-Inhalte
+- **Accepted ADRs** may only be changed with **explicit owner authorization** → recorded in the
+  *Amendments* section (ADR 0001).
+- **Bugs before features.**
+- **DSA5 plugin:** mechanics/structure only, **no** copyrighted Ulisses content
   (`docs/legal/dsa5-content-boundary.md`).
-- **`rulebooks/`** ist git-ignoriert (nur README getrackt) — Regelwerk-PDFs **niemals** committen.
-- **Secrets/API-Keys** nur am Composition Root, nie in Domain/Plugins/Logs.
-- **KI:** externe Provider erst nach Consent; KI hat keinen privilegierten Pfad (Tools = öffentliche API).
+- **`rulebooks/`** is git-ignored (only the README tracked) — **never** commit rulebook PDFs.
+- **Secrets/API keys** only at the composition root, never in Domain/plugins/logs.
+- **AI:** external providers only after consent; AI has no privileged path (tools = public API).
 
-## Verweise
+## References
 
-- Architektur-Entscheidungen: `docs/adr/` (Index: `docs/adr/README.md`)
-- Vision/Roadmap/Hosting: `docs/vision.md`, `docs/roadmap.md`, `docs/hosting.md`
-- Regelsystem-Vergleich: `docs/research/rule-systems-comparison.md`
-- EU/DE-Rechtslage: `docs/legal/eu-de-compliance-matrix.md`
-- Stabile Arbeitsregeln für Claude Code: `CLAUDE.md`
-- GitHub-Backlog: Epic #1 (Phase 1), Epic #10 (Phase 2, blocked)
+- Architecture decisions: `docs/adr/` (index: `docs/adr/README.md`)
+- Vision/roadmap/hosting: `docs/vision.md`, `docs/roadmap.md`, `docs/hosting.md`
+- Rule-systems comparison: `docs/research/rule-systems-comparison.md`
+- EU/DE legal situation: `docs/legal/eu-de-compliance-matrix.md`
+- Stable working rules for Claude Code: `CLAUDE.md`
+- GitHub backlog: Epic #1 (Phase 1), Epic #10 (Phase 2, blocked)

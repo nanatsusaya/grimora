@@ -127,3 +127,82 @@ enforced in the Application layer); Postgres RLS is defense-in-depth, never the 
   repo). At the start of a working session, check that list and run any task whose interval has elapsed
   since its "last checked" date, then update the date there. (Currently: a weekly check of whether the
   Dependabot `bun.lock` workspace bug is fixed, to re-enable JS dependency updates.)
+
+### Delivery workflow & PRs
+
+- **Every change goes on a branch and through a PR — never commit directly to `main`** (the one
+  documented exception is the ADR `Proposed → Accepted` status flip above). **The owner merges every
+  PR.** After a merge, sync `main`, prune, and delete the merged branch.
+- **One concern per PR** — split unrelated changes so each stays reviewable in isolation.
+- **Commits & PRs:** Conventional Commits (`type(scope): summary`, imperative subject, body explains the
+  *why*); end commit messages with the `Co-Authored-By` trailer and PR bodies with the Claude Code line.
+  A PR body states **what**, **why**, how it was **verified**, and any **merge-order** caveats. Branch
+  prefixes: `adr/…`, `feat/…`, `fix/…`, `chore/…`, `docs/…`.
+- **Definition of Done (before handing work back):** the full local chain is green — `lint`,
+  `typecheck`, `arch`, `test`, `build`; for anything with runtime behaviour, **verify by exercising it
+  end-to-end**, not just via tests; the PR's CI is green. **Report outcomes faithfully**, including
+  failures or skipped steps.
+- **Only hand a task back when you are ≥ 95 % confident it is correct, complete, and safe.** The owner
+  delegates and reviews mainly essential questions and the PRs, so the bar for "done" is high — if you
+  are not that confident, keep working or raise the specific uncertainty instead of returning it.
+- **Dependency hygiene:** commit any `package.json` change together with a regenerated `bun.lock`
+  (`bun install`), and ensure `bun install --frozen-lockfile` passes. Never adopt a major dependency
+  bump without running the full chain and noting it. (Dependabot manages GitHub Actions only — see
+  `docs/recurring-tasks.md`.)
+
+### Working with the owner
+
+- **Surface owner-domain decisions before acting** — roadmap/sequencing, legal, licensing, config
+  trade-offs, and anything hard to reverse or outward-facing. Recommend a default, but let the owner
+  choose.
+- **Verify external facts from primary sources** (library/tool capabilities, legal deadlines, API
+  details) rather than asserting from memory; cite the source.
+- **Scale decisions to the project's actual stage** (solo, pre-revenue, no public launch): prefer a
+  trigger-gated backlog over speculative up-front work and avoid over-engineering — but record deferred
+  concerns so nothing is lost.
+- **Language:** **all repository artefacts are written in English** — code, code comments, ADRs and
+  every file under `docs/`, `README`s, `SECURITY.md`, commit messages, PR titles/bodies and issues.
+  **Direct conversation with the owner is in German.** The only exception is user-facing UI strings,
+  handled later via i18n (German and other languages) — never by writing project docs in German.
+
+### Code documentation & comments
+
+Comments explain **why**, not **what** — the purpose, who needs it, the preconditions/constraints —
+never a paraphrase of what the code obviously does. Verbose is fine: clarity (especially for AI agents)
+outweighs brevity, even though it enlarges the code. Keep docs **current**: whenever code changes,
+update the affected inline docs **and** the relevant Markdown (ADRs, `STATUS.md`, `README`s, `docs/…`)
+in the *same* change — stale documentation is a defect.
+
+- **Every file, class, and function carries a block header** documenting its purpose and, for functions,
+  **every parameter** (plus return/throws where relevant). Always use the multi-line JSDoc form —
+  **never** the single-line `/** … */`:
+
+  ```
+  /**
+   * Why this exists / what it is for / who needs it / the conditions.
+   * @param foo  what it means and any constraints
+   * @returns   what the caller gets back
+   */
+  ```
+
+- **Notably complex code gets an extra inline comment.** Short (1–3 lines) use `// …`; longer
+  explanations use a block comment:
+
+  ```
+  /*
+   * First line of the explanation.
+   * Second line …
+   */
+  ```
+
+### Tickets (issues) — Definition of Ready / Done
+
+Agents write the tickets too; hold them to the same bar as code.
+
+- **Definition of Ready** (before a ticket is worked): a scoped title with priority; **Context** (the
+  problem/goal and *why* it exists); concrete scope — "decisions to make" for an ADR, or **testable
+  acceptance criteria** for implementation; links to the parent epic and related ADRs/issues; and any
+  constraints (legal/security/ADR references).
+- **Definition of Done** (before closing): acceptance criteria met and **verified**; code **and docs**
+  updated; CI green; the PR merged; for ADR tickets the ADR is `Accepted` and the index/`STATUS.md`
+  synced; the ticket closed via `Closes #…`.
