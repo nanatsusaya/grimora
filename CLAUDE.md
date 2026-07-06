@@ -123,3 +123,7 @@ enforced in the Application layer); Postgres RLS is defense-in-depth, never the 
   check it before ADR work that touches a legal deadline or obligation, rather than re-deriving it.
 - Current phase/handoff status lives in `docs/STATUS.md` (updated frequently); treat this file
   (`CLAUDE.md`) as the stable operating rules, not the current-state tracker.
+- **Recurring maintenance tasks** are tracked in `docs/recurring-tasks.md` (device-independent, in the
+  repo). At the start of a working session, check that list and run any task whose interval has elapsed
+  since its "last checked" date, then update the date there. (Currently: a weekly check of whether the
+  Dependabot `bun.lock` workspace bug is fixed, to re-enable JS dependency updates.)
