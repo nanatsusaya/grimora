@@ -38,6 +38,31 @@ services:
       timeout: 5s
       retries: 5
 
+  # Self-hosted AuthPort adapter target (ADR 0009 §3): GoTrue is the same Auth technology as
+  # Supabase Cloud, run locally against the postgres service above. Manages its own `auth` schema
+  # (auto-migrated on first boot). Dev-only settings below (autoconfirm, static JWT secret) must
+  # never be reused for a real deployment.
+  gotrue:
+    image: supabase/gotrue:latest
+    container_name: grimora-gotrue
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: 9999
+      API_EXTERNAL_URL: http://localhost:9999
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: postgres://grimora:grimora@postgres:5432/grimora?search_path=auth
+      GOTRUE_SITE_URL: http://localhost:3000
+      GOTRUE_JWT_SECRET: grimora-dev-jwt-secret-change-me
+      GOTRUE_JWT_EXP: 3600
+      GOTRUE_DISABLE_SIGNUP: "false"
+      GOTRUE_MAILER_AUTOCONFIRM: "true" # local dev only: skip email confirmation, no SMTP needed
+    ports:
+      - "9999:9999" # Auth API
+
   # Optional: local LLM for the AI chat (fully offline, no API key).
   # Enable with: docker compose --profile ai up -d
   ollama:

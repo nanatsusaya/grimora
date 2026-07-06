@@ -18,7 +18,7 @@ listed here with a status.
 | [0006](0006-plugin-system.md) | Plugin system & extensibility contract | Accepted |
 | [0007](0007-theming.md) | Theming architecture (design tokens SSOT) | Accepted |
 | [0008](0008-ai-provider-abstraction.md) | AI provider abstraction | Accepted |
-| 0009 | Cross-cutting: error handling, logging, security & auth | Planned (issue #8) |
+| [0009](0009-cross-cutting-concerns.md) | Cross-cutting: error handling, logging, security & auth | Proposed |
 | 0010 | Security & Privacy by Design | Planned (issue #12) |
 | 0011 | API design & contracts | Planned (issue #13) |
 | 0012 | Web rendering & frontend state | Planned (issue #14) |
