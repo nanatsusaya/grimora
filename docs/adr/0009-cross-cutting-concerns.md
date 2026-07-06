@@ -1,7 +1,7 @@
 # ADR 0009 — Cross-cutting: error handling, logging/observability, auth & security boundaries
 
-- **Status:** Proposed
-- **Date:** 2026-07-06
+- **Status:** Accepted
+- **Date:** 2026-07-06 (accepted via PR #31, issue #8)
 - **Deciders:** project owner + AI agents
 - **Depends on:** [ADR 0003](0003-overall-architecture.md) (ports, §5 error convention, §6 security
   principle, §7 ports catalog), [ADR 0004](0004-event-sourcing-cqrs.md) (events as the log),
