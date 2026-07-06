@@ -81,6 +81,15 @@ code) builds against it.
 - **Roles of the two tools**: pino = structured operational logs (both success and failure paths,
   sampled/leveled); Sentry = exception/crash tracking + performance monitoring, primarily triggered by
   `Infrastructure`-category errors and unhandled exceptions caught at the composition root.
+- **Forward-looking note (not decided here):** the namespaced error codes, categories and Sentry
+  fingerprinting above are deliberately structured enough to later drive an **automated
+  error-ticketing pipeline** (an AI agent files/dedupes a GitHub issue per new error fingerprint;
+  another AI agent picks it up and opens a fix PR for owner review) and an analogous flow for
+  user-submitted support tickets. That pipeline's design — dedup/threshold policy, the distinct trust
+  boundary of repo-writing agents vs. the ADR 0008 in-app AI (§2 there), and prompt-injection handling
+  for untrusted strings reaching an LLM twice — belongs in **ADR 0014** (DevOps) and **ADR 0010**
+  (threat model), not here; this ADR only ensures the error data those future agents would consume is
+  already well-formed.
 
 ### 3. Auth & security boundaries
 
@@ -168,6 +177,8 @@ be kept in sync as Supabase evolves.
 - [ADR 0003](0003-overall-architecture.md) (ports, §5 error convention, §6 security principle, §7
   ports catalog, §9 DDD/enforcement), [ADR 0004](0004-event-sourcing-cqrs.md) (events as the log),
   [ADR 0006](0006-plugin-system.md) (plugin error/permission model), [ADR 0008](0008-ai-provider-abstraction.md)
-  (authorization parity for AI tool calls), ADR 0010 (detailed threat model, plugin sandbox), ADR 0011
-  (API contract format, HTTP status mapping), ADR 0015 (DSGVO/consent detail), ADR 0016 (i18n),
-  `docs/hosting.md` (pino/Sentry/Supabase tool choice). Issue #8.
+  (authorization parity for AI tool calls), ADR 0010 (detailed threat model, plugin sandbox,
+  prompt-injection for agent-driven ticket/PR automation), ADR 0011 (API contract format, HTTP status
+  mapping), ADR 0014 (DevOps — future automated error/support-ticketing pipeline), ADR 0015
+  (DSGVO/consent detail), ADR 0016 (i18n), `docs/hosting.md` (pino/Sentry/Supabase tool choice).
+  Issue #8.
