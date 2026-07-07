@@ -56,8 +56,10 @@ numeric, but implementation-blocking ADRs first. All under **Epic #1**; Epic #10
 6. **ADR 0012** (#14, before `apps/web`) · **ADR 0014** (#16, before cloud sync / real users).
 7. **Trigger-gated backlog** (not blocking now): ADR 0023 Event-Payload-Privacy (#43, before real
    aggregates), ADR 0024 Realtime/Presence (#44), ADR 0013 perf budgets (#15), ADR 0019 Analytics (#23),
-   ADR 0016 a11y/i18n (#18); further: asset pipeline, plugin registry/signing, authz-matrix depth,
-   conflict/undo UX, search, notifications, monetization, mobile security, plugin DX.
+   ADR 0016 a11y/i18n (#18). Further deferred/trigger-gated topics (asset pipeline, plugin
+   registry/signing & DX, authz-matrix depth, conflict/undo UX, search, notifications, monetization +
+   Widerrufsbutton, mobile security) are tracked in **Epic #52** — promoted to real tickets only when
+   their trigger fires.
 
 Extend the harness rules (#9, merged) in parallel as `core-domain`/adapters/plugins actually appear
 (the forward-looking rules then bite automatically).
