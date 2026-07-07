@@ -523,3 +523,37 @@ of the AI-drafted default.
 elsewhere) that a single-ADR-scoped drafting pass can miss even after checking the directly-referenced
 ADRs — a concrete argument for keeping the owner in the loop on Decision-section wording, not just on the
 Open Questions, for anything touching a pattern that recurs across multiple ADRs.
+
+## 2026-07-07 — Owner-directed architecture-validation pass before writing the gate ADR (0022)
+
+**Trigger:** After ADR 0017 merged, I proposed jumping straight to *writing* ADR 0022 (the walking-skeleton
+gate). The owner redirected: *"mach erstmal die Architektur-Validierung, schau genau hin, lass dir dabei
+zeit"* — do the validation first, look closely, take your time — and floated combining it with a
+`/code-review ultra`.
+
+**Action / method:** First assessed the `/code-review ultra` suggestion honestly and declined it as the
+wrong fit here: I can't self-launch it (user-triggered/billed), and it reviews a *code diff* — on clean
+`main` with essentially no code it would have nothing to chew on; this was a design/ADR-consistency
+audit, not a code review. Did the validation inline instead: re-read the three ADRs not fresh in context
+(0001/0007/0008), traced the ten-step golden use case (issue #42) through all 14 accepted ADRs, ran the
+full local chain to confirm the foundation was actually green (not just assumed), and produced **seven
+ranked findings (F1–F7) plus one positive** — deliberately framed as individually-checkable seams, not a
+single verdict. Then wrote ADR 0022 with every finding folded into a Decision section.
+
+**Impact:** ADR 0022 (accepted, PR #60) resolved a real cross-ADR tension — ADR 0017 §1 calls the walking
+skeleton "the canonical first E2E suite," but that needs `apps/web`/ADR 0012 which is still `Planned`, so
+the skeleton was scoped to a core/backend slice with the UI-E2E deferred (F1). Two latent seams became
+explicit skeleton assertions instead of future surprises: the `shared-types` event-envelope extension
+(F3) and — the subtler one — that a rebased/synced roll **carries** its stored result rather than
+re-rolling (F4), which neither ADR 0021 nor 0005 states outright. And F2 kept the skeleton from silently
+freezing the public plugin-SDK contract (→ provisional-v0 shapes + a dedicated freeze ADR, 0022 R3).
+
+**Lessons learned:** The owner's instinct to insert an *explicit validation pass before* writing the gate
+ADR beat my instinct to write the ADR immediately — a fresh re-read + end-to-end trace across the *whole*
+accepted set (not just the ADRs a new one directly references) surfaces cross-ADR tensions a
+single-ADR-scoped drafting pass structurally cannot. Also a useful data point for the project's
+cross-check methodology (cf. the earlier "Cross-model review pattern: assessment" entry): a
+**self-driven** validation — fresh re-read, concrete use-case trace, run-the-chain-to-confirm — is a
+viable substitute for an external cross-check when the artifact is *design docs, not code*; the
+deep-review tooling (`/code-review ultra`) is for code diffs, and naming that mismatch out loud is part
+of picking the right method rather than the nearest-labeled one.
