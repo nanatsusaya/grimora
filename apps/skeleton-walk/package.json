@@ -1,0 +1,21 @@
+{
+  "name": "@grimora/skeleton-walk",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "walk": "bun run src/walk.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "bun test ./src",
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@grimora/core-domain": "workspace:*",
+    "@grimora/plugin-dsa5": "workspace:*",
+    "@grimora/shared-types": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.1.0",
+    "typescript": "^6.0.3"
+  }
+}

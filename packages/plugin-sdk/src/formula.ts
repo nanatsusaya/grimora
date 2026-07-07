@@ -1,0 +1,85 @@
+/**
+ * Formula representation — a closed, JSON-serializable expression AST over a small set of node kinds
+ * (ADR 0021 §1 / R1). Not a text DSL, not arbitrary TS, not WASM: pure data that the core interpreter
+ * walks with no `eval`/`vm`, so it is trivially sandboxable and inspectable (for breakdown/audit UI).
+ *
+ * Plugins do not hand-write raw nodes; they use the {@link f} builder (ADR 0021 R2), which simply
+ * emits this tree. The AST is the wire/storage format; the builder is sugar.
+ *
+ * **Provisional v0** (ADR 0022 §3) — frozen later in ADR 0025.
+ */
+
+import type { DiceTerm } from "./dice";
+
+/** Comparison operators for the `cmp` node; each yields 1 (true) or 0 (false). */
+export type CmpOp = "eq" | "lt" | "gt" | "lte" | "gte";
+
+/**
+ * The v1 closed set of formula node kinds (ADR 0021 R1). Extend only by amendment/superseding ADR.
+ *
+ * Leaves: `const` (literal), `traitRef` (a trait id resolved from the character's trait container),
+ * `dice` (a roll whose already-rolled value is injected by the core, keyed by `ref` — ADR 0021 §3's
+ * "dice results already rolled"). Operators: arithmetic, `min`/`max`, `cmp`, `if`, and `tableLookup`
+ * (a keyed table the plugin supplies).
+ */
+export type FormulaAst =
+  | { readonly kind: "const"; readonly value: number }
+  | { readonly kind: "traitRef"; readonly traitId: string }
+  | { readonly kind: "dice"; readonly ref: string; readonly term: DiceTerm }
+  | { readonly kind: "add"; readonly left: FormulaAst; readonly right: FormulaAst }
+  | { readonly kind: "sub"; readonly left: FormulaAst; readonly right: FormulaAst }
+  | { readonly kind: "mul"; readonly left: FormulaAst; readonly right: FormulaAst }
+  | { readonly kind: "div"; readonly left: FormulaAst; readonly right: FormulaAst }
+  | { readonly kind: "min"; readonly left: FormulaAst; readonly right: FormulaAst }
+  | { readonly kind: "max"; readonly left: FormulaAst; readonly right: FormulaAst }
+  | {
+      readonly kind: "cmp";
+      readonly op: CmpOp;
+      readonly left: FormulaAst;
+      readonly right: FormulaAst;
+    }
+  | {
+      readonly kind: "if";
+      readonly cond: FormulaAst;
+      // `whenTrue`/`whenFalse` rather than `then`/`else`: a `then` property makes an object thenable
+      // (breaks `await`), which the linter rightly forbids.
+      readonly whenTrue: FormulaAst;
+      readonly whenFalse: FormulaAst;
+    }
+  | { readonly kind: "tableLookup"; readonly tableId: string; readonly key: FormulaAst };
+
+/**
+ * The builder — fluent sugar that emits {@link FormulaAst} nodes so plugin authors never hand-write
+ * the tree (ADR 0021 R2). Ships in the SDK from day one; the AST it produces is the stored format.
+ */
+export const f = {
+  /** A literal number. */
+  const: (value: number): FormulaAst => ({ kind: "const", value }),
+  /** A reference to a trait's current value by id (resolved from the character's trait container). */
+  trait: (traitId: string): FormulaAst => ({ kind: "traitRef", traitId }),
+  /** A dice leaf; its rolled value is injected by the core at evaluation time, keyed by `ref`. */
+  dice: (ref: string, term: DiceTerm): FormulaAst => ({ kind: "dice", ref, term }),
+  add: (left: FormulaAst, right: FormulaAst): FormulaAst => ({ kind: "add", left, right }),
+  sub: (left: FormulaAst, right: FormulaAst): FormulaAst => ({ kind: "sub", left, right }),
+  mul: (left: FormulaAst, right: FormulaAst): FormulaAst => ({ kind: "mul", left, right }),
+  div: (left: FormulaAst, right: FormulaAst): FormulaAst => ({ kind: "div", left, right }),
+  min: (left: FormulaAst, right: FormulaAst): FormulaAst => ({ kind: "min", left, right }),
+  max: (left: FormulaAst, right: FormulaAst): FormulaAst => ({ kind: "max", left, right }),
+  cmp: (op: CmpOp, left: FormulaAst, right: FormulaAst): FormulaAst => ({
+    kind: "cmp",
+    op,
+    left,
+    right,
+  }),
+  if: (cond: FormulaAst, whenTrue: FormulaAst, whenFalse: FormulaAst): FormulaAst => ({
+    kind: "if",
+    cond,
+    whenTrue,
+    whenFalse,
+  }),
+  tableLookup: (tableId: string, key: FormulaAst): FormulaAst => ({
+    kind: "tableLookup",
+    tableId,
+    key,
+  }),
+} as const;
