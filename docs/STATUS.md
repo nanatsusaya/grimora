@@ -13,8 +13,15 @@
   ADRs and merged one PR at a time. **14 ADRs Accepted** (0001–0011 + 0017 + 0020 + 0021 + 0022). The
   first implementation ticket (conformance harness, #9) is done and merged (`scripts/arch/` +
   `.dependency-cruiser.cjs`, wired as the CI `arch` step).
-- **Repo state:** `main` in sync with `origin/main`. `LICENSE` (MIT) is at the repo root. All merged
-  branches are cleaned up (only `main` remains locally and remote).
+- **Walking skeleton built (gate passed):** ✅ #61 / PR #64 — the **first real code beyond
+  `shared-types`**: provisional-v0 `packages/plugin-sdk` + `packages/core-domain` (with a
+  `/testing` fakes subpath) + minimal `plugins/dsa5` + an `apps/skeleton-walk` composition root and
+  runnable `walk`. All six ADR 0022 §9 pass criteria green (golden path, replay determinism, sync
+  convergence, roll-carry, authz parity, `arch` green on real modules). Kept as the **seed** of the real
+  core (0022 R1). The gate surfaced two real refinements (harness: `apps/*` exempt from the
+  `src/index.ts` entry rule; SDK: formula `if`-node `then`→`whenTrue`/`whenFalse`).
+- **Repo state:** `main` has the skeleton packages. Open PRs at time of writing: **#65** (adopt single
+  quotes, biome), **#66** (commit `.vscode/` workspace settings). Everything else is merged/cleaned up.
 
 ### Accepted ADRs
 
@@ -59,12 +66,11 @@ numeric, but implementation-blocking ADRs first. All under **Epic #1**; Epic #10
    Scoped to a core/backend vertical slice (not UI E2E — resolves the 0017↔0012 tension), provisional-v0
    SDK shapes, deterministic in-memory validation, concrete pass criteria. Preceded by a full
    architecture-validation pass across all 14 accepted ADRs (findings F1–F7 folded into the ADR).
-5. **Build the walking skeleton** (#61, implement the ADR-0022 slice) — the **Phase-1 → Phase-2 gate**;
-   the *first real code beyond `shared-types`* (provisional `core-domain` + `plugin-sdk` + minimal
-   `plugins/dsa5` + in-memory fakes + a thin runnable "walk"). Kept as the **seed** of the real core
-   (0022 R1). **← current focus.**
-6. **ADR 0025 — plugin-SDK v0 contract freeze** (#62, from 0022 R3) — a dedicated ADR that freezes the
-   public SDK v0, *informed by* the skeleton, so it comes **after** step 5 (**blocked by #61**).
+5. ✅ **Build the walking skeleton** (#61, PR #64) — the **Phase-1 → Phase-2 gate** passed; first real
+   code beyond `shared-types`, kept as the **seed** of the real core (0022 R1). All 6 pass criteria green.
+6. **ADR 0025 — plugin-SDK v0 contract freeze** (#62, from 0022 R3) — **← current focus** (unblocked by
+   #61). A dedicated ADR that freezes the public SDK v0 as the stable third-party-facing contract,
+   *informed by* the skeleton's provisional-v0 shapes (which are explicitly not yet frozen).
 7. **ADR 0015 — Compliance ops + consent** (#17) — early (Impressum gap, AI-consent scoping = constraint E).
 8. **ADR 0012** (#14, before `apps/web`) · **ADR 0014** (#16, before cloud sync / real users).
 9. **Trigger-gated backlog** (not blocking now): ADR 0023 Event-Payload-Privacy (#43, before real
