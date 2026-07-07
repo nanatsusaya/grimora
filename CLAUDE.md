@@ -114,12 +114,21 @@ Owner/GM/Player/Spectator, enforced in the Application layer); RLS is defense-in
   repo). At the start of a working session, check that list and run any task whose interval has elapsed
   since its "last checked" date, then update the date there. (Currently: a weekly check of whether the
   Dependabot `bun.lock` workspace bug is fixed, to re-enable JS dependency updates.)
+- **Agent-collaboration meta-log** (`docs/meta/agent-collaboration-log.md`): a running journal — separate
+  from the ADRs (architecture) and `STATUS.md` (project state) — of *how* the owner and AI agents work
+  together: cross-checks against another model/agent, owner corrections with their rationale, and
+  workflow experiments, each with its trigger, method and observed impact. This exists because a stated
+  goal of the project is the owner's own skill-building in AI-agent collaboration, not only the RPG
+  platform itself. It is a **living doc**: direct commits to `main` are allowed for it (a second
+  documented exception alongside the ADR accept-flip, below) — log only genuinely methodological
+  moments, not routine task execution.
 
 ### Delivery workflow & PRs
 
-- **Every change goes on a branch and through a PR — never commit directly to `main`** (the one
-  documented exception is the ADR `Proposed → Accepted` status flip above). **The owner merges every
-  PR.** After a merge, sync `main`, prune, and delete the merged branch.
+- **Every change goes on a branch and through a PR — never commit directly to `main`** (the two
+  documented exceptions are the ADR `Proposed → Accepted` status flip above and the agent-collaboration
+  meta-log). **The owner merges every PR.** After a merge, sync `main`, prune, and delete the merged
+  branch.
 - **One concern per PR** — split unrelated changes so each stays reviewable in isolation; don't fold
   refactors, formatting churn, or dependency/toolchain upgrades into unrelated work (a major upgrade
   gets its own PR with rationale + check results).
@@ -206,9 +215,10 @@ Agents write the tickets too; hold them to the same bar as code.
   owning ADR(s), the affected manifests, and existing tests. Do not invent packages, folders or
   abstractions that no Accepted ADR covers.
 - **Do not implement ahead of a decision.** If a task would settle in code something a still-*Planned*
-  ADR owns — public API/SDK contract (0011), rules/dice execution (0021), realtime/presence (0024),
-  personal-data event payloads (0023), telemetry (0019), compliance/consent flows (0015) — write or
-  update the ADR/issue first; don't decide it silently in code.
+  ADR owns — realtime/presence (0024), personal-data event payloads (0023), telemetry (0019),
+  compliance/consent flows (0015) — write or update the ADR/issue first; don't decide it silently in
+  code. (ADR 0011 and ADR 0021 were `Planned` when this list was written; both are now `Accepted` —
+  check `docs/adr/README.md` for the current set rather than trusting this parenthetical over time.)
 - **Never commit real sensitive data.** No real personal data, secrets, API keys, tokens, or
   copyrighted rulebook text in tests, fixtures, snapshots, or logs — use obvious fakes.
 - **Domain commands and events express intent** — no generic `setField`/`updateEntity` commands or
