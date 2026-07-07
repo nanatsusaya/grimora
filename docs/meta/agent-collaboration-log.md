@@ -557,3 +557,33 @@ cross-check methodology (cf. the earlier "Cross-model review pattern: assessment
 viable substitute for an external cross-check when the artifact is *design docs, not code*; the
 deep-review tooling (`/code-review ultra`) is for code diffs, and naming that mismatch out loud is part
 of picking the right method rather than the nearest-labeled one.
+
+## 2026-07-08 — First real code: the walking skeleton (ADRs → implementation)
+
+**Trigger:** With the blocking ADRs accepted (0011, 0021, 0017) and the gate defined (0022), the owner
+said to build the walking skeleton (#61) — the project's first transition from *writing decisions* to
+*writing code* against them.
+
+**Action / method:** Built the thin vertical slice as four packages (`plugin-sdk`, `core-domain`,
+`plugins/dsa5`, an `apps/skeleton-walk` composition root + a runnable `walk`), driven directly by the
+harness rules and the ADRs rather than by re-deriving structure: e.g. the dependency-cruiser `core-no-adapters`
+rule (which permits `core-domain → plugin-sdk`) settled where the plugin-contract types live. Validated
+via ADR 0017's layers *and* by running the `walk` end-to-end (not just tests). All six ADR 0022 §9 pass
+criteria green.
+
+**Impact:** The gate did exactly what it was for — building against **real code** surfaced two things no
+amount of ADR review had: (1) a **conformance-harness over-application** — the "single public entry
+(`src/index.ts`)" fitness function wrongly applied to app composition roots (executable entries, not
+imported libraries), now exempted for `apps/*`; and (2) a **linter-caught design smell** — the formula
+`if`-node used a `then` property, which makes an object *thenable* (breaks `await`); biome's
+`noThenProperty` flagged it, so it was renamed `whenTrue`/`whenFalse`. Both are exactly the "abstract
+consistency ≠ buildable" risk the walking skeleton (ADR 0022 context) was created to catch. Merged as
+PR #64; unblocks the plugin-SDK v0 freeze ADR (#62).
+
+**Lessons learned:** A validation gate that *writes code* (not just a paper review) pays for itself the
+moment the code meets the tooling: the harness and the linter each caught a real defect that the ADRs,
+being prose, could not. Concretely for this project's method — leaning on the *already-enforced* rules
+(the dependency-cruiser config) to make structural decisions is faster and more consistent than
+re-arguing them, and "run the thing end-to-end, don't just pass tests" (CLAUDE.md's verify habit)
+remained the highest-signal check — the runnable `walk` is what makes the slice legibly *work*, not just
+be green.
