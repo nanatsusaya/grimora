@@ -59,12 +59,12 @@ numeric, but implementation-blocking ADRs first. All under **Epic #1**; Epic #10
    Scoped to a core/backend vertical slice (not UI E2E — resolves the 0017↔0012 tension), provisional-v0
    SDK shapes, deterministic in-memory validation, concrete pass criteria. Preceded by a full
    architecture-validation pass across all 14 accepted ADRs (findings F1–F7 folded into the ADR).
-5. **Build the walking skeleton** (implement the ADR-0022 slice) — the **Phase-1 → Phase-2 gate**; the
-   *first real code beyond `shared-types`* (provisional `core-domain` + `plugin-sdk` + minimal
+5. **Build the walking skeleton** (#61, implement the ADR-0022 slice) — the **Phase-1 → Phase-2 gate**;
+   the *first real code beyond `shared-types`* (provisional `core-domain` + `plugin-sdk` + minimal
    `plugins/dsa5` + in-memory fakes + a thin runnable "walk"). Kept as the **seed** of the real core
-   (0022 R1). **← current focus** (needs an implementation ticket — not yet created).
-6. **ADR — plugin-SDK v0 contract freeze** (new, from 0022 R3) — a dedicated ADR that freezes the public
-   SDK v0, *informed by* the skeleton, so it comes **after** step 5. Not yet ticketed.
+   (0022 R1). **← current focus.**
+6. **ADR 0025 — plugin-SDK v0 contract freeze** (#62, from 0022 R3) — a dedicated ADR that freezes the
+   public SDK v0, *informed by* the skeleton, so it comes **after** step 5 (**blocked by #61**).
 7. **ADR 0015 — Compliance ops + consent** (#17) — early (Impressum gap, AI-consent scoping = constraint E).
 8. **ADR 0012** (#14, before `apps/web`) · **ADR 0014** (#16, before cloud sync / real users).
 9. **Trigger-gated backlog** (not blocking now): ADR 0023 Event-Payload-Privacy (#43, before real
