@@ -159,12 +159,12 @@ read/derived endpoints — all **namespaced by plugin id**, JSON-Schema-validate
 cases by the host. A plugin never opens its own network listener (ADR 0006 §5). The published OpenAPI
 document composes plugin contributions under their namespace.
 
-### 12. Framework (implementation-level)
+### 12. Framework (deferred to implementation)
 
-Constrained by ADR 0002 (**Node-compatible**, no bun-only APIs) and ADR 0003 (must not leak into
-Domain/Application). Recommendation: a lightweight, **OpenAPI-first, node-compatible** framework for
-`apps/api` (e.g. **Hono** + an OpenAPI/schema integration). The final pick is an implementation choice
-(see O5); the ADR fixes the *contract*, not the library.
+The API framework is deliberately **left to implementation** (owner decision, R5) — it is a swappable
+detail that must stay behind the boundary (ADR 0003 §1) and **Node-compatible** (ADR 0002, no bun-only
+APIs). This ADR fixes the *contract* (§2–§11), not the library; OpenAPI-first, node-compatible
+candidates (e.g. Hono, Fastify) are weighed when `apps/api` is actually built.
 
 ## Consequences
 
@@ -193,18 +193,21 @@ CRUD over aggregates — mitigated by this ADR and worked examples in the spec.
 - **Proxying binaries through the API** — simple but wasteful and slow; rejected for signed URLs direct
   to object storage.
 
-## Open questions (for owner review)
+## Resolved questions (owner decisions, 2026-07-07)
 
-- **O1 — Contract choice.** Adopt **REST + OpenAPI 3.1 as the single public contract**, with generated
-  TS clients for our own apps (no separate tRPC layer)?
-- **O2 — Offline-first framing.** Confirm the API is **sync + online services + AI proxy + reads**, not
-  the primary CRUD path for user aggregates (writes are local → sync)?
-- **O3 — Versioning.** URL-path major versioning (`/api/v1`), additive within a major, `/internal` for
-  unversioned internals — acceptable?
-- **O4 — Streaming vs. realtime.** SSE for AI streaming now, with **WebSocket/presence deferred to ADR
-  0024** — agreed, so 0011 stays request/response + SSE only?
-- **O5 — Framework.** Name **Hono** (OpenAPI-first, node-compatible) for `apps/api` in this ADR, or leave
-  the framework pick to implementation / ADR 0014?
+All five review questions were resolved by the owner; the decisions above reflect them.
+
+- **R1 — Contract choice.** *Confirmed:* **REST + OpenAPI 3.1 as the single public contract**, with
+  generated TS clients for our own apps and **no separate tRPC layer** (§2).
+- **R2 — Offline-first framing.** *Confirmed:* the API is **sync + online services + AI proxy + reads**,
+  **not** the primary CRUD path for user aggregates — writes are local and reach the server via sync
+  (§1).
+- **R3 — Versioning.** *Confirmed:* URL-path major versioning (`/api/v1`), additive within a major,
+  `/internal` for unversioned internal endpoints (§3).
+- **R4 — Streaming vs. realtime.** *Confirmed:* **SSE** for AI streaming now; **WebSocket/presence
+  deferred to ADR 0024**. 0011 stays request/response + SSE only (§8).
+- **R5 — Framework.** *Deferred to implementation:* the framework is **not** named in this ADR; it stays
+  a swappable, Node-compatible detail behind the boundary, chosen when `apps/api` is built (§12).
 
 ## References
 
