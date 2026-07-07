@@ -28,3 +28,21 @@ proactively and **then updates the date here via a commit**.
   task done / remove it here. As a branch + PR.
 - **After each check:** update the "last checked" date above (commit), with a short finding note if
   relevant.
+
+### Test coverage trend — watch for silent erosion (monthly)
+
+- **Interval:** monthly, tied to shared project work (not an unattended cron).
+- **Last checked:** **2026-07-07** · **next check due from: 2026-08-07**.
+- **Context:** ADR 0017 §4/R2 deliberately keeps coverage **report-only** (`bun test --coverage`), not a
+  CI gate, until enough real code exists to calibrate a sensible numeric floor. Report-only means
+  coverage can silently erode with nobody blocking on it — this task is the backstop until a real gate
+  exists.
+- **How to check:** run `bun test --coverage` across workspaces with real code (currently only
+  `packages/shared-types`); look for obviously untested Domain/Application logic once `core-domain`
+  exists. While only `shared-types` has code, this check is a no-op — note that explicitly rather than
+  skipping the task silently.
+- **If `core-domain` + the first one or two adapters now have real test suites →** this is also the
+  trigger named in ADR 0017 R2 to revisit whether a numeric coverage floor should be added as a CI gate —
+  raise it as a topic, don't decide it silently in this recurring check.
+- **After each check:** update the "last checked" date above (commit), with a short finding note (even
+  if the finding is "still no-op, no real code to measure yet").

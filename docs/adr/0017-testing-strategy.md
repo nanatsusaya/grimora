@@ -1,7 +1,7 @@
 # ADR 0017 — Testing strategy
 
-- **Status:** Proposed
-- **Date:** 2026-07-07
+- **Status:** Accepted
+- **Date:** 2026-07-07 (accepted via PR #59, issue #19)
 - **Deciders:** project owner + AI agents
 - **Depends on:** [ADR 0002](0002-tech-stack-and-tooling.md) (bun test-runner precedent),
   [ADR 0003](0003-overall-architecture.md) (§1 dependency rule, §4 swappability, §6.1 no ambient

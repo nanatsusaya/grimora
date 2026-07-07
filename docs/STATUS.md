@@ -10,7 +10,7 @@
   `tsconfig.base.json` (strict), CI (`.github/workflows/ci.yml`), `docker-compose` (Postgres + MinIO
   + self-hosted auth via `gotrue` + optional Ollama), `packages/shared-types`, ADR / `docs/legal/` structure.
 - **Phase 1 (architecture as ADRs):** 🟡 in progress — the architectural foundation is worked out as
-  ADRs and merged one PR at a time. **12 ADRs Accepted** (0001–0011 + 0020 + 0021). The first
+  ADRs and merged one PR at a time. **13 ADRs Accepted** (0001–0011 + 0017 + 0020 + 0021). The first
   implementation ticket (conformance harness, #9) is done and merged (`scripts/arch/` +
   `.dependency-cruiser.cjs`, wired as the CI `arch` step).
 - **Repo state:** `main` in sync with `origin/main`. `LICENSE` (MIT) is at the repo root. All merged
@@ -31,6 +31,7 @@
 | 0009 | Cross-cutting: error taxonomy, logging (pino+Sentry), auth (Supabase Cloud + self-hosted GoTrue), RBAC (Owner/GM/Player/Spectator) |
 | 0010 | Security & Privacy by Design (STRIDE threat model, plugin sandbox, `SecretsPort`/`CryptoPort`, crypto-shredding for DSGVO erasure, security fitness functions for #9) |
 | 0011 | API design & contracts |
+| 0017 | Testing strategy: 5-layer pyramid, port/plugin-SDK contract tests, `bun test`+Playwright+fast-check, qualitative coverage bar |
 | 0020 | Core-vs-plugin boundary (rule-agnostic meta-model) |
 | 0021 | Rules Execution: formula AST, generic dice/roll model, seeded-RNG determinism, roll event schema |
 
@@ -51,10 +52,10 @@ numeric, but implementation-blocking ADRs first. All under **Epic #1**; Epic #10
 1. ✅ **ADR 0011 — API design & contracts** (#13) — Accepted 2026-07-07; unblocks UI/AI/sync/MCP/error mapping.
 2. ✅ **ADR 0021 — Rules Execution: formula/dice/deterministic runtime** (#41) — Accepted 2026-07-07;
    unblocks plugin-SDK v0 & DSA5. Formula AST + generic roll model + seeded-RNG determinism (see index).
-3. **ADR 0017 — Testing strategy** (#19) — pulled forward; must precede event-store/sync/SDK code.
-   **← current focus.**
+3. ✅ **ADR 0017 — Testing strategy** (#19) — Accepted 2026-07-07; 5-layer pyramid, `bun test` +
+   Playwright + fast-check, port/plugin-SDK contract tests, qualitative (not numeric) coverage bar.
 4. **ADR 0022 — Walking Skeleton / Golden Use Cases** (#42, new) — a thin vertical slice as
-   architecture validation, before broad Phase-2 code.
+   architecture validation, before broad Phase-2 code. **← current focus.**
 5. **ADR 0015 — Compliance ops + consent** (#17) — early (Impressum gap, AI-consent scoping = constraint E).
 6. **ADR 0012** (#14, before `apps/web`) · **ADR 0014** (#16, before cloud sync / real users).
 7. **Trigger-gated backlog** (not blocking now): ADR 0023 Event-Payload-Privacy (#43, before real
