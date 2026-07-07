@@ -31,7 +31,7 @@ listed here with a status.
 | 0019 | Analytics & Telemetry | Planned (issue #23) |
 | [0020](0020-core-vs-plugin-boundary.md) | Core vs. plugin domain boundary | Accepted |
 | [0021](0021-rules-execution.md) | Rules Execution: Formula, Dice & Deterministic Runtime | Accepted |
-| 0022 | Walking Skeleton / Golden Use Cases (validation gate) | Planned (issue #42) |
+| [0022](0022-walking-skeleton.md) | Walking Skeleton / Golden Use Cases (validation gate) | Proposed |
 | 0023 | Event Payload Privacy Classification & per-subject encryption | Planned (issue #43) |
 | 0024 | Realtime Session & Presence | Planned (issue #44) |
 
