@@ -30,7 +30,7 @@ listed here with a status.
 | 0018 | Domain-Driven Design | Retired — folded into ADR 0003 §9 |
 | 0019 | Analytics & Telemetry | Planned (issue #23) |
 | [0020](0020-core-vs-plugin-boundary.md) | Core vs. plugin domain boundary | Accepted |
-| 0021 | Rules Execution: Formula, Dice & Deterministic Runtime | Planned (issue #41) |
+| [0021](0021-rules-execution.md) | Rules Execution: Formula, Dice & Deterministic Runtime | Proposed |
 | 0022 | Walking Skeleton / Golden Use Cases (validation gate) | Planned (issue #42) |
 | 0023 | Event Payload Privacy Classification & per-subject encryption | Planned (issue #43) |
 | 0024 | Realtime Session & Presence | Planned (issue #44) |
