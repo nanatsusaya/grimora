@@ -18,17 +18,17 @@ import {
   type RollOutcome,
   type RuleSystemDefinition,
   type TraitDefinition,
-} from "@grimora/plugin-sdk";
-import { err, ok, type Result } from "@grimora/shared-types";
+} from '@grimora/plugin-sdk';
+import { err, ok, type Result } from '@grimora/shared-types';
 
 /** Rated attributes (kind: attribute) — abstract ids, i18n-key labels, generic DSA5 bounds. */
 const ATTRIBUTES: readonly TraitDefinition[] = [
-  { kind: "attribute", id: "COU", labelKey: "dsa5.attr.courage", min: 8, max: 20, defaultValue: 8 },
-  { kind: "attribute", id: "AGI", labelKey: "dsa5.attr.agility", min: 8, max: 20, defaultValue: 8 },
+  { kind: 'attribute', id: 'COU', labelKey: 'dsa5.attr.courage', min: 8, max: 20, defaultValue: 8 },
+  { kind: 'attribute', id: 'AGI', labelKey: 'dsa5.attr.agility', min: 8, max: 20, defaultValue: 8 },
   {
-    kind: "attribute",
-    id: "INT",
-    labelKey: "dsa5.attr.intuition",
+    kind: 'attribute',
+    id: 'INT',
+    labelKey: 'dsa5.attr.intuition',
     min: 8,
     max: 20,
     defaultValue: 8,
@@ -37,9 +37,9 @@ const ATTRIBUTES: readonly TraitDefinition[] = [
 
 /** A skill (kind: skill) — a rated talent tested via the check below. */
 const SKILL: TraitDefinition = {
-  kind: "skill",
-  id: "PER",
-  labelKey: "dsa5.skill.perception",
+  kind: 'skill',
+  id: 'PER',
+  labelKey: 'dsa5.skill.perception',
   min: 0,
   max: 25,
   defaultValue: 0,
@@ -50,10 +50,10 @@ const SKILL: TraitDefinition = {
  * (5 + COU + AGI). Deterministic; re-evaluated by the core interpreter (ADR 0020/0021).
  */
 const LIFE_POINTS: TraitDefinition = {
-  kind: "derivedValue",
-  id: "LP",
-  labelKey: "dsa5.derived.lifePoints",
-  formula: f.add(f.add(f.const(5), f.trait("COU")), f.trait("AGI")),
+  kind: 'derivedValue',
+  id: 'LP',
+  labelKey: 'dsa5.derived.lifePoints',
+  formula: f.add(f.add(f.const(5), f.trait('COU')), f.trait('AGI')),
 };
 
 /** The DSA5 quality-level / success outcome (the opaque plugin `value`, ADR 0020 / 0021 R3). */
@@ -79,9 +79,9 @@ function resolvePerceptionCheck(input: ResolveCheckInput): Result<RollOutcome, P
   const pips = input.rolls[0];
   if (pips?.length !== 3) {
     return err({
-      code: "dsa5.invalid_check_dice",
-      messageKey: "dsa5.invalid_check_dice",
-      category: "Validation",
+      code: 'dsa5.invalid_check_dice',
+      messageKey: 'dsa5.invalid_check_dice',
+      category: 'Validation',
     });
   }
   const attributes = [input.targets.COU ?? 0, input.targets.AGI ?? 0, input.targets.INT ?? 0];
@@ -121,25 +121,25 @@ function resolvePerceptionCheck(input: ResolveCheckInput): Result<RollOutcome, P
 
   return ok({
     value: outcome,
-    labelKey: outcome.success ? "dsa5.check.success" : "dsa5.check.failure",
+    labelKey: outcome.success ? 'dsa5.check.success' : 'dsa5.check.failure',
     labelParams: { quality: outcome.quality },
   });
 }
 
 /** The one check: a Perception skill check (3d20 under COU/AGI/INT, PER as skill points). */
 const PERCEPTION_CHECK: CheckDefinition = {
-  id: "perception",
-  labelKey: "dsa5.check.perception",
-  attributeIds: ["COU", "AGI", "INT"],
-  skillId: "PER",
+  id: 'perception',
+  labelKey: 'dsa5.check.perception',
+  attributeIds: ['COU', 'AGI', 'INT'],
+  skillId: 'PER',
   terms: [{ sides: 20, count: 3 }],
   resolve: (input) => resolvePerceptionCheck(input),
 };
 
 /** The DSA5 rule-system definition contributed to the host registry. */
 const RULE_SYSTEM: RuleSystemDefinition = {
-  id: "dsa5",
-  labelKey: "dsa5.name",
+  id: 'dsa5',
+  labelKey: 'dsa5.name',
   traits: [...ATTRIBUTES, SKILL, LIFE_POINTS],
   checks: [PERCEPTION_CHECK],
 };
@@ -147,9 +147,9 @@ const RULE_SYSTEM: RuleSystemDefinition = {
 /** The DSA5 plugin (in-process, first-party — ADR 0006 §5). */
 const plugin: GrimoraPlugin = definePlugin(
   {
-    id: "org.grimora.dsa5",
-    name: "Das Schwarze Auge 5 (skeleton slice)",
-    version: "0.0.0",
+    id: 'org.grimora.dsa5',
+    name: 'Das Schwarze Auge 5 (skeleton slice)',
+    version: '0.0.0',
     sdkVersion: 0,
   },
   (registry) => {

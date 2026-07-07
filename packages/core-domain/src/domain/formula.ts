@@ -5,9 +5,9 @@
  * identically (ADR 0021 §3). This is **core** code operating on plugin-supplied **data**.
  */
 
-import type { FormulaAst } from "@grimora/plugin-sdk";
-import { err, ok, type Result } from "@grimora/shared-types";
-import { type AppError, appError } from "./errors";
+import type { FormulaAst } from '@grimora/plugin-sdk';
+import { err, ok, type Result } from '@grimora/shared-types';
+import { type AppError, appError } from './errors';
 
 /** The inputs a formula evaluates against (ADR 0021 §3 "trait values, constants, dice already rolled"). */
 export interface FormulaContext {
@@ -43,57 +43,57 @@ function binary(
  */
 export function evaluateFormula(ast: FormulaAst, ctx: FormulaContext): Result<number, AppError> {
   switch (ast.kind) {
-    case "const":
+    case 'const':
       return ok(ast.value);
-    case "traitRef": {
+    case 'traitRef': {
       const value = ctx.traits[ast.traitId];
-      return value === undefined ? err(appError("rules.unknown_trait", "Validation")) : ok(value);
+      return value === undefined ? err(appError('rules.unknown_trait', 'Validation')) : ok(value);
     }
-    case "dice": {
+    case 'dice': {
       const value = ctx.dice?.[ast.ref];
       return value === undefined
-        ? err(appError("rules.missing_dice_result", "Validation"))
+        ? err(appError('rules.missing_dice_result', 'Validation'))
         : ok(value);
     }
-    case "add":
+    case 'add':
       return binary(ast.left, ast.right, ctx, (a, b) => ok(a + b));
-    case "sub":
+    case 'sub':
       return binary(ast.left, ast.right, ctx, (a, b) => ok(a - b));
-    case "mul":
+    case 'mul':
       return binary(ast.left, ast.right, ctx, (a, b) => ok(a * b));
-    case "div":
+    case 'div':
       return binary(ast.left, ast.right, ctx, (a, b) =>
-        b === 0 ? err(appError("rules.division_by_zero", "Validation")) : ok(a / b),
+        b === 0 ? err(appError('rules.division_by_zero', 'Validation')) : ok(a / b),
       );
-    case "min":
+    case 'min':
       return binary(ast.left, ast.right, ctx, (a, b) => ok(Math.min(a, b)));
-    case "max":
+    case 'max':
       return binary(ast.left, ast.right, ctx, (a, b) => ok(Math.max(a, b)));
-    case "cmp":
+    case 'cmp':
       return binary(ast.left, ast.right, ctx, (a, b) => {
         const truth =
-          ast.op === "eq"
+          ast.op === 'eq'
             ? a === b
-            : ast.op === "lt"
+            : ast.op === 'lt'
               ? a < b
-              : ast.op === "gt"
+              : ast.op === 'gt'
                 ? a > b
-                : ast.op === "lte"
+                : ast.op === 'lte'
                   ? a <= b
                   : a >= b;
         return ok(truth ? 1 : 0);
       });
-    case "if": {
+    case 'if': {
       const cond = evaluateFormula(ast.cond, ctx);
       if (!cond.ok) return cond;
       return evaluateFormula(cond.value !== 0 ? ast.whenTrue : ast.whenFalse, ctx);
     }
-    case "tableLookup": {
+    case 'tableLookup': {
       const key = evaluateFormula(ast.key, ctx);
       if (!key.ok) return key;
       const value = ctx.tables?.[ast.tableId]?.[String(key.value)];
       return value === undefined
-        ? err(appError("rules.missing_table_entry", "Validation"))
+        ? err(appError('rules.missing_table_entry', 'Validation'))
         : ok(value);
     }
   }

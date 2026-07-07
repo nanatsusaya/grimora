@@ -15,10 +15,10 @@
 export type Brand<T, TBrand extends string> = T & { readonly __brand: TBrand };
 
 /** Stable identifier for any entity (aggregate) in the system. */
-export type EntityId = Brand<string, "EntityId">;
+export type EntityId = Brand<string, 'EntityId'>;
 
 /** ISO-8601 timestamp string. */
-export type IsoTimestamp = Brand<string, "IsoTimestamp">;
+export type IsoTimestamp = Brand<string, 'IsoTimestamp'>;
 
 /**
  * Situational, non-personal correlation data attached to an event's metadata (ADR 0004 §2/§11).

@@ -8,11 +8,11 @@
  * A future MCP server is just another inbound adapter over this same tool set (ADR 0008 §8).
  */
 
-import type { EntityId, Result } from "@grimora/shared-types";
-import { err, ok } from "@grimora/shared-types";
-import { type AppError, appError } from "../domain/errors";
-import type { Actor, AiProviderPort, PolicyAction } from "./ports";
-import { type CommandDeps, rollCheck, setAttribute } from "./use-cases";
+import type { EntityId, Result } from '@grimora/shared-types';
+import { err, ok } from '@grimora/shared-types';
+import { type AppError, appError } from '../domain/errors';
+import type { Actor, AiProviderPort, PolicyAction } from './ports';
+import { type CommandDeps, rollCheck, setAttribute } from './use-cases';
 
 /** A tool descriptor: a name, the use case it maps to (documented via its authz action), and its executor. */
 export interface AiTool {
@@ -30,33 +30,33 @@ export interface AiTool {
 /** Read a required string argument from a tool call. */
 function requireString(args: Readonly<Record<string, unknown>>, key: string): string | undefined {
   const value = args[key];
-  return typeof value === "string" ? value : undefined;
+  return typeof value === 'string' ? value : undefined;
 }
 
 /** The core-contributed AI tools (plugins would contribute more, namespaced — ADR 0008 §3). */
 export function coreAiTools(): readonly AiTool[] {
   return [
     {
-      name: "core.character.rollCheck",
-      action: "character.rollCheck",
+      name: 'core.character.rollCheck',
+      action: 'character.rollCheck',
       async execute(deps, actor, args) {
-        const characterId = requireString(args, "characterId");
-        const checkId = requireString(args, "checkId");
+        const characterId = requireString(args, 'characterId');
+        const checkId = requireString(args, 'checkId');
         if (!characterId || !checkId) {
-          return err(appError("ai.invalid_args", "Validation"));
+          return err(appError('ai.invalid_args', 'Validation'));
         }
         return rollCheck(deps, { characterId: characterId as EntityId, checkId, actor });
       },
     },
     {
-      name: "core.character.setAttribute",
-      action: "character.setAttribute",
+      name: 'core.character.setAttribute',
+      action: 'character.setAttribute',
       async execute(deps, actor, args) {
-        const characterId = requireString(args, "characterId");
-        const attributeId = requireString(args, "attributeId");
+        const characterId = requireString(args, 'characterId');
+        const attributeId = requireString(args, 'attributeId');
         const value = args.value;
-        if (!characterId || !attributeId || typeof value !== "number") {
-          return err(appError("ai.invalid_args", "Validation"));
+        if (!characterId || !attributeId || typeof value !== 'number') {
+          return err(appError('ai.invalid_args', 'Validation'));
         }
         return setAttribute(deps, {
           characterId: characterId as EntityId,
@@ -96,11 +96,11 @@ export async function runAiToolTurn(
     tools.map((t) => t.name),
   );
   if (!proposal) {
-    return err(appError("ai.no_tool_proposed", "Validation"));
+    return err(appError('ai.no_tool_proposed', 'Validation'));
   }
   const tool = tools.find((t) => t.name === proposal.tool);
   if (!tool) {
-    return err(appError("ai.unknown_tool", "NotFound"));
+    return err(appError('ai.unknown_tool', 'NotFound'));
   }
   const executed = await tool.execute(deps, actor, proposal.args);
   if (!executed.ok) return executed;

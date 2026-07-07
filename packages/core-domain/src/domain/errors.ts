@@ -8,7 +8,7 @@
  */
 
 /** The closed error-category subset the skeleton uses (ADR 0009 §1). */
-export type ErrorCategory = "Validation" | "NotFound" | "Conflict" | "Forbidden" | "Infrastructure";
+export type ErrorCategory = 'Validation' | 'NotFound' | 'Conflict' | 'Forbidden' | 'Infrastructure';
 
 /** A typed, expected failure carried in `Result`'s error channel. */
 export interface AppError {

@@ -8,8 +8,8 @@
  * `shared-types` `EventEnvelope` (adding id/version/position/metadata) before appending.
  */
 
-import type { RollRequest, RollResult } from "@grimora/plugin-sdk";
-import type { EntityId } from "@grimora/shared-types";
+import type { RollRequest, RollResult } from '@grimora/plugin-sdk';
+import type { EntityId } from '@grimora/shared-types';
 
 /** A newly-decided domain event: an intent-named type + its structured payload. */
 export interface NewEvent<TType extends string = string, TPayload = unknown> {
@@ -30,7 +30,7 @@ export interface StoredEvent<TType extends string = string, TPayload = unknown> 
 
 /** Campaign was created (owner = its creator, provisional minimal authz — ADR 0022 §7). */
 export type CampaignCreated = NewEvent<
-  "campaign.created",
+  'campaign.created',
   { readonly name: string; readonly ownerId: EntityId }
 >;
 
@@ -41,7 +41,7 @@ export type CampaignEvent = CampaignCreated;
  * produced it — ADR 0006 §4/§9, ADR 0004).
  */
 export type CharacterCreated = NewEvent<
-  "character.created",
+  'character.created',
   {
     readonly name: string;
     readonly campaignId: EntityId;
@@ -54,7 +54,7 @@ export type CharacterCreated = NewEvent<
 
 /** An attribute was set to an absolute value during generation (intent: absolute set, ADR 0004 §10). */
 export type CharacterAttributeSet = NewEvent<
-  "character.attributeSet",
+  'character.attributeSet',
   { readonly attributeId: string; readonly value: number }
 >;
 
@@ -64,7 +64,7 @@ export type CharacterAttributeSet = NewEvent<
  * re-rolled** (ADR 0021 §4, ADR 0022 §6). Provenance included for upcasting across plugin upgrades.
  */
 export type CharacterCheckRolled = NewEvent<
-  "character.checkRolled",
+  'character.checkRolled',
   {
     readonly checkId: string;
     readonly request: RollRequest;

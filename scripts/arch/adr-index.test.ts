@@ -4,11 +4,11 @@
  * declares a Status. Keeps the normative decision record from silently drifting (issue #9).
  */
 
-import { describe, expect, test } from "bun:test";
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { describe, expect, test } from 'bun:test';
+import { readdirSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
-const ADR_DIR = "docs/adr";
+const ADR_DIR = 'docs/adr';
 
 function adrFiles(): string[] {
   return readdirSync(ADR_DIR)
@@ -16,15 +16,15 @@ function adrFiles(): string[] {
     .sort();
 }
 
-describe("ADR index conformance (docs/adr/README.md)", () => {
-  const index = readFileSync(join(ADR_DIR, "README.md"), "utf8");
+describe('ADR index conformance (docs/adr/README.md)', () => {
+  const index = readFileSync(join(ADR_DIR, 'README.md'), 'utf8');
   const files = adrFiles();
 
-  test("there is at least one ADR", () => {
+  test('there is at least one ADR', () => {
     expect(files.length).toBeGreaterThan(0);
   });
 
-  test("every ADR file is linked from the index", () => {
+  test('every ADR file is linked from the index', () => {
     for (const file of files) {
       expect(
         index.includes(`](${file})`),
@@ -33,7 +33,7 @@ describe("ADR index conformance (docs/adr/README.md)", () => {
     }
   });
 
-  test("every ADR link in the index resolves to an existing file", () => {
+  test('every ADR link in the index resolves to an existing file', () => {
     const linked = [...index.matchAll(/\]\((\d{4}-[^)]+\.md)\)/g)].map((match) => match[1]);
     expect(linked.length).toBeGreaterThan(0);
     const present = new Set(files);
@@ -44,9 +44,9 @@ describe("ADR index conformance (docs/adr/README.md)", () => {
     }
   });
 
-  test("every ADR declares a Status", () => {
+  test('every ADR declares a Status', () => {
     for (const file of files) {
-      const body = readFileSync(join(ADR_DIR, file), "utf8");
+      const body = readFileSync(join(ADR_DIR, file), 'utf8');
       expect(/\*\*Status:\*\*/.test(body), `ADR ${file} does not declare a **Status:**`).toBe(true);
     }
   });

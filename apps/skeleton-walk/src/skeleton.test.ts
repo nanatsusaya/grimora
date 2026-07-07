@@ -5,7 +5,7 @@
  * asserted by the harness rather than here.
  */
 
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from 'bun:test';
 import {
   type Actor,
   applyCharacter,
@@ -20,7 +20,7 @@ import {
   runAiToolTurn,
   runCharacterSheetProjection,
   setAttribute,
-} from "@grimora/core-domain";
+} from '@grimora/core-domain';
 import {
   createFixedClock,
   createInMemoryEventStore,
@@ -29,15 +29,15 @@ import {
   createScriptedAiProvider,
   createSequentialIdGenerator,
   createSyncHarness,
-} from "@grimora/core-domain/testing";
-import dsa5 from "@grimora/plugin-dsa5";
-import type { EntityId, PersistedEvent } from "@grimora/shared-types";
+} from '@grimora/core-domain/testing';
+import dsa5 from '@grimora/plugin-dsa5';
+import type { EntityId, PersistedEvent } from '@grimora/shared-types';
 
-const owner: Actor = { userId: "owner" as EntityId };
-const campaignId = "campaign-1" as EntityId;
-const characterId = "character-1" as EntityId;
+const owner: Actor = { userId: 'owner' as EntityId };
+const campaignId = 'campaign-1' as EntityId;
+const characterId = 'character-1' as EntityId;
 
-function makeDeps(idPrefix = "ev") {
+function makeDeps(idPrefix = 'ev') {
   const events = createInMemoryEventStore();
   const reads = createInMemoryReadModelStore();
   const host = createPluginHost();
@@ -54,27 +54,27 @@ function makeDeps(idPrefix = "ev") {
 
 /** Drive the golden path (campaign → character → attributes → roll) for a wired deps bundle. */
 async function driveGoldenPath(deps: CommandDeps): Promise<void> {
-  await createCampaign(deps, { campaignId, name: "The Northlands", actor: owner });
+  await createCampaign(deps, { campaignId, name: 'The Northlands', actor: owner });
   await createCharacter(deps, {
     characterId,
-    name: "Alrik",
+    name: 'Alrik',
     campaignId,
-    ruleSystemId: "dsa5",
+    ruleSystemId: 'dsa5',
     actor: owner,
   });
   for (const [attributeId, value] of [
-    ["COU", 14],
-    ["AGI", 12],
-    ["INT", 13],
-    ["PER", 6],
+    ['COU', 14],
+    ['AGI', 12],
+    ['INT', 13],
+    ['PER', 6],
   ] as const) {
     await setAttribute(deps, { characterId, attributeId, value, actor: owner });
   }
-  await rollCheck(deps, { characterId, checkId: "perception", actor: owner });
+  await rollCheck(deps, { characterId, checkId: 'perception', actor: owner });
 }
 
-describe("golden path (steps 1–8)", () => {
-  it("produces a sheet with generic attributes, a formula-derived value and event history", async () => {
+describe('golden path (steps 1–8)', () => {
+  it('produces a sheet with generic attributes, a formula-derived value and event history', async () => {
     const { deps, events, reads, host } = makeDeps();
     await driveGoldenPath(deps);
     await runCharacterSheetProjection({ events, reads, rules: host });
@@ -85,12 +85,12 @@ describe("golden path (steps 1–8)", () => {
     // Derived value LP = 5 + COU + AGI, computed by the core formula interpreter over the plugin's AST.
     expect(sheet?.derived.LP).toBe(5 + 14 + 12);
     // History includes the roll (rendered via the plugin's outcome labelKey).
-    expect(sheet?.history.some((line) => line.includes("perception"))).toBe(true);
+    expect(sheet?.history.some((line) => line.includes('perception'))).toBe(true);
   });
 });
 
-describe("replay determinism (pass criterion 2)", () => {
-  it("folds a stream to identical state twice", async () => {
+describe('replay determinism (pass criterion 2)', () => {
+  it('folds a stream to identical state twice', async () => {
     const { deps, events } = makeDeps();
     await driveGoldenPath(deps);
     const stream = await events.readStream(characterId);
@@ -99,7 +99,7 @@ describe("replay determinism (pass criterion 2)", () => {
     expect(fold()).toEqual(fold());
   });
 
-  it("rebuilds the projection from position 0 to an identical read model", async () => {
+  it('rebuilds the projection from position 0 to an identical read model', async () => {
     const { deps, events, host } = makeDeps();
     await driveGoldenPath(deps);
 
@@ -114,66 +114,66 @@ describe("replay determinism (pass criterion 2)", () => {
     expect(sheetA).toEqual(sheetB);
   });
 
-  it("rolls the same result for the same stream state (seeded determinism)", async () => {
+  it('rolls the same result for the same stream state (seeded determinism)', async () => {
     // Two independent stores, same character id + same attributes ⇒ same seed ⇒ same pips.
     const roll = async (idPrefix: string) => {
       const { deps, events } = makeDeps(idPrefix);
       await driveGoldenPath(deps);
       const stream = await events.readStream(characterId);
-      const rolled = stream.find((e) => e.type === "character.checkRolled");
+      const rolled = stream.find((e) => e.type === 'character.checkRolled');
       return (rolled?.payload as { result: { rolls: number[][] } }).result.rolls;
     };
-    expect(await roll("A")).toEqual(await roll("B"));
+    expect(await roll('A')).toEqual(await roll('B'));
   });
 });
 
-describe("authorization parity (pass criterion 5)", () => {
-  it("denies a non-owner identically on the UI path and the AI tool path", async () => {
+describe('authorization parity (pass criterion 5)', () => {
+  it('denies a non-owner identically on the UI path and the AI tool path', async () => {
     const { deps } = makeDeps();
     await driveGoldenPath(deps);
-    const intruder: Actor = { userId: "intruder" as EntityId };
+    const intruder: Actor = { userId: 'intruder' as EntityId };
     const ai = createScriptedAiProvider({
-      tool: "core.character.rollCheck",
-      args: { characterId, checkId: "perception" },
+      tool: 'core.character.rollCheck',
+      args: { characterId, checkId: 'perception' },
     });
 
-    const uiResult = await rollCheck(deps, { characterId, checkId: "perception", actor: intruder });
-    const aiResult = await runAiToolTurn(deps, ai, intruder, "roll it");
+    const uiResult = await rollCheck(deps, { characterId, checkId: 'perception', actor: intruder });
+    const aiResult = await runAiToolTurn(deps, ai, intruder, 'roll it');
 
     expect(uiResult.ok).toBe(false);
     expect(aiResult.ok).toBe(false);
     // Both rejected by the same PolicyPort → same category (no privileged AI path, ADR 0008 §2).
     if (!uiResult.ok && !aiResult.ok) {
-      expect(uiResult.error.category).toBe("Forbidden");
-      expect(aiResult.error.category).toBe("Forbidden");
+      expect(uiResult.error.category).toBe('Forbidden');
+      expect(aiResult.error.category).toBe('Forbidden');
     }
 
     // The owner is allowed on both paths.
-    const aiOwner = await runAiToolTurn(deps, ai, owner, "roll it");
+    const aiOwner = await runAiToolTurn(deps, ai, owner, 'roll it');
     expect(aiOwner.ok).toBe(true);
   });
 });
 
-describe("offline sync (pass criteria 3 & 4)", () => {
-  const userA: Actor = { userId: "user-a" as EntityId };
-  const charId = "character-2" as EntityId;
+describe('offline sync (pass criteria 3 & 4)', () => {
+  const userA: Actor = { userId: 'user-a' as EntityId };
+  const charId = 'character-2' as EntityId;
 
   async function setup() {
     const harness = createSyncHarness(dsa5);
-    const a = harness.createClient("A");
-    const b = harness.createClient("B");
+    const a = harness.createClient('A');
+    const b = harness.createClient('B');
     await createCharacter(a.deps, {
       characterId: charId,
-      name: "Layariel",
-      campaignId: "campaign-2" as EntityId,
-      ruleSystemId: "dsa5",
+      name: 'Layariel',
+      campaignId: 'campaign-2' as EntityId,
+      ruleSystemId: 'dsa5',
       actor: userA,
     });
     for (const [attributeId, value] of [
-      ["COU", 13],
-      ["AGI", 12],
-      ["INT", 14],
-      ["PER", 5],
+      ['COU', 13],
+      ['AGI', 12],
+      ['INT', 14],
+      ['PER', 5],
     ] as const) {
       await setAttribute(a.deps, { characterId: charId, attributeId, value, actor: userA });
     }
@@ -191,17 +191,17 @@ describe("offline sync (pass criteria 3 & 4)", () => {
     return reads.get<CharacterSheet>(CHARACTER_SHEET, charId);
   }
 
-  it("auto-merges concurrent edits to different attributes and converges", async () => {
+  it('auto-merges concurrent edits to different attributes and converges', async () => {
     const { harness, a, b } = await setup();
     await setAttribute(a.deps, {
       characterId: charId,
-      attributeId: "COU",
+      attributeId: 'COU',
       value: 15,
       actor: userA,
     });
     await setAttribute(b.deps, {
       characterId: charId,
-      attributeId: "AGI",
+      attributeId: 'AGI',
       value: 11,
       actor: userA,
     });
@@ -218,11 +218,11 @@ describe("offline sync (pass criteria 3 & 4)", () => {
 
   it("carries a synced roll's original result (does not re-roll)", async () => {
     const { harness, a, b } = await setup();
-    await rollCheck(a.deps, { characterId: charId, checkId: "perception", actor: userA });
-    const aRoll = a.store.snapshotAll().find((e) => e.type === "character.checkRolled");
+    await rollCheck(a.deps, { characterId: charId, checkId: 'perception', actor: userA });
+    const aRoll = a.store.snapshotAll().find((e) => e.type === 'character.checkRolled');
     await harness.push(a);
     await harness.pull(b);
-    const bRoll = b.store.snapshotAll().find((e) => e.type === "character.checkRolled");
+    const bRoll = b.store.snapshotAll().find((e) => e.type === 'character.checkRolled');
 
     expect(bRoll).toBeDefined();
     // Same event id + same result ⇒ carried as a fact, not re-executed (a re-roll would use B's ids).

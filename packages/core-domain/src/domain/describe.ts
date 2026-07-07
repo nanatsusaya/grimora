@@ -15,7 +15,7 @@ import type {
   CharacterCheckRolled,
   CharacterCreated,
   StoredEvent,
-} from "./events";
+} from './events';
 
 /**
  * Render one stored event as a human-readable line.
@@ -24,22 +24,22 @@ import type {
  */
 export function describeEvent(event: StoredEvent): string {
   switch (event.type) {
-    case "campaign.created":
-      return `Campaign "${(event.payload as CampaignCreated["payload"]).name}" created`;
-    case "character.created":
-      return `Character "${(event.payload as CharacterCreated["payload"]).name}" created`;
-    case "character.attributeSet": {
-      const p = event.payload as CharacterAttributeSet["payload"];
+    case 'campaign.created':
+      return `Campaign "${(event.payload as CampaignCreated['payload']).name}" created`;
+    case 'character.created':
+      return `Character "${(event.payload as CharacterCreated['payload']).name}" created`;
+    case 'character.attributeSet': {
+      const p = event.payload as CharacterAttributeSet['payload'];
       return `Attribute ${p.attributeId} set to ${p.value}`;
     }
-    case "character.checkRolled": {
-      const p = event.payload as CharacterCheckRolled["payload"];
+    case 'character.checkRolled': {
+      const p = event.payload as CharacterCheckRolled['payload'];
       const params = p.result.outcome.labelParams ?? {};
       const rendered = Object.entries(params)
         .map(([k, v]) => `${k}=${v}`)
-        .join(", ");
+        .join(', ');
       return `Check "${p.checkId}" rolled → ${p.result.outcome.labelKey}${
-        rendered ? ` (${rendered})` : ""
+        rendered ? ` (${rendered})` : ''
       }`;
     }
     default:

@@ -8,13 +8,13 @@
  * REST CRUD.
  */
 
-import type { EntityId, EventEnvelope, PersistedEvent, Result } from "@grimora/shared-types";
-import { err } from "@grimora/shared-types";
+import type { EntityId, EventEnvelope, PersistedEvent, Result } from '@grimora/shared-types';
+import { err } from '@grimora/shared-types';
 import {
   applyCampaign,
   createCampaign as decideCreateCampaign,
   emptyCampaign,
-} from "../domain/campaign";
+} from '../domain/campaign';
 import {
   applyCharacter,
   type CharacterState,
@@ -22,9 +22,9 @@ import {
   rollCheck as decideRollCheck,
   setAttribute as decideSetAttribute,
   emptyCharacter,
-} from "../domain/character";
-import { type AppError, appError } from "../domain/errors";
-import type { NewEvent, StoredEvent } from "../domain/events";
+} from '../domain/character';
+import { type AppError, appError } from '../domain/errors';
+import type { NewEvent, StoredEvent } from '../domain/events';
 import type {
   Actor,
   ClockPort,
@@ -32,7 +32,7 @@ import type {
   IdGeneratorPort,
   PolicyPort,
   RuleSystemRegistryPort,
-} from "./ports";
+} from './ports';
 
 /** The ports a command handler needs. */
 export interface CommandDeps {
@@ -86,8 +86,8 @@ export async function createCampaign(
   deps: CommandDeps,
   input: { readonly campaignId: EntityId; readonly name: string; readonly actor: Actor },
 ): Promise<Result<void, AppError>> {
-  if (!deps.policy.can(input.actor, "campaign.create", {})) {
-    return err(appError("campaign.forbidden", "Forbidden"));
+  if (!deps.policy.can(input.actor, 'campaign.create', {})) {
+    return err(appError('campaign.forbidden', 'Forbidden'));
   }
   const { state, version } = await rehydrate(
     deps.events,
@@ -100,7 +100,7 @@ export async function createCampaign(
   return deps.events.append(
     input.campaignId,
     version,
-    toEnvelopes(deps, input.campaignId, "campaign", version, decided.value, input.actor),
+    toEnvelopes(deps, input.campaignId, 'campaign', version, decided.value, input.actor),
   );
 }
 
@@ -115,12 +115,12 @@ export async function createCharacter(
     readonly actor: Actor;
   },
 ): Promise<Result<void, AppError>> {
-  if (!deps.policy.can(input.actor, "character.create", {})) {
-    return err(appError("character.forbidden", "Forbidden"));
+  if (!deps.policy.can(input.actor, 'character.create', {})) {
+    return err(appError('character.forbidden', 'Forbidden'));
   }
   const provenance = deps.rules.getProvenance(input.ruleSystemId);
   if (!provenance) {
-    return err(appError("character.rule_system_not_loaded", "NotFound"));
+    return err(appError('character.rule_system_not_loaded', 'NotFound'));
   }
   const { state, version } = await loadCharacter(deps, input.characterId);
   const decided = decideCreateCharacter(state, {
@@ -135,7 +135,7 @@ export async function createCharacter(
   return deps.events.append(
     input.characterId,
     version,
-    toEnvelopes(deps, input.characterId, "character", version, decided.value, input.actor),
+    toEnvelopes(deps, input.characterId, 'character', version, decided.value, input.actor),
   );
 }
 
@@ -150,20 +150,20 @@ export async function setAttribute(
   },
 ): Promise<Result<void, AppError>> {
   const { state, version } = await loadCharacter(deps, input.characterId);
-  if (!state.exists) return err(appError("character.not_found", "NotFound"));
-  if (!deps.policy.can(input.actor, "character.setAttribute", { ownerId: state.ownerId })) {
-    return err(appError("character.forbidden", "Forbidden"));
+  if (!state.exists) return err(appError('character.not_found', 'NotFound'));
+  if (!deps.policy.can(input.actor, 'character.setAttribute', { ownerId: state.ownerId })) {
+    return err(appError('character.forbidden', 'Forbidden'));
   }
   const bounds = deps.rules.getRatedTrait(state.ruleSystemId, input.attributeId);
   if (!bounds) {
-    return err(appError("character.unknown_attribute", "Validation"));
+    return err(appError('character.unknown_attribute', 'Validation'));
   }
   const decided = decideSetAttribute(state, input.attributeId, input.value, bounds);
   if (!decided.ok) return decided;
   return deps.events.append(
     input.characterId,
     version,
-    toEnvelopes(deps, input.characterId, "character", version, decided.value, input.actor),
+    toEnvelopes(deps, input.characterId, 'character', version, decided.value, input.actor),
   );
 }
 
@@ -173,20 +173,20 @@ export async function rollCheck(
   input: { readonly characterId: EntityId; readonly checkId: string; readonly actor: Actor },
 ): Promise<Result<void, AppError>> {
   const { state, version } = await loadCharacter(deps, input.characterId);
-  if (!state.exists) return err(appError("character.not_found", "NotFound"));
-  if (!deps.policy.can(input.actor, "character.rollCheck", { ownerId: state.ownerId })) {
-    return err(appError("character.forbidden", "Forbidden"));
+  if (!state.exists) return err(appError('character.not_found', 'NotFound'));
+  if (!deps.policy.can(input.actor, 'character.rollCheck', { ownerId: state.ownerId })) {
+    return err(appError('character.forbidden', 'Forbidden'));
   }
   const check = deps.rules.getCheck(state.ruleSystemId, input.checkId);
   if (!check) {
-    return err(appError("character.unknown_check", "NotFound"));
+    return err(appError('character.unknown_check', 'NotFound'));
   }
   const decided = decideRollCheck(state, check, deps.ids.newId());
   if (!decided.ok) return decided;
   return deps.events.append(
     input.characterId,
     version,
-    toEnvelopes(deps, input.characterId, "character", version, decided.value, input.actor),
+    toEnvelopes(deps, input.characterId, 'character', version, decided.value, input.actor),
   );
 }
 

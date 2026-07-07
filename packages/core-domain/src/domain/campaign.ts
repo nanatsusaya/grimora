@@ -4,10 +4,10 @@
  * from ports at the application layer.
  */
 
-import type { EntityId } from "@grimora/shared-types";
-import { err, ok, type Result } from "@grimora/shared-types";
-import { type AppError, appError } from "./errors";
-import type { CampaignCreated, CampaignEvent, StoredEvent } from "./events";
+import type { EntityId } from '@grimora/shared-types';
+import { err, ok, type Result } from '@grimora/shared-types';
+import { type AppError, appError } from './errors';
+import type { CampaignCreated, CampaignEvent, StoredEvent } from './events';
 
 /** Folded campaign state. `version` tracks the last applied event's per-aggregate version. */
 export interface CampaignState {
@@ -21,7 +21,7 @@ export interface CampaignState {
 
 /** The zero state for a campaign stream before any event is applied. */
 export function emptyCampaign(id: EntityId): CampaignState {
-  return { id, exists: false, version: 0, name: "", ownerId: "" as EntityId };
+  return { id, exists: false, version: 0, name: '', ownerId: '' as EntityId };
 }
 
 /**
@@ -32,8 +32,8 @@ export function emptyCampaign(id: EntityId): CampaignState {
 export function applyCampaign(state: CampaignState, event: StoredEvent): CampaignState {
   const next = { ...state, version: event.version };
   switch (event.type) {
-    case "campaign.created": {
-      const payload = event.payload as CampaignCreated["payload"];
+    case 'campaign.created': {
+      const payload = event.payload as CampaignCreated['payload'];
       return { ...next, exists: true, name: payload.name, ownerId: payload.ownerId };
     }
     default:
@@ -56,10 +56,10 @@ export function createCampaign(
   ownerId: EntityId,
 ): Result<readonly CampaignEvent[], AppError> {
   if (state.exists) {
-    return err(appError("campaign.already_exists", "Conflict"));
+    return err(appError('campaign.already_exists', 'Conflict'));
   }
-  if (name.trim() === "") {
-    return err(appError("campaign.name_required", "Validation"));
+  if (name.trim() === '') {
+    return err(appError('campaign.name_required', 'Validation'));
   }
-  return ok([{ type: "campaign.created", payload: { name, ownerId } }]);
+  return ok([{ type: 'campaign.created', payload: { name, ownerId } }]);
 }

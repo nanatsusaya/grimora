@@ -8,8 +8,8 @@
  * capability (rule system); themes/content-packs/AI-tools/UI-slots (ADR 0006 §2) are not built here.
  */
 
-import type { CheckDefinition } from "./behaviour";
-import type { TraitDefinition } from "./traits";
+import type { CheckDefinition } from './behaviour';
+import type { TraitDefinition } from './traits';
 
 /**
  * The plugin manifest (ADR 0006 §4). The skeleton uses the minimum: a reverse-DNS `id`, a display
