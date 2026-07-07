@@ -24,19 +24,12 @@ bun run test                # turbo test (all workspaces)
 bun run build                # turbo build (all workspaces)
 ```
 
-Scope to one workspace with turbo's filter, e.g. `bunx turbo run test --filter=@grimora/shared-types`.
-To run a single test file directly, `cd` into the package and use Bun's test runner (tests are
-colocated `*.test.ts`, e.g. `packages/shared-types/src/index.test.ts`):
-
-```bash
-bun test src/index.test.ts          # from inside the package dir
-bun test src/index.test.ts -t "ok"  # filter by test name
-```
+Scope to one workspace with turbo's `--filter=@grimora/<pkg>`. Run a single colocated `*.test.ts`
+directly from inside its package: `bun test src/index.test.ts` (add `-t "name"` to filter by test name).
 
 CI (`.github/workflows/ci.yml`) runs, in order: install (frozen lockfile) → lint → typecheck → arch →
-test → build. Keep changes green against all of these before considering work done. The `arch` step is
-the architecture conformance harness (`scripts/arch/`, issue #9): it enforces the ADR 0003 §2
-dependency rule and related security boundaries — see `scripts/arch/README.md`.
+test → build — keep all green before work is done. `arch` is the conformance harness (`scripts/arch/`,
+issue #9) enforcing the ADR 0003 §2 dependency rule + security boundaries (`scripts/arch/README.md`).
 
 ## Architecture (read the ADRs before changing structure)
 
@@ -70,38 +63,32 @@ attributes, the actual formulas, **the dice mechanic itself**, templates). When 
 for DSA5, D&D5e, Shadowrun and Vampire alike, it's core; if it varies per system, it's plugin.
 
 **Plugin system** (ADR 0006): a plugin is a bounded context whose only core dependency is
-`@grimora/plugin-sdk` — declarative Definition APIs (JSON-Schema-validated) + pure Behaviour APIs (no
-ambient I/O/network/DOM). Capabilities: rule system, theme, content pack, UI extension, AI tools,
-import/export — each namespaced by plugin id. Multiple plugins run simultaneously; one rule system
-binds per character (never two), themes/content packs/AI tools are additive.
+`@grimora/plugin-sdk` — declarative (JSON-Schema-validated) Definition APIs + pure Behaviour APIs (no
+ambient I/O/network/DOM), each capability namespaced by plugin id. Multiple plugins run at once; one
+rule system binds per character (never two), themes/content packs/AI tools are additive.
 
-**Event Sourcing + CQRS** (ADR 0004/0005): user-generated aggregates (characters, campaigns, NPCs) are
+**Event Sourcing + CQRS** (ADR 0004/0005): user aggregates (characters, campaigns, NPCs) are
 event-sourced — immutable, past-tense, intention-revealing events (`character.attributeRaised`, not
-generic field-setters), folded to derive state. Read models are rebuildable projections; the UI never
-reads the event store directly. Master/reference data (plugin catalogs, auth records) is classic
-relational, *not* event-sourced. Local store = SQLite (native/OPFS); cloud = Supabase Postgres with
-RLS; sync is custom event-log replication (insert-only, conflict-free) with git-like domain **rebase**
-for genuine concurrent-edit conflicts.
+generic field-setters), folded to state; read models are rebuildable projections (the UI never reads
+the event store directly). Master/reference data (plugin catalogs, auth) stays relational. Local SQLite
+(native/OPFS) ↔ Supabase Postgres (RLS); sync is insert-only, conflict-free event replication with
+git-like domain **rebase** for real concurrent-edit conflicts.
 
-**Theming** (ADR 0007): a theme is design tokens (JSON, `packages/design-tokens`), generated to
-per-platform artifacts (CSS custom properties / RN theme objects) — no runtime CSS-in-JS. UI consumes
-only **semantic** tokens, never primitives. Resolution cascade, most specific wins: character override
-› player's per-campaign override › GM's campaign theme › player's global preference › rule-system
+**Theming** (ADR 0007): design tokens (JSON, `packages/design-tokens`) generated to per-platform
+artifacts — no runtime CSS-in-JS; UI consumes only **semantic** tokens, never primitives. Cascade
+(most specific wins): character › player per-campaign › GM campaign › player global › rule-system
 default › app base.
 
-**AI provider abstraction** (ADR 0008): the AI chat is an *additional, non-privileged* control layer
-over the same public API — `AiProviderPort` (Claude/OpenAI/Ollama, swappable), tools are descriptors
-over existing use-cases (same authz/validation as the UI, no special AI path). Tools are contributed
-by core **and** plugins into one namespaced registry. A future MCP server (§8 of ADR 0008) is planned
-as *another* inbound adapter over that same registry — plugins never need their own network API for
-this.
+**AI provider abstraction** (ADR 0008): a *non-privileged* control layer over the same public API —
+`AiProviderPort` (Claude/OpenAI/Ollama, swappable); tools are descriptors over existing use-cases (same
+authz/validation as the UI, no special AI path), contributed by core **and** plugins into one
+namespaced registry. A future MCP server is just *another* inbound adapter over that registry.
 
 **Cross-cutting: errors, logging, auth** (ADR 0009): `Result<T,E>` (from `shared-types`) for expected
-failures + an `AppError` hierarchy (per-bounded-context subclasses, namespaced error codes, i18n
-keys, closed category set incl. `RateLimited`). `LoggerPort` → pino (BE) / Sentry (FE), PII-redaction
-enforced at the adapter, never by convention. `AuthPort` (Supabase Cloud + self-hosted Supabase/GoTrue,
-wired in `docker-compose.yml`) is separate from `AuthorizationPort` (RBAC: Owner/GM/Player/Spectator,
-enforced in the Application layer); Postgres RLS is defense-in-depth, never the sole gate.
+failures + an `AppError` hierarchy (namespaced codes, i18n keys, closed category set incl.
+`RateLimited`). `LoggerPort` → pino (BE) / Sentry (FE), PII redaction enforced at the adapter.
+`AuthPort` (Supabase Cloud + self-hosted GoTrue) is separate from `AuthorizationPort` (RBAC
+Owner/GM/Player/Spectator, enforced in the Application layer); RLS is defense-in-depth, never the sole gate.
 
 ## Working conventions specific to this repo
 
@@ -133,7 +120,9 @@ enforced in the Application layer); Postgres RLS is defense-in-depth, never the 
 - **Every change goes on a branch and through a PR — never commit directly to `main`** (the one
   documented exception is the ADR `Proposed → Accepted` status flip above). **The owner merges every
   PR.** After a merge, sync `main`, prune, and delete the merged branch.
-- **One concern per PR** — split unrelated changes so each stays reviewable in isolation.
+- **One concern per PR** — split unrelated changes so each stays reviewable in isolation; don't fold
+  refactors, formatting churn, or dependency/toolchain upgrades into unrelated work (a major upgrade
+  gets its own PR with rationale + check results).
 - **Commits & PRs:** Conventional Commits (`type(scope): summary`, imperative subject, body explains the
   *why*); end commit messages with the `Co-Authored-By` trailer and PR bodies with the Claude Code line.
   A PR body states **what**, **why**, **which issue/ADR it follows**, **architecture impact**, how it
@@ -155,7 +144,10 @@ enforced in the Application layer); Postgres RLS is defense-in-depth, never the 
 
 - **Surface owner-domain decisions before acting** — roadmap/sequencing, legal, licensing, config
   trade-offs, and anything hard to reverse or outward-facing. Recommend a default, but let the owner
-  choose.
+  choose. **Stop and ask** in particular before: amending an Accepted ADR; defining or changing a
+  public API/SDK contract; altering the core-vs-plugin boundary; introducing external network calls,
+  secrets, telemetry or AI-provider data transfer; adding copyrighted rule-system content; or a major
+  dependency/toolchain upgrade.
 - **Verify external facts from primary sources** (library/tool capabilities, legal deadlines, API
   details) rather than asserting from memory; cite the source.
 - **Scale decisions to the project's actual stage** (solo, pre-revenue, no public launch): prefer a
@@ -217,13 +209,6 @@ Agents write the tickets too; hold them to the same bar as code.
   ADR owns — public API/SDK contract (0011), rules/dice execution (0021), realtime/presence (0024),
   personal-data event payloads (0023), telemetry (0019), compliance/consent flows (0015) — write or
   update the ADR/issue first; don't decide it silently in code.
-- **Stop and ask the owner** before a change that would: amend an Accepted ADR; define or change a
-  public API/SDK contract; alter the core-vs-plugin boundary; introduce external network calls,
-  secrets, telemetry or AI-provider data transfer; add copyrighted rule-system content; or perform a
-  major dependency/toolchain upgrade. (Hard-stop extension of "surface owner-domain decisions" above.)
-- **No drive-by changes.** Don't fold refactors, formatting churn, or dependency/toolchain upgrades
-  into unrelated work — each needs its own PR (a major upgrade with rationale + check results).
-  Reinforces "one concern per PR".
 - **Never commit real sensitive data.** No real personal data, secrets, API keys, tokens, or
   copyrighted rulebook text in tests, fixtures, snapshots, or logs — use obvious fakes.
 - **Domain commands and events express intent** — no generic `setField`/`updateEntity` commands or
