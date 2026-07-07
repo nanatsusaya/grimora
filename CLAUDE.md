@@ -136,8 +136,9 @@ enforced in the Application layer); Postgres RLS is defense-in-depth, never the 
 - **One concern per PR** — split unrelated changes so each stays reviewable in isolation.
 - **Commits & PRs:** Conventional Commits (`type(scope): summary`, imperative subject, body explains the
   *why*); end commit messages with the `Co-Authored-By` trailer and PR bodies with the Claude Code line.
-  A PR body states **what**, **why**, how it was **verified**, and any **merge-order** caveats. Branch
-  prefixes: `adr/…`, `feat/…`, `fix/…`, `chore/…`, `docs/…`.
+  A PR body states **what**, **why**, **which issue/ADR it follows**, **architecture impact**, how it
+  was **verified**, any **merge-order** caveats, and known **follow-ups**. Branch prefixes: `adr/…`,
+  `feat/…`, `fix/…`, `chore/…`, `docs/…`.
 - **Definition of Done (before handing work back):** the full local chain is green — `lint`,
   `typecheck`, `arch`, `test`, `build`; for anything with runtime behaviour, **verify by exercising it
   end-to-end**, not just via tests; the PR's CI is green. **Report outcomes faithfully**, including
@@ -206,3 +207,26 @@ Agents write the tickets too; hold them to the same bar as code.
 - **Definition of Done** (before closing): acceptance criteria met and **verified**; code **and docs**
   updated; CI green; the PR merged; for ADR tickets the ADR is `Accepted` and the index/`STATUS.md`
   synced; the ticket closed via `Closes #…`.
+
+### Agent guardrails
+
+- **Read before writing.** Before changing code in a package/app/plugin, check `docs/STATUS.md`, the
+  owning ADR(s), the affected manifests, and existing tests. Do not invent packages, folders or
+  abstractions that no Accepted ADR covers.
+- **Do not implement ahead of a decision.** If a task would settle in code something a still-*Planned*
+  ADR owns — public API/SDK contract (0011), rules/dice execution (0021), realtime/presence (0024),
+  personal-data event payloads (0023), telemetry (0019), compliance/consent flows (0015) — write or
+  update the ADR/issue first; don't decide it silently in code.
+- **Stop and ask the owner** before a change that would: amend an Accepted ADR; define or change a
+  public API/SDK contract; alter the core-vs-plugin boundary; introduce external network calls,
+  secrets, telemetry or AI-provider data transfer; add copyrighted rule-system content; or perform a
+  major dependency/toolchain upgrade. (Hard-stop extension of "surface owner-domain decisions" above.)
+- **No drive-by changes.** Don't fold refactors, formatting churn, or dependency/toolchain upgrades
+  into unrelated work — each needs its own PR (a major upgrade with rationale + check results).
+  Reinforces "one concern per PR".
+- **Never commit real sensitive data.** No real personal data, secrets, API keys, tokens, or
+  copyrighted rulebook text in tests, fixtures, snapshots, or logs — use obvious fakes.
+- **Domain commands and events express intent** — no generic `setField`/`updateEntity` commands or
+  events for event-sourced aggregates; events are past-tense and intention-revealing (ADR 0004).
+- **Tests are deterministic** — abstract time, randomness, storage, network, AI and secrets behind
+  ports/fakes; prefer pure Domain/Application tests over adapter/E2E. (Full strategy: ADR 0017.)
