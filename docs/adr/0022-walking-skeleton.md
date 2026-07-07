@@ -86,9 +86,11 @@ accepted ADR pins those shapes**, and defining a public SDK contract is a `CLAUD
 **Decision:** the skeleton's SDK and trait-meta-model shapes are **provisional v0 validation artifacts,
 explicitly not the frozen public contract.** They live in `packages/plugin-sdk` and `packages/core-domain`
 marked as such (module doc-comments + a note in the package README). The formal **plugin-SDK v0 freeze**
-is a separate later step (see **O3**) that the skeleton's findings *inform* but do not *constitute*. This
-lets the skeleton do its job (concretize enough to run) without silently hardening the SDK contract that
-ADR 0006 owns and third-party plugin authors will depend on.
+gets its **own dedicated ADR** (**R3**), informed by the skeleton's findings but not constituted by them —
+because the SDK is a public, third-party-facing contract (a `CLAUDE.md` stop-and-ask surface) that
+deserves its own reviewable decision rather than being buried in the gate's implementation. This
+provisional-shape discipline is what makes the "keep the code" choice (**R1**, §10) safe: the skeleton
+concretizes enough to run without silently hardening the SDK contract that ADR 0006 owns.
 
 ### 4. Event envelope extension (finding F3)
 
@@ -175,6 +177,13 @@ in-memory adapter fakes (event store, read-model store, clock, id, RNG, AI provi
 **runnable entry** (a script/CLI that "walks" the golden path once for observation — true to a *walking*
 skeleton and to `CLAUDE.md`'s "verify by exercising it end-to-end"), in addition to the test suites.
 
+**Confirmed R1 (kept, not throwaway):** this code is the **seed** the real `core-domain`/`plugin-sdk`
+grows from — kept, not deleted after validation — made safe by the provisional-shape discipline (§3) and
+the dedicated SDK-v0 freeze ADR (R3). **Confirmed R2 (DSA5 depth):** the DSA5 slice is **minimal but
+spans different trait *kinds*** — one attribute, one derived value (via a formula, ADR 0021), and one
+skill check — deliberately not three of the same kind, so the meta-model (ADR 0020) is stressed across
+categories rather than merely covered; broader DSA5 content is Phase-3 work.
+
 **Does not build:** `apps/web` (ADR 0012), the `apps/api` HTTP/OpenAPI adapter (ADR 0011 §12 framework
 deferred), real SQLite/Postgres/MinIO adapters, the untrusted-plugin sandbox (ADR 0006 §5 — first-party
 DSA5 runs in-process), and any themed UI (ADR 0007). These are validated later, when their owning ADRs
@@ -192,13 +201,13 @@ de-risked before it hardens; the skeleton reveals which further ADRs actually bl
 writing them speculatively); the 0017↔0012 E2E tension is resolved by explicit scoping; several latent
 seams (F3/F4) become explicit assertions instead of future surprises.
 
-**Negative / costs:** the skeleton is partly **throwaway or provisional** effort (some of it not shipped
-as-is — see **O1**); the provisional SDK/meta-model shapes (§3) risk being mistaken for the frozen
-contract if the "provisional v0" labeling is not disciplined; scoping the UI out (F1) means frontend
-integration (ADR 0012) and real-adapter behavior are validated **later**, so the gate proves the core
-holds, not that the whole product stack does. These are accepted trade-offs: validating the core cheaply
-now is worth more than a slower, infra-heavy full-stack slice that also front-runs undecided frontend
-ADRs.
+**Negative / costs:** the skeleton is **provisional** effort — kept as the seed of the real core (R1),
+not thrown away, but its SDK/meta-model shapes (§3) risk being mistaken for the frozen contract if the
+"provisional v0" labeling is not disciplined (mitigated by R3's dedicated freeze ADR); scoping the UI out
+(F1) means frontend integration (ADR 0012) and real-adapter behavior are validated **later**, so the gate
+proves the core holds, not that the whole product stack does. These are accepted trade-offs: validating
+the core cheaply now is worth more than a slower, infra-heavy full-stack slice that also front-runs
+undecided frontend ADRs.
 
 ## Alternatives considered
 
@@ -214,26 +223,24 @@ ADRs.
 - **A pure paper/diagram validation** (no code) — rejected: the whole point of the finding is that
   abstract consistency ≠ buildable; only real code reveals a mis-abstracted meta-model.
 
-## Open questions (for owner review)
+## Resolved questions (owner decisions, 2026-07-07)
 
-- **O1 — Throwaway spike vs. seed of the real `core-domain`?** Is the skeleton a *throwaway* spike
-  (learn, then rebuild Phase-2 core cleanly) or the *seed* the real `core-domain`/`plugin-sdk` grows
-  from? Recommend **seed, with provisional-shape discipline**: keep the code (don't waste it), but treat
-  the SDK/trait-meta-model shapes as explicitly provisional (§3) and require the SDK-v0 freeze step (O3)
-  before third-party plugins. Throwaway is cleaner but wasteful for a solo/pre-revenue project; the risk
-  of "seed" (provisional shapes silently hardening) is mitigated by §3's labeling + O3.
-- **O2 — How much DSA5 does the skeleton include?** Just enough for the slice (one attribute + one
-  derived value + one skill + one check) vs. a slightly richer set to stress the meta-model harder.
-  Recommend **minimal** — the gate is about the seams between layers, not DSA5 coverage; a richer DSA5 is
-  Phase-3 work. (A too-thin slice risks under-stressing the meta-model; mitigated by choosing traits that
-  exercise *different kinds* — an attribute, a derived value via a formula, and a skill check — rather
-  than three of the same kind.)
-- **O3 — Does the plugin-SDK v0 freeze get its own ADR?** After the skeleton informs the shapes (§3),
-  does freezing the public plugin-SDK v0 contract get a **dedicated ADR** (informed by the skeleton),
-  fold into ADR 0006 as an **amendment**, or ride along in the skeleton's own follow-up? Recommend a
-  **dedicated ADR**: the SDK is a public, third-party-facing contract (a `CLAUDE.md` stop-and-ask
-  surface), so freezing it deserves its own reviewable decision rather than being buried in the gate's
-  implementation.
+All three review questions were resolved by the owner (following the recommended default in each case);
+the decisions above already reflect them.
+
+- **R1 — Throwaway spike vs. seed.** *Confirmed: seed, with provisional-shape discipline* (§10). The
+  skeleton code is **kept** as the seed the real `core-domain`/`plugin-sdk` grows from — not deleted
+  after validation. Throwaway would be cleaner but wasteful for a solo/pre-revenue project; the "seed"
+  risk (provisional shapes silently hardening) is contained by §3's explicit "provisional v0" labeling
+  plus the dedicated SDK-v0 freeze ADR (R3).
+- **R2 — DSA5 depth.** *Confirmed: minimal, spanning different trait kinds* (§10). One attribute, one
+  derived value (via a formula), and one skill check — deliberately across *different kinds* so the
+  meta-model (ADR 0020) is stressed by category variety, not merely covered. Broader DSA5 content is
+  Phase-3 work; the gate is about the seams between layers, not DSA5 coverage.
+- **R3 — SDK-v0 freeze location.** *Confirmed: its own dedicated ADR* (§3). Freezing the public
+  plugin-SDK v0 contract — informed by, but not constituted by, the skeleton — gets a dedicated,
+  reviewable ADR rather than an ADR 0006 amendment or a buried skeleton follow-up, because the SDK is a
+  public, third-party-facing contract (a `CLAUDE.md` stop-and-ask surface).
 
 ## References
 
