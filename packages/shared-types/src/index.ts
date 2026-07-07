@@ -2,7 +2,13 @@
  * @grimora/shared-types — foundational types shared across the whole monorepo.
  *
  * Kept dependency-free and framework-agnostic on purpose: this package is imported by the
- * rule-agnostic core, the plugin SDK, the offline sync layer, and every app.
+ * rule-agnostic core, the plugin SDK, the offline sync layer, and every app. The architecture
+ * harness (`shared-types-is-a-leaf`, ADR 0003 §3) enforces that it imports no other workspace
+ * package, so domain/adapter/plugin vocabulary can never creep into this leaf.
+ *
+ * What belongs here: only *truly generic* concepts (the Shared Kernel, ADR 0003 §9) — ids, the
+ * event-sourcing envelope infrastructure (ADR 0004 §2), and the `Result` type. Rule-system or
+ * domain vocabulary lives in `core-domain`; the plugin contract lives in `plugin-sdk`.
  */
 
 /** Nominal ("branded") typing helper to prevent mixing structurally identical ids. */
@@ -15,22 +21,85 @@ export type EntityId = Brand<string, "EntityId">;
 export type IsoTimestamp = Brand<string, "IsoTimestamp">;
 
 /**
- * The append-only event envelope — the atom of the Event Sourcing / CQRS core.
+ * Situational, non-personal correlation data attached to an event's metadata (ADR 0004 §2/§11).
+ *
+ * This exists so a change can later be attributed to the circumstances it happened in (alone vs.
+ * during a live session) WITHOUT turning the domain event store into an analytics store or storing
+ * behavioural PII. It is deliberately generic event-sourcing infrastructure — not domain or plugin
+ * vocabulary — which is why it is allowed in this leaf package (ADR 0022 §4 note to the leaf-guard).
+ */
+export interface EventContext {
+  /** Live play-session this change happened during, if any. */
+  readonly sessionId?: EntityId;
+  /** Device that produced the change (for multi-device correlation, never as an identity). */
+  readonly deviceId?: string;
+  /** Whether the producing device was online at the time. */
+  readonly online?: boolean;
+  /** How many participants were present in the session (a count, not a roster). */
+  readonly participantsPresent?: number;
+}
+
+/**
+ * Provenance/audit metadata carried by every event (ADR 0004 §2). Deliberately holds **no PII**:
+ * operational/behavioural detail belongs in logs (ADR 0009 §2), personal payload data is subject to
+ * crypto-shredding (ADR 0010 §6) — this is just correlation and attribution.
+ */
+export interface EventMetadata {
+  /** The actor (user) on whose authority the change was made, if known. */
+  readonly actorId?: EntityId;
+  /** Correlates all events/logs produced by one request or interaction. */
+  readonly correlationId?: string;
+  /** The event/command that directly caused this one (a causation chain). */
+  readonly causationId?: string;
+  /** Situational context for later correlation (not telemetry) — see {@link EventContext}. */
+  readonly context?: EventContext;
+}
+
+/**
+ * The append-only event envelope — the atom of the Event Sourcing / CQRS core (ADR 0004 §2).
  * Concrete event `type`s and `payload`s are defined by the core domain and by plugins.
+ *
+ * `version` is the per-aggregate, 1-based causal order; a store-assigned global `position` lives on
+ * {@link PersistedEvent}, not here (the deliberate `version`-vs-`position` split, ADR 0004 §2).
  */
 export interface EventEnvelope<TType extends string = string, TPayload = unknown> {
-  /** Unique id of this event occurrence. */
+  /**
+   * Globally-unique id of this event occurrence. Generated as a **UUIDv7** via `IdGeneratorPort`
+   * (ADR 0004 §2) so it is time-ordered — which helps global ordering and idempotent sync
+   * (dedup-by-`id`, ADR 0005 §3).
+   */
   readonly id: EntityId;
   /** Id of the aggregate (e.g. a character, campaign) this event belongs to. */
   readonly aggregateId: EntityId;
+  /** The aggregate stream's type, e.g. "character", "campaign" (ADR 0004 §2). */
+  readonly aggregateType: string;
   /** Discriminating event type, e.g. "character.created". */
   readonly type: TType;
   /** Monotonically increasing version within the aggregate (1-based). */
   readonly version: number;
+  /**
+   * Payload schema version of this event **type**, for upcasting old payloads to the current shape
+   * on read before the domain/projections see them (ADR 0004 §6).
+   */
+  readonly schemaVersion: number;
   /** When the event occurred (device clock; sync reconciles ordering). */
   readonly occurredAt: IsoTimestamp;
+  /** Provenance/audit metadata — see {@link EventMetadata}. Optional to keep test/fixture events terse. */
+  readonly metadata?: EventMetadata;
   /** Event-specific data. */
   readonly payload: TPayload;
+}
+
+/**
+ * A persisted event: an {@link EventEnvelope} plus the store-assigned, monotonic **`position`** —
+ * a global sequence *within one store* (ADR 0004 §2). `position` is store-local, **not** a
+ * cross-device global order; ADR 0005 reconciles ordering across stores. Projections and sync read
+ * in `position` order.
+ */
+export interface PersistedEvent<TType extends string = string, TPayload = unknown>
+  extends EventEnvelope<TType, TPayload> {
+  /** Store-local global sequence position (assigned on append). */
+  readonly position: number;
 }
 
 /** A lightweight success/failure result type used instead of throwing for expected errors. */
