@@ -254,7 +254,217 @@ plugin. That evidence base became ADR 0020.
 for a foundational decision, not to produce a fast plausible answer. For "what is universal across X?"
 questions, the honest method is to actually survey several X and write the comparison down.
 
-## 2026-07-07 — Establishing the meta-log itself
+> **Backfill note.** The entries dated 2026-07-06 below were reconstructed retroactively (on 2026-07-07,
+> by a third session) from a manually-exported transcript of the second working session — this log did
+> not exist yet while that work happened, and the second session ended before it could be asked to
+> self-backfill (unlike the first session, which was still live and backfilled its own history directly;
+> see the note above). Dates are anchored by the ADR `Accepted` dates recorded in the ADR files (0009,
+> 0010 on 2026-07-06; 0011 on 2026-07-07, the session's last working item before "Feierabend").
+
+## 2026-07-06 — Owner amended an Accepted ADR immediately rather than deferring the fix
+
+**Trigger:** The owner asked a structural question before continuing with ADR 0009 — if most features
+live in plugins and a future MCP server must expose the whole app to an AI agent, don't plugins need
+their own well-defined API? — and asked to be corrected if the reasoning was flawed.
+
+**Action / method:** The reasoning was checked against ADR 0003/0006/0008/0020: the premise (plugins
+carry most features) was correct, but the conclusion didn't hold — the project had already solved this
+differently (a single tool registry over the public API, plugins register in-process via the SDK, no
+per-plugin network surface). What was missing was that MCP itself was never named anywhere as a consumer
+of that registry. Proposed noting this as a future refinement in the still-unwritten ADR 0011. The owner
+overruled that: *"Meinst du nicht, wir sollten das in die adr 0008 schreiben? Ich kann eine änderung
+nachträglich immernoch bewilligen."* — i.e. amend the already-`Accepted` ADR 0008 now, using the
+owner-authorization path (ADR 0001), rather than let a known gap sit unrecorded until 0011's turn.
+
+**Impact:** ADR 0008 gained §8 (MCP as a future additional inbound adapter over the existing tool
+registry) same-day, as an owner-authorized amendment (PR #30) — instead of the clarification waiting,
+unrecorded, for ADR 0011 (which didn't land until the next day).
+
+**Lessons learned:** When a real gap in an Accepted ADR surfaces mid-conversation, my default was to
+defer the fix to "the ADR that will own this eventually" — the owner's instinct was the opposite: fix the
+record now, using the amendment mechanism that exists exactly for this, rather than carry a known-but-
+unrecorded gap forward. Don't default to deferral when a lightweight, correct fix (an amendment) is
+already available.
+
+## 2026-07-06 — Deliberately open-ended legal research brief ("also check what I haven't thought of")
+
+**Trigger:** Before ADR 0010, the owner asked for research on DSGVO, AI Act, CRA and accessibility law —
+then explicitly widened the brief: *"Auch alles was mir hier spontan nicht einfällt, möchte ich dass du
+mit beachtest, sprich mach eine entsprechende online recheche."* Also asked about legal specifics of
+hosting under a `.game` domain.
+
+**Action / method:** Ran a broad web-research pass beyond the named laws and surfaced regulations the
+owner hadn't asked about by name (DSA notice-and-action, NIS2, EU Data Act, JMStV/youth protection,
+Fernabsatzrecht/Widerrufsbutton, the Digital Fairness Act proposal) plus the `.game`-TLD question.
+Recommended against folding all of it into ADR 0010 directly — proposed a separate, living
+`docs/legal/eu-de-compliance-matrix.md` reference table instead, so ADR 0010 and the later ADR 0015
+could each cite it without duplicating the research.
+
+**Impact:** `docs/legal/eu-de-compliance-matrix.md` (PR #32) — surfaced the Impressumspflicht gap (later
+assessed as the single most time-sensitive finding, independent of revenue/company size) that a
+narrower, DSGVO-only research pass would likely have missed.
+
+**Lessons learned:** An explicitly open-ended research instruction ("also whatever I haven't thought of")
+is a signal to widen the search past the named list, not just research the named items more thoroughly —
+and a wide research result belongs in a dedicated reference doc, not stuffed into the ADR that triggered it.
+
+## 2026-07-06 — Caught: `STATUS.md` had never actually been committed
+
+**Trigger:** The owner asked, independently of the ADR 0010 track, whether `STATUS.md`'s content should
+be moved into `CLAUDE.md`.
+
+**Action / method:** The answer was no (the two files have different half-lives — `CLAUDE.md` stable
+rules vs. `STATUS.md` living state — and merging them would force `CLAUDE.md` to churn every session).
+While setting up `CLAUDE.md` via the `/init` skill and having it reference `docs/STATUS.md`, it surfaced
+that `STATUS.md` was **git-untracked** — it had existed only as a local file and was never actually part
+of any commit, meaning a fresh checkout would have had `CLAUDE.md` pointing at a file that didn't exist.
+
+**Impact:** `STATUS.md` was committed for the first time in the same PR (#33) that added `CLAUDE.md` —
+a real, silent gap (not a hypothetical one) caught only because a different, unrelated question happened
+to touch the same file.
+
+**Lessons learned:** "Is X tracked/committed?" is worth checking explicitly whenever a file that *feels*
+foundational turns out to matter to a new decision — a file can look load-bearing in every session's
+context while never having actually entered version control.
+
+## 2026-07-06 — ADR 0010's O1–O5, explained in German, and a correction on the reporting channel
+
+**Trigger:** The owner didn't understand five open-question bullets in PR #36 (ADR 0010) and asked for a
+plain-German walkthrough with background, alternatives and a recommendation for each.
+
+**Action / method:** Explained each (sandbox timing, crypto-shredding vs. tombstones, field-vs-transparent
+encryption, Impressum/JMStV routing, vulnerability-reporting channel) in accessible terms before the
+owner decided. On O5, the owner asked whether public GitHub issues could serve as the vulnerability
+report channel — corrected this: public issues would disclose a zero-day before a fix exists; recommended
+GitHub's **Private Vulnerability Reporting** instead, explained why, and the owner adopted it and enabled
+it that session.
+
+**Impact:** All five decisions were made informed (not rubber-stamped from an unreadable bullet list), and
+a plausible-but-actually-unsafe process choice (public issues for security reports) was caught before it
+became the documented convention.
+
+**Lessons learned:** When open questions get a "I don't understand this" back, re-explaining accessibly
+*before* the owner decides is the right move over re-stating the same bullets more tersely — and a
+follow-up question from the owner ("can we just use X?") should be evaluated on its own merits, not
+treated as an implicit approval to fold in.
+
+## 2026-07-06 — Conformance harness: an honesty check, not just a green run
+
+**Trigger:** Issue #9's acceptance criterion said the harness must make "a deliberate boundary violation"
+fail, not just pass on clean code.
+
+**Action / method:** After the harness reported green on the real (still mostly-empty) module tree, a
+real violation was injected on purpose — a `core-domain` file importing `node:fs` — to confirm `bun run
+arch` actually turns red (exit 1, clear message) before removing it again and committing.
+
+**Impact:** The harness's core guarantee was verified empirically, not just asserted from the fixture
+tests, before PR #37 was opened.
+
+**Lessons learned:** For any gate whose entire purpose is "fail when it should," a green run on legitimate
+code proves nothing about whether it actually catches the bad case — the honest verification is to
+briefly introduce the bad case for real and watch it fail, matching this project's later "verify, don't
+assert" habit (see the bun/biome entry above) applied to infrastructure, not just claims.
+
+## 2026-07-07 — The external ChatGPT ADR review: a real cross-check, partially adopted
+
+**Trigger:** The owner pasted a long, unprompted review — obtained by asking ChatGPT to evaluate the
+Accepted ADRs (0001–0010, 0020) and judge what's missing — and asked whether the plan needed to change
+as a result.
+
+**Action / method:** Read the review in full and checked every claim against the actual ADR text rather
+than accepting or dismissing it wholesale. Agreed with several real findings (no ADR owns rules/dice
+execution; the testing-strategy ADR was sequenced too late for an event-sourced system; a "walking
+skeleton" validation gate was missing; AI-consent didn't account for other players' data leaking into a
+GM's prompt; crypto-shredding needed to reconcile with human-readable event descriptions). Explicitly
+pushed back on the review's scale: it proposed ten new ADRs (0021–0030); assessed that as over-fitted to
+a "cover every conceivable gap" reviewer incentive rather than this project's actual solo/pre-revenue
+stage, and also flagged an internal tension in the review itself (it says "don't start Phase 2 until many
+ADRs exist" and separately "build a walking skeleton first" — resolved by pulling the skeleton *forward*
+with only the truly-blocking ADRs, rather than writing all ten speculatively).
+
+**Impact:** Four net-new ADRs (0021–0024, not ten), `docs/STATUS.md`'s roadmap reprioritized, two
+"cheap wins" captured immediately (a `shared-types` leaf-guard fitness function; the AI-consent
+resource-scoping gap noted against ADR 0015's issue) — all recorded in `docs/STATUS.md`'s "External ADR
+review" section already, but the *reasoning process* (what was kept vs. rejected, and why) lived only in
+this transcript until now.
+
+**Lessons learned:** This is the clearest positive data point yet for the owner's cross-model-review
+habit — it surfaced a real, load-bearing gap (Rules Execution, later written as ADR 0021) that no amount
+of re-reading the existing ADRs solo would likely have caught, because the gap was an *absence*, not an
+error in what existed. But the value came from treating the review as a set of individually-checkable
+claims, not a verdict to accept or reject in bulk — the "ten new ADRs" framing would have been actively
+harmful (analysis paralysis) if adopted wholesale instead of triaged against project stage.
+
+## 2026-07-07 — A second ChatGPT review (of `CLAUDE.md` itself) caught referencing a stale snapshot
+
+**Trigger:** The owner ran the same cross-check pattern again, this time asking ChatGPT to review
+`CLAUDE.md` for agent-guardrail gaps, and pasted the result.
+
+**Action / method:** Before adopting anything, re-read the *current* `CLAUDE.md` (post-PR-#49) and
+checked the review's claims against it — found that roughly half the suggestions were already implemented,
+with one clear tell: the review claimed `arch` was missing from the mandatory-checks list, but it had
+been part of the Definition of Done for a while. That is strong evidence the review was working from a
+cached/earlier fetch of the file, not its current state. Adopted only the genuinely net-new items (7 of
+~10 proposed guardrail rules) rather than the full block, and explicitly credited the review's own
+closing caution ("don't let this file balloon into a shadow-ADR") as the reason to be selective rather
+than exhaustive.
+
+**Impact:** `CLAUDE.md` gained a tight, 7-rule "Agent guardrails" section (PR #50) instead of a
+near-doubling of its size; a follow-up "is CLAUDE.md too big now?" question led to measuring it in actual
+tokens/lines rather than going on feel, and a targeted trim (PR #51, 232→217 lines, no rule lost).
+
+**Lessons learned:** A cross-model review's *inputs* need the same scrutiny as its conclusions — a
+plausible-sounding critique built on stale context will confidently recommend re-adding things that
+already exist. Always re-read the current state of what's being reviewed before comparing it against
+external feedback, not just after.
+
+## 2026-07-07 — Skills proposal skepticism: owner and agent independently converged on "build one, not forty"
+
+**Trigger:** The owner had separately asked ChatGPT whether specific Claude Code skills should be added
+to the project, got back a list of ~40 candidate skills, and brought it in already skeptical: *"Die
+Ergebnis liste ist sehr lang und ich bin bei der liste skeptisch."*
+
+**Action / method:** Rather than defer to the owner's skepticism or the list's volume, worked out an
+independent, falsifiable criterion first: `CLAUDE.md` holds always-on invariants loaded every session;
+Skills are on-demand, situational, multi-step *procedures* — a rule that must hold on every change belongs
+in `CLAUDE.md`, not a Skill that might not trigger. Applying that test to all ~40 proposals showed most
+either duplicated guardrails already in `CLAUDE.md` or overlapped with built-in `/code-review` and
+`/security-review`. Only one proposal (`grimora-adr-author`) was a genuine multi-step, situationally-
+triggered procedure not already covered — recommended building only that one.
+
+**Impact:** `.claude/skills/grimora-adr-author/` (PR #55) — the project's only Skill at the time, later
+reused directly for ADR 0021. Session ended with a noted-but-deferred idea for a second Skill
+(`/feierabend`, a session-close checklist) rather than building it immediately.
+
+**Lessons learned:** The owner's skepticism was the right instinct, but the useful response wasn't
+agreeing or disagreeing with the *feeling* — it was finding a sharp test (always-on rule vs. on-demand
+procedure) that could evaluate all 40 items mechanically and explain *why* most should be rejected, not
+just that they should be. A named criterion generalizes to the next tooling proposal; "that list feels
+too long" doesn't.
+
+## 2026-07-07 — Periodic ticket-hygiene self-audit, prompted by the owner asking three plain questions
+
+**Trigger:** After a run of merged PRs, the owner asked three simple questions about the GitHub issue
+backlog: are the open tickets still current, are they content-wise adequate, and is anything foreseeably
+missing that isn't ticketed yet?
+
+**Action / method:** Pulled every open issue and checked it against actual repo state rather than trusting
+issue metadata at face value — found the four ADR issues created earlier that same session (#41–#44) were
+orphaned (not linked as Epic sub-issues, no labels, no milestone, unlike every other ticket) and that
+their priority labels didn't match the just-reprioritized roadmap; found ADR 0011's ticket (#13) was
+thinner than the project's current knowledge (didn't cross-reference decisions made since it was written).
+Fixed all four findings (metadata, sub-issue links, enriched #13, a new backlog-tracking Epic #52 for
+trigger-gated topics) in one pass rather than only answering the three questions narratively.
+
+**Impact:** Epic #1 went from undercounting sub-issues (11/19) to a complete, accurate 23; ADR 0011's
+ticket was "Definition-of-Ready"-complete before work started on it; deferred backlog topics got one
+visible home (#52) instead of living only as prose in `STATUS.md`.
+
+**Lessons learned:** A periodic "is our tracking still honest?" audit — not tied to any specific PR or
+ADR — surfaced real drift (orphaned tickets, stale priorities) that no single task would have caught,
+because each individual PR only touches the tickets it's working on, never the backlog as a whole.
+
+
 
 **Trigger:** After finishing ADR 0021 (Rules Execution), the owner named the project's actual primary
 goal explicitly: learning to work with AI agents, with Grimora as the case study. They asked for (a) a
