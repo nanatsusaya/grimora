@@ -1,7 +1,7 @@
 # ADR 0021 — Rules Execution: Formula, Dice & Deterministic Runtime
 
-- **Status:** Proposed
-- **Date:** 2026-07-08
+- **Status:** Accepted
+- **Date:** 2026-07-07 (accepted via PR #57, issue #41)
 - **Deciders:** project owner + AI agents
 - **Depends on:** [ADR 0003](0003-overall-architecture.md) (§1 dependency rule, §9 DDD),
   [ADR 0004](0004-event-sourcing-cqrs.md) (events, upcasting, determinism, event naming/`describe()`),
@@ -182,7 +182,7 @@ generic core UI can be about roll results.
   cleanly onto every mechanic (e.g. Shadowrun's counted-hits results); the i18n-key refinement (R3)
   gives generic UI a renderable label without the core needing to understand the tier.
 
-## Resolved questions (owner decisions, 2026-07-08)
+## Resolved questions (owner decisions, 2026-07-07)
 
 All four review questions were resolved by the owner; the decisions above already reflect them.
 
