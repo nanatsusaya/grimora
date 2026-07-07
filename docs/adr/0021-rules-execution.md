@@ -48,7 +48,7 @@ WASM:
   tree, so "COU + 1d6" is one AST, not two glued-together systems).
 - **Operator nodes:** `add`, `sub`, `mul`, `div`, `min`, `max`, `cmp` (`eq`/`lt`/`gt`/`lte`/`gte`),
   `if` (ternary), `tableLookup` (a keyed table the plugin supplies, e.g. DSA5's encumbrance-by-STR
-  table). This set is the **v1 closed set** (see O1) — extend only by amendment/superseding ADR,
+  table). This set is the **v1 closed set, confirmed R1** — extend only by amendment/superseding ADR,
   mirroring the closed error-category precedent (ADR 0009 §1).
 - The AST is **pure data**: JSON-serializable, JSON-Schema-validatable at plugin load time like other
   Definition APIs (ADR 0006 §3), embeddable directly in event payloads (§4) and plugin manifests, and
@@ -57,7 +57,10 @@ WASM:
   whether a given plugin later runs in-process or in a sandboxed worker.
 - **Plugin-facing ergonomics:** plugins are not expected to hand-write raw AST nodes; a **builder API**
   (`formula.add(a, b)`, `formula.trait("COU")`, …) is the intended authoring surface and simply emits
-  the tree. The builder is sugar; the AST is the wire/storage format (see O2 for where it lives).
+  the tree. The builder is sugar; the AST is the wire/storage format. **Confirmed R2:** the builder
+  ships in `@grimora/plugin-sdk` from day one, not after DSA5 hand-constructs raw nodes first — the SDK
+  is versioned (semver, ADR 0006 §4) and can be extended later at no greater cost than any other SDK
+  surface, so there is no benefit to withholding it.
 - This is deliberately **narrower** than the Behaviour API's general "pure function" contract already
   allowed for generation steps (ADR 0006 §3): formulas specifically need to be inspectable (for
   breakdown/audit UI) and mechanically re-evaluable without invoking plugin code, which an opaque
@@ -78,12 +81,18 @@ lives in a plugin-supplied Behaviour API resolution function.
   links multiple requests for opposed/group checks (each participant's roll is its own request,
   correlated by `groupId`, rather than a special "group roll" core concept).
 - **`RollResult`** — `{ requestId, rolls: raw pips per term, rerollOf?: prior RollResult id kept for
-  audit, outcome: <plugin-defined value + label>, seed: (§3) }`. `outcome` is **opaque to the core**
-  (see O3) — the plugin's resolution function produces it (e.g. DSA5 quality levels, a d20 crit/fail,
-  a Shadowrun hit count), and the core stores/replays it without interpreting it.
-- **Rerolls / advantage / disadvantage** are modeled as **additional terms on the same request, or a
-  second `RollRequest` with `rerollOf` pointing at the first** (see O4) — never a core-level special
-  case. This keeps the core free of any specific mechanic's reroll rules.
+  audit, outcome: <plugin-defined value + labelKey>, seed: (§3) }`. **Confirmed R3:** `outcome`'s
+  structured value is **opaque to the core** — the plugin's resolution function produces it (e.g. DSA5
+  quality levels, a d20 crit/fail, a Shadowrun hit count), and the core stores/replays it without
+  interpreting it. Its human-readable part is **not** a hardcoded string but an **i18n message key (+
+  params)**, following the exact same pattern already used for `AppError.messageKey` (ADR 0009 §1) and
+  event `describe()` (ADR 0004 §10): the plugin stores the locale-independent key/structured value, and
+  the actual translated text is resolved at the presentation layer (i18n, ADR 0016) — never server-side
+  or baked into the event.
+- **Rerolls / advantage / disadvantage** are modeled as a **second `RollRequest` with `rerollOf`
+  pointing at the first** (**confirmed R4**) — never a core-level special case, and never multiple
+  term-sets bundled into one request upfront. This keeps the core free of any specific mechanic's
+  reroll rules while keeping every physical "touch of the dice" its own auditable event.
 
 ### 3. Determinism & RNG
 
@@ -141,11 +150,11 @@ than "let the plugin write a TS function" would be. The closed node-kind set (§
 carefully — a new node kind is effectively a core-engine change gated the same as any other core
 release — whenever a plugin's real-world math needs something the v1 set can't express; mitigated by
 starting from a deliberately generous set informed by the seven-system comparison (ADR 0020) and by
-the standard amendment/superseding path if it proves too narrow. Because `RollResult.outcome` is opaque
+the standard amendment/superseding path if it proves too narrow. Because `RollResult.outcome`'s structured value is opaque
 to the core (§2), core-level tooling (a generic character sheet, a generic AI tool describing a roll)
-can render `outcome.label` but cannot reason about *what kind* of outcome it is — an intentional
-consequence of ADR 0020's boundary, not an oversight, but a real limit on how "smart" generic core UI
-can be about roll results.
+can resolve and render its `labelKey` (i18n) but cannot reason about *what kind* of outcome it is — an
+intentional consequence of ADR 0020's boundary, not an oversight, but a real limit on how "smart"
+generic core UI can be about roll results.
 
 ## Alternatives considered
 
@@ -165,29 +174,33 @@ can be about roll results.
 - **Standardizing the dice mechanic itself** (e.g. "everything is d20 + modifier") in the core —
   directly contradicts ADR 0020's core/plugin boundary. Rejected.
 - **A single `RollRequest` allowing multiple term-sets upfront** (instead of linked requests for
-  rerolls, O4) — rejected as the default because it makes each physical "touch of the dice" less
-  individually auditable in the event log; kept as an open question rather than fully foreclosed.
+  rerolls) — rejected: it makes each physical "touch of the dice" less individually auditable in the
+  event log (R4).
+- **A core-defined outcome-tier envelope** (e.g. `criticalSuccess`/`success`/`failure`/
+  `criticalFailure`) instead of a fully opaque plugin outcome — rejected: it would encode a value
+  judgement about what "success" means that ADR 0020 deliberately left to plugins, and would not map
+  cleanly onto every mechanic (e.g. Shadowrun's counted-hits results); the i18n-key refinement (R3)
+  gives generic UI a renderable label without the core needing to understand the tier.
 
-## Open questions (for owner review)
+## Resolved questions (owner decisions, 2026-07-08)
 
-- **O1 — Initial AST node-kind set.** Proposed v1 closed set: `const`, `traitRef`, `diceTerm`, `add`,
-  `sub`, `mul`, `div`, `min`, `max`, `cmp` (`eq`/`lt`/`gt`/`lte`/`gte`), `if`, `tableLookup`. Recommend
-  adopting this set now and extending only via amendment/superseding ADR (mirroring ADR 0009's closed
-  error-category precedent) — versus scouting DSA5's actual formulas first (Phase 3) before freezing
-  v1, at the cost of delaying this ADR's acceptance.
-- **O2 — Where the builder-API sugar lives.** Recommend it ships in `@grimora/plugin-sdk` from day one
-  (a fluent helper that emits AST nodes) — versus letting DSA5 (Phase 3) hand-construct raw AST nodes
-  until the SDK's shape has stabilized from real use, then extracting the builder afterward.
-- **O3 — `RollResult.outcome` typing.** Recommend fully **opaque, plugin-defined** (maximal flexibility,
-  no core validation, matches ADR 0020's "core doesn't know the mechanic") — versus a small
-  core-defined outcome envelope (e.g. `{ tier: "criticalSuccess" | "success" | "failure" |
-  "criticalFailure", raw: <plugin value> }`) that lets generic core UI/AI tooling render a
-  cross-plugin-comparable result at the cost of the core encoding a value judgement about what
-  "success" means that ADR 0020 deliberately left to plugins.
-- **O4 — Reroll/advantage modeling.** Recommend **linked `RollRequest`s** (`rerollOf`) over a single
-  request carrying multiple term-sets upfront — each physical die-touch stays its own auditable event
-  entry — but this is a modeling call that shapes the event schema early and is worth explicit
-  sign-off before DSA5 (which has explicit reroll mechanics) is built against it.
+All four review questions were resolved by the owner; the decisions above already reflect them.
+
+- **R1 — Initial AST node-kind set.** *Confirmed:* the proposed v1 closed set (`const`, `traitRef`,
+  `diceTerm`, `add`, `sub`, `mul`, `div`, `min`, `max`, `cmp`, `if`, `tableLookup`, §1) is adopted now,
+  without first scouting DSA5's concrete formulas. Extend only via amendment/superseding ADR, mirroring
+  the closed error-category precedent (ADR 0009 §1).
+- **R2 — Where the builder-API sugar lives.** *Confirmed:* it ships in `@grimora/plugin-sdk` from day
+  one (§1), rather than DSA5 hand-constructing raw AST nodes first. Rationale: the SDK is versioned and
+  extensible at any time (ADR 0006 §4), so there is no cost to building it now, only to withholding it.
+- **R3 — `RollResult.outcome` typing.** *Confirmed:* the structured value stays fully **opaque,
+  plugin-defined** (§2) — no core-defined outcome-tier envelope. **Refinement:** its human-readable part
+  is an **i18n message key (+ params)**, not a hardcoded string, following the same pattern as
+  `AppError.messageKey` (ADR 0009 §1) and event `describe()` (ADR 0004 §10) — so generic UI/AI tooling
+  can still render a localized label without the core needing to understand the outcome's meaning.
+- **R4 — Reroll/advantage modeling.** *Confirmed:* **linked `RollRequest`s** via `rerollOf` (§2) — never
+  multiple term-sets bundled into one request upfront. Each physical die-touch stays its own auditable
+  event entry, ahead of DSA5 (which has explicit reroll mechanics) being built against this schema.
 
 ## References
 
