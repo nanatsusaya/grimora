@@ -26,7 +26,7 @@ listed here with a status.
 | 0014 | DevOps: CI/CD, IaC, environments, backup/DR | Planned (issue #16) |
 | 0015 | Compliance & data protection (DSGVO) | Planned (issue #17) |
 | 0016 | Accessibility (WCAG 2.2 AA / BFSG) & i18n | Planned (issue #18) |
-| 0017 | Testing strategy | Planned (issue #19) |
+| [0017](0017-testing-strategy.md) | Testing strategy | Proposed |
 | 0018 | Domain-Driven Design | Retired — folded into ADR 0003 §9 |
 | 0019 | Analytics & Telemetry | Planned (issue #23) |
 | [0020](0020-core-vs-plugin-boundary.md) | Core vs. plugin domain boundary | Accepted |
