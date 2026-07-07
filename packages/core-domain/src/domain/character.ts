@@ -15,12 +15,12 @@ import type {
   RollRequest,
   RollResult,
   SeededRng,
-} from "@grimora/plugin-sdk";
-import type { EntityId } from "@grimora/shared-types";
-import { err, ok, type Result } from "@grimora/shared-types";
-import { type AppError, appError } from "./errors";
-import type { CharacterCheckRolled, CharacterCreated, CharacterEvent, StoredEvent } from "./events";
-import { deriveSeed, makeSeededRng } from "./rng";
+} from '@grimora/plugin-sdk';
+import type { EntityId } from '@grimora/shared-types';
+import { err, ok, type Result } from '@grimora/shared-types';
+import { type AppError, appError } from './errors';
+import type { CharacterCheckRolled, CharacterCreated, CharacterEvent, StoredEvent } from './events';
+import { deriveSeed, makeSeededRng } from './rng';
 
 /** Folded character state, including the generic trait container and the roll sequence. */
 export interface CharacterState {
@@ -56,12 +56,12 @@ export function emptyCharacter(id: EntityId): CharacterState {
     id,
     exists: false,
     version: 0,
-    name: "",
-    campaignId: "" as EntityId,
-    ownerId: "" as EntityId,
-    ruleSystemId: "",
-    pluginId: "",
-    pluginVersion: "",
+    name: '',
+    campaignId: '' as EntityId,
+    ownerId: '' as EntityId,
+    ruleSystemId: '',
+    pluginId: '',
+    pluginVersion: '',
     attributes: {},
     rollSequence: 0,
   };
@@ -75,8 +75,8 @@ export function emptyCharacter(id: EntityId): CharacterState {
 export function applyCharacter(state: CharacterState, event: StoredEvent): CharacterState {
   const next = { ...state, version: event.version };
   switch (event.type) {
-    case "character.created": {
-      const p = event.payload as CharacterCreated["payload"];
+    case 'character.created': {
+      const p = event.payload as CharacterCreated['payload'];
       return {
         ...next,
         exists: true,
@@ -90,12 +90,12 @@ export function applyCharacter(state: CharacterState, event: StoredEvent): Chara
         rollSequence: 0,
       };
     }
-    case "character.attributeSet": {
+    case 'character.attributeSet': {
       const p = event.payload as { attributeId: string; value: number };
       return { ...next, attributes: { ...state.attributes, [p.attributeId]: p.value } };
     }
-    case "character.checkRolled": {
-      const p = event.payload as CharacterCheckRolled["payload"];
+    case 'character.checkRolled': {
+      const p = event.payload as CharacterCheckRolled['payload'];
       return { ...next, rollSequence: Math.max(state.rollSequence, p.result.seed.sequence) };
     }
     default:
@@ -112,12 +112,12 @@ export function createCharacter(
   input: CreateCharacterInput,
 ): Result<readonly CharacterEvent[], AppError> {
   if (state.exists) {
-    return err(appError("character.already_exists", "Conflict"));
+    return err(appError('character.already_exists', 'Conflict'));
   }
-  if (input.name.trim() === "") {
-    return err(appError("character.name_required", "Validation"));
+  if (input.name.trim() === '') {
+    return err(appError('character.name_required', 'Validation'));
   }
-  return ok([{ type: "character.created", payload: input }]);
+  return ok([{ type: 'character.created', payload: input }]);
 }
 
 /**
@@ -136,12 +136,12 @@ export function setAttribute(
   bounds: { readonly min: number; readonly max: number },
 ): Result<readonly CharacterEvent[], AppError> {
   if (!state.exists) {
-    return err(appError("character.not_found", "NotFound"));
+    return err(appError('character.not_found', 'NotFound'));
   }
   if (value < bounds.min || value > bounds.max) {
-    return err(appError("character.attribute_out_of_range", "Validation"));
+    return err(appError('character.attribute_out_of_range', 'Validation'));
   }
-  return ok([{ type: "character.attributeSet", payload: { attributeId, value } }]);
+  return ok([{ type: 'character.attributeSet', payload: { attributeId, value } }]);
 }
 
 /** Roll every die of every term with the seeded RNG, returning raw pips grouped per term. */
@@ -171,7 +171,7 @@ export function rollCheck(
   requestId: EntityId,
 ): Result<readonly CharacterEvent[], AppError> {
   if (!state.exists) {
-    return err(appError("character.not_found", "NotFound"));
+    return err(appError('character.not_found', 'NotFound'));
   }
 
   // Build the numeric targets from the character's trait container (attributes + optional skill).
@@ -180,7 +180,7 @@ export function rollCheck(
   for (const id of targetIds) {
     const value = state.attributes[id];
     if (value === undefined) {
-      return err(appError("character.missing_trait_for_check", "Validation"));
+      return err(appError('character.missing_trait_for_check', 'Validation'));
     }
     targets[id] = value;
   }
@@ -200,13 +200,13 @@ export function rollCheck(
     id: requestId,
     terms: check.terms,
     context: { aggregateId: state.id, checkId: check.id, targets },
-    visibility: "public",
+    visibility: 'public',
   };
   const result: RollResult = { requestId, rolls, outcome, seed };
 
   return ok([
     {
-      type: "character.checkRolled",
+      type: 'character.checkRolled',
       payload: {
         checkId: check.id,
         request,

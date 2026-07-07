@@ -5,9 +5,9 @@
  * with no subprocess/shell/`.bin` differences, and so we can filter to the module
  * directories that actually exist (the CLI errors on a missing `apps`/`plugins`).
  */
-import { existsSync } from "node:fs";
-import { cruise } from "dependency-cruiser";
-import config from "../../.dependency-cruiser.cjs";
+import { existsSync } from 'node:fs';
+import { cruise } from 'dependency-cruiser';
+import config from '../../.dependency-cruiser.cjs';
 
 export interface BoundaryViolation {
   rule: string;
@@ -23,7 +23,7 @@ export interface BoundaryReport {
 }
 
 /** The monorepo roots that hold governed modules (ADR 0003 §3). */
-export const MODULE_DIRS = ["packages", "apps", "plugins"] as const;
+export const MODULE_DIRS = ['packages', 'apps', 'plugins'] as const;
 
 /** Only the module roots that currently exist — most are still scaffold-to-be. */
 export function existingModuleDirs(): string[] {
@@ -37,8 +37,8 @@ export async function cruisePaths(paths: string[]): Promise<BoundaryReport> {
     validate: true,
   });
 
-  if (typeof result.output === "string") {
-    throw new Error("dependency-cruiser returned a string report; expected structured output");
+  if (typeof result.output === 'string') {
+    throw new Error('dependency-cruiser returned a string report; expected structured output');
   }
 
   const { summary } = result.output;
@@ -55,5 +55,5 @@ export async function cruisePaths(paths: string[]): Promise<BoundaryReport> {
 }
 
 export function formatViolations(violations: BoundaryViolation[]): string {
-  return violations.map((v) => `  ${v.rule}: ${v.from} → ${v.to}`).join("\n");
+  return violations.map((v) => `  ${v.rule}: ${v.from} → ${v.to}`).join('\n');
 }

@@ -10,10 +10,10 @@
  * **Provisional v0** (ADR 0022 §3) — frozen later in ADR 0025.
  */
 
-import type { FormulaAst } from "./formula";
+import type { FormulaAst } from './formula';
 
 /** Which meta-model slot a trait definition populates. */
-export type TraitKind = "attribute" | "derivedValue" | "skill";
+export type TraitKind = 'attribute' | 'derivedValue' | 'skill';
 
 /** Fields common to every trait definition. `labelKey` is an i18n key (no literal UI text — ADR 0016). */
 interface TraitDefinitionBase {
@@ -25,7 +25,7 @@ interface TraitDefinitionBase {
 
 /** A rated attribute (e.g. DSA5 "Courage"): a directly-stored numeric value with bounds. */
 export interface AttributeDefinition extends TraitDefinitionBase {
-  readonly kind: "attribute";
+  readonly kind: 'attribute';
   readonly min: number;
   readonly max: number;
   /** Value used at character creation before any explicit assignment. */
@@ -34,7 +34,7 @@ export interface AttributeDefinition extends TraitDefinitionBase {
 
 /** A rated skill (e.g. a talent): like an attribute, but tested via a check against attributes. */
 export interface SkillDefinition extends TraitDefinitionBase {
-  readonly kind: "skill";
+  readonly kind: 'skill';
   readonly min: number;
   readonly max: number;
   readonly defaultValue: number;
@@ -45,7 +45,7 @@ export interface SkillDefinition extends TraitDefinitionBase {
  * directly. Re-evaluated by the core interpreter whenever its inputs change (ADR 0020, ADR 0021 §1).
  */
 export interface DerivedValueDefinition extends TraitDefinitionBase {
-  readonly kind: "derivedValue";
+  readonly kind: 'derivedValue';
   readonly formula: FormulaAst;
 }
 

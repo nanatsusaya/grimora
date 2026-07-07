@@ -11,8 +11,8 @@ import type {
   IsoTimestamp,
   PersistedEvent,
   Result,
-} from "@grimora/shared-types";
-import { err, ok } from "@grimora/shared-types";
+} from '@grimora/shared-types';
+import { err, ok } from '@grimora/shared-types';
 import type {
   Actor,
   AiProviderPort,
@@ -22,8 +22,8 @@ import type {
   PolicyPort,
   ProposedToolCall,
   ReadModelStorePort,
-} from "../application/ports";
-import { appError } from "../domain/errors";
+} from '../application/ports';
+import { appError } from '../domain/errors';
 
 /**
  * An in-memory event store with the extra `replicate`/`snapshotAll` methods the sync harness needs.
@@ -66,7 +66,7 @@ export function createInMemoryEventStore(): InMemoryEventStore {
       const current = stream.length > 0 ? (stream[stream.length - 1] as PersistedEvent).version : 0;
       if (current !== expectedVersion) {
         // Stale write → the caller rebases (ADR 0005 §4).
-        return err(appError("store.version_conflict", "Conflict"));
+        return err(appError('store.version_conflict', 'Conflict'));
       }
       for (const event of events) persist(event);
       return ok(undefined);
@@ -128,15 +128,15 @@ export function createInMemoryReadModelStore(): ReadModelStorePort {
 }
 
 /** A deterministic clock (ADR 0004 §9): a fixed instant, so event timestamps are reproducible. */
-export function createFixedClock(iso = "2026-07-07T00:00:00.000Z"): ClockPort {
+export function createFixedClock(iso = '2026-07-07T00:00:00.000Z'): ClockPort {
   return { now: () => iso as IsoTimestamp };
 }
 
 /** A deterministic id generator (ADR 0004 §2 in tests): sequential ids from a prefix. */
-export function createSequentialIdGenerator(prefix = "id"): IdGeneratorPort {
+export function createSequentialIdGenerator(prefix = 'id'): IdGeneratorPort {
   let n = 0;
   return {
-    newId: () => `${prefix}-${(++n).toString().padStart(4, "0")}` as EntityId,
+    newId: () => `${prefix}-${(++n).toString().padStart(4, '0')}` as EntityId,
   };
 }
 
@@ -147,8 +147,8 @@ export function createSequentialIdGenerator(prefix = "id"): IdGeneratorPort {
 export function createOwnerPolicy(): PolicyPort {
   return {
     can(actor: Actor, action, resource) {
-      if (action === "campaign.create" || action === "character.create") {
-        return actor.userId !== ("" as EntityId);
+      if (action === 'campaign.create' || action === 'character.create') {
+        return actor.userId !== ('' as EntityId);
       }
       // Resource-scoped: creator = owner (ADR 0022 §7).
       return resource.ownerId !== undefined && resource.ownerId === actor.userId;

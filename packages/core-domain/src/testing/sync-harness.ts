@@ -14,24 +14,24 @@
  * re-materialize from it, rather than maintaining divergent local optimistic overlays.
  */
 
-import type { GrimoraPlugin } from "@grimora/plugin-sdk";
-import type { EntityId } from "@grimora/shared-types";
-import { createPluginHost } from "../application/plugin-host";
-import type { Actor } from "../application/ports";
+import type { GrimoraPlugin } from '@grimora/plugin-sdk';
+import type { EntityId } from '@grimora/shared-types';
+import { createPluginHost } from '../application/plugin-host';
+import type { Actor } from '../application/ports';
 import {
   type CommandDeps,
   createCampaign,
   createCharacter,
   setAttribute,
-} from "../application/use-cases";
-import type { CampaignCreated, CharacterAttributeSet, CharacterCreated } from "../domain/events";
+} from '../application/use-cases';
+import type { CampaignCreated, CharacterAttributeSet, CharacterCreated } from '../domain/events';
 import {
   createFixedClock,
   createInMemoryEventStore,
   createOwnerPolicy,
   createSequentialIdGenerator,
   type InMemoryEventStore,
-} from "./fakes";
+} from './fakes';
 
 /** One simulated device: its local store + a deps bundle wired to it. */
 export interface HarnessClient {
@@ -70,7 +70,7 @@ function wireDeps(store: InMemoryEventStore, plugin: GrimoraPlugin, idPrefix: st
 /** Create a sync harness whose clients all load the injected `plugin`. */
 export function createSyncHarness(plugin: GrimoraPlugin): SyncHarness {
   const cloud = createInMemoryEventStore();
-  const cloudDeps = wireDeps(cloud, plugin, "C");
+  const cloudDeps = wireDeps(cloud, plugin, 'C');
 
   return {
     cloud,
@@ -84,15 +84,15 @@ export function createSyncHarness(plugin: GrimoraPlugin): SyncHarness {
       const cloudIds = new Set(cloud.snapshotAll().map((e) => e.id));
       const localOnly = client.store.snapshotAll().filter((e) => !cloudIds.has(e.id));
       for (const event of localOnly) {
-        const actor: Actor = { userId: event.metadata?.actorId ?? ("" as EntityId) };
+        const actor: Actor = { userId: event.metadata?.actorId ?? ('' as EntityId) };
         switch (event.type) {
-          case "campaign.created": {
-            const p = event.payload as CampaignCreated["payload"];
+          case 'campaign.created': {
+            const p = event.payload as CampaignCreated['payload'];
             await createCampaign(cloudDeps, { campaignId: event.aggregateId, name: p.name, actor });
             break;
           }
-          case "character.created": {
-            const p = event.payload as CharacterCreated["payload"];
+          case 'character.created': {
+            const p = event.payload as CharacterCreated['payload'];
             await createCharacter(cloudDeps, {
               characterId: event.aggregateId,
               name: p.name,
@@ -102,9 +102,9 @@ export function createSyncHarness(plugin: GrimoraPlugin): SyncHarness {
             });
             break;
           }
-          case "character.attributeSet": {
+          case 'character.attributeSet': {
             // Rebase: re-apply the intent onto the cloud's latest state → auto-merges (ADR 0005 §4).
-            const p = event.payload as CharacterAttributeSet["payload"];
+            const p = event.payload as CharacterAttributeSet['payload'];
             await setAttribute(cloudDeps, {
               characterId: event.aggregateId,
               attributeId: p.attributeId,
@@ -113,7 +113,7 @@ export function createSyncHarness(plugin: GrimoraPlugin): SyncHarness {
             });
             break;
           }
-          case "character.checkRolled": {
+          case 'character.checkRolled': {
             // A roll is a fact — replicate it, never re-roll (ADR 0022 §6).
             await cloud.replicate([event]);
             break;

@@ -5,8 +5,8 @@
  * builtin — so it is pure and honours the determinism fitness function (ADR 0021 §3, ADR 0003 §6.1).
  */
 
-import type { SeededRng } from "@grimora/plugin-sdk";
-import type { EntityId } from "@grimora/shared-types";
+import type { SeededRng } from '@grimora/plugin-sdk';
+import type { EntityId } from '@grimora/shared-types';
 
 /** FNV-1a 32-bit hash of a string — a small, dependency-free way to fold a stream id into a seed. */
 function fnv1a32(input: string): number {

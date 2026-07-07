@@ -9,15 +9,15 @@
  * simplification.
  */
 
-import type { CheckDefinition, RuleSystemDefinition } from "@grimora/plugin-sdk";
+import type { CheckDefinition, RuleSystemDefinition } from '@grimora/plugin-sdk';
 import type {
   EntityId,
   EventEnvelope,
   IsoTimestamp,
   PersistedEvent,
   Result,
-} from "@grimora/shared-types";
-import type { AppError } from "../domain/errors";
+} from '@grimora/shared-types';
+import type { AppError } from '../domain/errors';
 
 /** Append-only event store (ADR 0004 §4). Optimistic concurrency via `expectedVersion`. */
 export interface EventStorePort {
@@ -67,10 +67,10 @@ export interface Actor {
 
 /** The actions the skeleton authorizes. */
 export type PolicyAction =
-  | "campaign.create"
-  | "character.create"
-  | "character.setAttribute"
-  | "character.rollCheck";
+  | 'campaign.create'
+  | 'character.create'
+  | 'character.setAttribute'
+  | 'character.rollCheck';
 
 /** The resource an action targets, carrying the ownership needed for a resource-scoped check. */
 export interface PolicyResource {

@@ -6,14 +6,14 @@
  * `derivedValue` formulas (ADR 0020/0021).
  */
 
-import type { EntityId, PersistedEvent } from "@grimora/shared-types";
-import { describeEvent } from "../domain/describe";
-import type { CharacterAttributeSet, CharacterCreated } from "../domain/events";
-import { evaluateFormula } from "../domain/formula";
-import type { EventStorePort, ReadModelStorePort, RuleSystemRegistryPort } from "./ports";
+import type { EntityId, PersistedEvent } from '@grimora/shared-types';
+import { describeEvent } from '../domain/describe';
+import type { CharacterAttributeSet, CharacterCreated } from '../domain/events';
+import { evaluateFormula } from '../domain/formula';
+import type { EventStorePort, ReadModelStorePort, RuleSystemRegistryPort } from './ports';
 
 /** Read-model collection + projection (checkpoint) name. */
-export const CHARACTER_SHEET = "characterSheet";
+export const CHARACTER_SHEET = 'characterSheet';
 
 /** The denormalized character sheet the UI renders (attributes + computed derived values + history). */
 export interface CharacterSheet {
@@ -43,7 +43,7 @@ function computeDerived(
   const derived: Record<string, number> = {};
   if (!ruleSystem) return derived;
   for (const trait of ruleSystem.traits) {
-    if (trait.kind !== "derivedValue") continue;
+    if (trait.kind !== 'derivedValue') continue;
     const result = evaluateFormula(trait.formula, { traits: attributes });
     if (result.ok) derived[trait.id] = result.value;
   }
@@ -54,8 +54,8 @@ function computeDerived(
 async function applyToSheet(deps: ProjectionDeps, event: PersistedEvent): Promise<void> {
   const existing = await deps.reads.get<CharacterSheet>(CHARACTER_SHEET, event.aggregateId);
 
-  if (event.type === "character.created") {
-    const p = event.payload as CharacterCreated["payload"];
+  if (event.type === 'character.created') {
+    const p = event.payload as CharacterCreated['payload'];
     const sheet: CharacterSheet = {
       characterId: event.aggregateId,
       name: p.name,
@@ -71,8 +71,8 @@ async function applyToSheet(deps: ProjectionDeps, event: PersistedEvent): Promis
 
   if (!existing) return; // out-of-order guard; character.created always precedes its other events
 
-  if (event.type === "character.attributeSet") {
-    const p = event.payload as CharacterAttributeSet["payload"];
+  if (event.type === 'character.attributeSet') {
+    const p = event.payload as CharacterAttributeSet['payload'];
     const attributes = { ...existing.attributes, [p.attributeId]: p.value };
     const updated: CharacterSheet = {
       ...existing,
@@ -84,7 +84,7 @@ async function applyToSheet(deps: ProjectionDeps, event: PersistedEvent): Promis
     return;
   }
 
-  if (event.type === "character.checkRolled") {
+  if (event.type === 'character.checkRolled') {
     const updated: CharacterSheet = {
       ...existing,
       history: [...existing.history, describeEvent(event)],
@@ -101,7 +101,7 @@ export async function runCharacterSheetProjection(deps: ProjectionDeps): Promise
   const from = await deps.reads.getCheckpoint(CHARACTER_SHEET);
   const events = await deps.events.readAll(from);
   for (const event of events) {
-    if (event.aggregateType === "character") {
+    if (event.aggregateType === 'character') {
       await applyToSheet(deps, event);
     }
     await deps.reads.setCheckpoint(CHARACTER_SHEET, event.position);

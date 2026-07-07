@@ -6,8 +6,8 @@
  * **Provisional v0** (ADR 0022 §3) — frozen later in ADR 0025.
  */
 
-import type { Result } from "@grimora/shared-types";
-import type { DiceTerm, RollOutcome } from "./dice";
+import type { Result } from '@grimora/shared-types';
+import type { DiceTerm, RollOutcome } from './dice';
 
 /**
  * A deterministic, seeded random source injected into plugin behaviour (ADR 0021 §3). The core builds
@@ -42,7 +42,7 @@ export interface PluginError {
   /** i18n message key resolved at the presentation layer. */
   readonly messageKey: string;
   /** Closed error category (subset used by the skeleton). */
-  readonly category: "Validation" | "NotFound" | "Conflict" | "Infrastructure";
+  readonly category: 'Validation' | 'NotFound' | 'Conflict' | 'Infrastructure';
 }
 
 /** Input to a check's resolution function: the already-rolled raw pips and the numeric targets. */

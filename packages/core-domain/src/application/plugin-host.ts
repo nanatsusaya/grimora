@@ -8,8 +8,8 @@
  * layer. Records each rule system's plugin provenance (ADR 0006 §4) for event stamping.
  */
 
-import type { GrimoraPlugin, PluginRegistry, RuleSystemDefinition } from "@grimora/plugin-sdk";
-import type { RuleSystemRegistryPort } from "./ports";
+import type { GrimoraPlugin, PluginRegistry, RuleSystemDefinition } from '@grimora/plugin-sdk';
+import type { RuleSystemRegistryPort } from './ports';
 
 interface Provenance {
   readonly pluginId: string;
@@ -54,7 +54,7 @@ export function createPluginHost(): PluginHost {
     getRatedTrait(ruleSystemId, traitId) {
       const trait = ruleSystems.get(ruleSystemId)?.definition.traits.find((t) => t.id === traitId);
       // Attributes and skills are both rated (bounded) traits; derived values are computed, not set.
-      return trait && (trait.kind === "attribute" || trait.kind === "skill")
+      return trait && (trait.kind === 'attribute' || trait.kind === 'skill')
         ? { min: trait.min, max: trait.max }
         : undefined;
     },

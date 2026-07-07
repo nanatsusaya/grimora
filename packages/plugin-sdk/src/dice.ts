@@ -10,7 +10,7 @@
  * **Provisional v0** (ADR 0022 §3) — frozen later in ADR 0025.
  */
 
-import type { EntityId } from "@grimora/shared-types";
+import type { EntityId } from '@grimora/shared-types';
 
 /**
  * One homogeneous group of dice within a roll. `sides` carries the die size (e.g. 20 for a d20);
@@ -26,7 +26,7 @@ export interface DiceTerm {
 }
 
 /** Who may see a roll — covers hidden/GM rolls (ADR 0021 §2). */
-export type RollVisibility = "public" | "gmOnly" | "private";
+export type RollVisibility = 'public' | 'gmOnly' | 'private';
 
 /**
  * What a roll is *about*: the aggregate it belongs to (also the RNG-seed source, ADR 0021 §3), the

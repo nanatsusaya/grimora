@@ -11,8 +11,8 @@ export {
   type AiTurnResult,
   coreAiTools,
   runAiToolTurn,
-} from "./application/ai-tools";
-export { createPluginHost, type PluginHost } from "./application/plugin-host";
+} from './application/ai-tools';
+export { createPluginHost, type PluginHost } from './application/plugin-host';
 // --- Application: ports, use cases, projection, AI tools, plugin host ---
 export type {
   Actor,
@@ -26,27 +26,27 @@ export type {
   ProposedToolCall,
   ReadModelStorePort,
   RuleSystemRegistryPort,
-} from "./application/ports";
+} from './application/ports';
 export {
   CHARACTER_SHEET,
   type CharacterSheet,
   type ProjectionDeps,
   rebuildCharacterSheetProjection,
   runCharacterSheetProjection,
-} from "./application/projection";
+} from './application/projection';
 export {
   type CommandDeps,
   createCampaign,
   createCharacter,
   rollCheck,
   setAttribute,
-} from "./application/use-cases";
+} from './application/use-cases';
 export {
   applyCampaign,
   type CampaignState,
   createCampaign as decideCreateCampaign,
   emptyCampaign,
-} from "./domain/campaign";
+} from './domain/campaign';
 export {
   applyCharacter,
   type CharacterState,
@@ -55,17 +55,17 @@ export {
   emptyCharacter,
   rollCheck as decideRollCheck,
   setAttribute as decideSetAttribute,
-} from "./domain/character";
-export { describeEvent } from "./domain/describe";
+} from './domain/character';
+export { describeEvent } from './domain/describe';
 // --- Domain: aggregates, events, the rules-runtime ---
-export type { AppError, ErrorCategory } from "./domain/errors";
-export { appError } from "./domain/errors";
+export type { AppError, ErrorCategory } from './domain/errors';
+export { appError } from './domain/errors';
 export type {
   AnyDomainEvent,
   CampaignEvent,
   CharacterEvent,
   NewEvent,
   StoredEvent,
-} from "./domain/events";
-export { evaluateFormula, type FormulaContext } from "./domain/formula";
-export { deriveSeed, makeSeededRng } from "./domain/rng";
+} from './domain/events';
+export { evaluateFormula, type FormulaContext } from './domain/formula';
+export { deriveSeed, makeSeededRng } from './domain/rng';

@@ -12,5 +12,5 @@ export {
   createScriptedAiProvider,
   createSequentialIdGenerator,
   type InMemoryEventStore,
-} from "./fakes";
-export { createSyncHarness, type HarnessClient, type SyncHarness } from "./sync-harness";
+} from './fakes';
+export { createSyncHarness, type HarnessClient, type SyncHarness } from './sync-harness';
