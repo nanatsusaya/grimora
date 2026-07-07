@@ -1,6 +1,6 @@
 # Grimora — Project status & next steps
 
-> Living handoff note between working sessions. Last updated: **2026-07-07**.
+> Living handoff note between working sessions. Last updated: **2026-07-08**.
 > The binding architecture lives in the ADRs (`docs/adr/`); this file is only the progress/handoff overview.
 > Stable working rules (not the current state) live in `CLAUDE.md`.
 
@@ -10,7 +10,7 @@
   `tsconfig.base.json` (strict), CI (`.github/workflows/ci.yml`), `docker-compose` (Postgres + MinIO
   + self-hosted auth via `gotrue` + optional Ollama), `packages/shared-types`, ADR / `docs/legal/` structure.
 - **Phase 1 (architecture as ADRs):** 🟡 in progress — the architectural foundation is worked out as
-  ADRs and merged one PR at a time. **10 ADRs Accepted** (0001–0010 + 0020). The first implementation
+  ADRs and merged one PR at a time. **11 ADRs Accepted** (0001–0011 + 0020). The first implementation
   ticket (conformance harness, #9) is done and merged (`scripts/arch/` + `.dependency-cruiser.cjs`,
   wired as the CI `arch` step).
 - **Repo state:** `main` in sync with `origin/main`. `LICENSE` (MIT) is at the repo root. All merged
@@ -30,6 +30,7 @@
 | 0008 | AI provider abstraction (default Claude Haiku, external only after consent; §8 MCP as future adapter) |
 | 0009 | Cross-cutting: error taxonomy, logging (pino+Sentry), auth (Supabase Cloud + self-hosted GoTrue), RBAC (Owner/GM/Player/Spectator) |
 | 0010 | Security & Privacy by Design (STRIDE threat model, plugin sandbox, `SecretsPort`/`CryptoPort`, crypto-shredding for DSGVO erasure, security fitness functions for #9) |
+| 0011 | API design & contracts |
 | 0020 | Core-vs-plugin boundary (rule-agnostic meta-model) |
 
 ### New: EU/DE compliance matrix
@@ -46,9 +47,9 @@ Order **reprioritized** after the external ADR review (2026-07-07, see below) �
 numeric, but implementation-blocking ADRs first. All under **Epic #1**; Epic #10 = Phase 2 core engine
 (blocked).
 
-1. **ADR 0011 — API design & contracts** (#13) — unblocks UI/AI/sync/MCP/error mapping. **← current focus.**
+1. ✅ **ADR 0011 — API design & contracts** (#13) — Accepted 2026-07-08; unblocks UI/AI/sync/MCP/error mapping.
 2. **ADR 0021 — Rules Execution: formula/dice/deterministic runtime** (#41, new) — before plugin-SDK v0
-   & DSA5; hinges on the sandbox question (DSL vs. arbitrary TS code).
+   & DSA5; hinges on the sandbox question (DSL vs. arbitrary TS code). **← current focus.**
 3. **ADR 0017 — Testing strategy** (#19) — pulled forward; must precede event-store/sync/SDK code.
 4. **ADR 0022 — Walking Skeleton / Golden Use Cases** (#42, new) — a thin vertical slice as
    architecture validation, before broad Phase-2 code.
