@@ -1,3 +1,7 @@
 {
-  "recommendations": ["christian-kohler.path-intellisense", "formulahendry.auto-rename-tag"]
+  "recommendations": [
+    "biomejs.biome",
+    "christian-kohler.path-intellisense",
+    "formulahendry.auto-rename-tag"
+  ]
 }
