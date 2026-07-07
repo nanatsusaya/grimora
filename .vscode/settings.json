@@ -1,0 +1,50 @@
+{
+  "npm.packageManager": "bun",
+  "npm.scriptRunner": "bun",
+  "npm.exclude": [
+    "**/docs/**",
+    "**/apps/**",
+    "**/packages/**",
+    "**/plugins/**",
+    "**/rulebooks/**",
+    "**/scripts/**"
+  ],
+
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "editor.detectIndentation": false,
+  "editor.mouseWheelZoom": true,
+  "editor.fontSize": 14,
+  "editor.formatOnSave": false,
+
+  "files.eol": "\n",
+  "files.insertFinalNewline": true,
+  "files.trimFinalNewlines": true,
+  "files.trimTrailingWhitespace": true,
+
+  "[typescript]": {
+    "js/ts.preferences.quoteStyle": "single",
+    "js/ts.preferences.useAliasesForRenames": false,
+    "js/ts.preferences.importModuleSpecifier": "relative"
+  },
+  "workbench.colorCustomizations": {
+    "activityBar.activeBackground": "#002466",
+    "activityBar.background": "#002466",
+    "activityBar.foreground": "#e7e7e7",
+    "activityBar.inactiveForeground": "#e7e7e799",
+    "activityBarBadge.background": "#bf0043",
+    "activityBarBadge.foreground": "#e7e7e7",
+    "commandCenter.border": "#e7e7e799",
+    "sash.hoverBorder": "#002466",
+    "statusBar.background": "#001233",
+    "statusBar.foreground": "#e7e7e7",
+    "statusBarItem.hoverBackground": "#002466",
+    "statusBarItem.remoteBackground": "#001233",
+    "statusBarItem.remoteForeground": "#e7e7e7",
+    "titleBar.activeBackground": "#001233",
+    "titleBar.activeForeground": "#e7e7e7",
+    "titleBar.inactiveBackground": "#00123399",
+    "titleBar.inactiveForeground": "#e7e7e799"
+  },
+  "peacock.color": "#001233",
+}
