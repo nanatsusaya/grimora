@@ -1,7 +1,7 @@
 # ADR 0011 — API design & contracts
 
-- **Status:** Proposed
-- **Date:** 2026-07-07
+- **Status:** Accepted
+- **Date:** 2026-07-07 (accepted via PR #54, issue #13)
 - **Deciders:** project owner + AI agents
 - **Depends on:** [ADR 0003](0003-overall-architecture.md) (§8 `apps/api` as the primary integration
   boundary, contract-first principle), [ADR 0004](0004-event-sourcing-cqrs.md) (events, `version`/
