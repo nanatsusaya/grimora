@@ -1,7 +1,7 @@
 # ADR 0022 — Walking Skeleton / Golden Use Cases (architecture-validation gate)
 
-- **Status:** Proposed
-- **Date:** 2026-07-07
+- **Status:** Accepted
+- **Date:** 2026-07-07 (accepted via PR #60, issue #42)
 - **Deciders:** project owner + AI agents
 - **Depends on:** [ADR 0003](0003-overall-architecture.md) (§1 dependency rule, §3 module map, §9
   bounded contexts), [ADR 0004](0004-event-sourcing-cqrs.md) (§2 envelope, §3 command handling, §5
