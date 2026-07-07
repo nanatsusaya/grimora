@@ -61,6 +61,17 @@ defined here, not owned by this ADR.
      are pure (no ambient I/O, checked via an instrumented harness call, not code review) and
      deterministic under a fixed seed (ADR 0021 §3). A plugin is "compliant" exactly when it passes this
      suite — not by manual review.
+
+   **Confirmed R1:** these fakes/contract suites live inline — a `core-domain` `testing` sub-path per
+   port, the plugin-SDK kit inside `plugin-sdk` itself — no new package. **Caveat:** because adapter
+   packages import a `core-domain` testing export as a *dev*-only dependency, the build must guarantee
+   this export is never bundled into production code (a `package.json` `exports` map that only resolves
+   the `testing` sub-path for `devDependencies`/test builds, or an explicit `arch` fitness-function rule
+   once `core-domain` exists, mirroring the existing `SecretsPort`-outside-composition-root check). **Must
+   be revisited when:** a third-party plugin registry actually opens (ADR 0006 §5's third-party phase) —
+   at that point the plugin-SDK test-kit needs to be genuinely independently consumable by external plugin
+   authors, and it is worth re-checking whether living inside `plugin-sdk` is still the right call or
+   extraction into its own versioned package is warranted by then.
 4. **Adapter / infrastructure integration tests.** An adapter's own logic against the real or emulated
    infrastructure it wraps (a SQLite file, dockerized Postgres, MinIO). Fewer and slower than layers
    1–3; verifies the adapter itself, while layer 3 verifies it honors its port.
@@ -110,7 +121,7 @@ named explicitly because it was called out by issue #19 and the external ADR rev
 - **No real personal data, secrets, API keys, or copyrighted rulebook text** in fixtures or snapshots —
   an existing `CLAUDE.md` guardrail, reaffirmed here, not re-decided.
 - Fixtures are **colocated** with source (`*.test.ts` next to the file it tests) — the pattern already
-  used in `packages/shared-types`. Where reusable fakes/contract-test kits live is decided in **O1**.
+  used in `packages/shared-types`. Reusable fakes/contract-test kits live per **R1** (§1).
 
 ### 4. Coverage policy — a qualitative bar, not a numeric percentage gate (for now)
 
@@ -118,13 +129,33 @@ named explicitly because it was called out by issue #19 and the external ADR rev
   existing yet, a percentage would be either meaningless or arbitrary (CLAUDE.md: scale decisions to the
   project's actual stage, avoid over-engineering).
 - Instead, a **qualitative bar**: every Domain aggregate's stated invariants and every Application use
-  case's success **and** failure paths have at least one test (see **O4** for whether this is a hard
-  review expectation); adapters are covered by the shared port-contract suite (layer 3) rather than by
-  mirroring Domain-level test depth; E2E covers golden paths, not exhaustive UI-state enumeration.
+  case's success **and** failure paths have at least one test; adapters are covered by the shared
+  port-contract suite (layer 3) rather than by mirroring Domain-level test depth; E2E covers golden
+  paths, not exhaustive UI-state enumeration.
+
+  **Confirmed R4:** this is a **hard PR-review expectation**, not left to case-by-case judgement.
+  **Scope caveat:** it applies only to *guarded* transitions — a Domain operation that has an actual
+  invariant/precondition to violate (e.g. "attribute cannot exceed its cap"). It does **not** mean every
+  method needs a paired "failure" test regardless of whether a failure path exists (a pure getter, or an
+  operation with no invariant, has nothing to reject). It also does **not** cover *infrastructure*
+  failures (a DB connection drop, a network timeout) — those belong to adapter integration tests (layer
+  4) and error-mapping tests, not this Domain/Application-level rule. **Must be revisited if:** the rule
+  causes low-value friction in practice (e.g. reviewers spending disproportionate time enforcing it, or
+  boilerplate rejection tests written just to satisfy it rather than because they add real coverage) —
+  loosen it via the normal ADR amendment path (ADR 0001) if that happens, rather than silently ignoring it.
 - **Explicitly not unit-tested**: an adapter's interaction with real infrastructure specifics (covered by
   layers 3–4, not 1–2); generated code (OpenAPI-generated clients, ADR 0011 §2).
-- Numeric coverage **reporting** (not gating) via `bun test --coverage` is fine to wire into CI now as a
-  visibility signal; whether to add a hard threshold later is **O2**, not settled here.
+- Numeric coverage **reporting** (not gating) via `bun test --coverage` is wired into CI now as a
+  visibility signal.
+
+  **Confirmed R2:** report-only, no CI gate, for now. **Caveat:** report-only means coverage can
+  silently erode over time with nobody blocking on it — mitigate by adding a periodic coverage-trend
+  check to `docs/recurring-tasks.md` (CLAUDE.md's existing device-independent maintenance-task list)
+  rather than relying on someone noticing by chance. **Must be revisited when:** `core-domain` and the
+  first one or two adapters exist with real test suites — at that point there is enough real data to set
+  a calibrated numeric floor instead of guessing one now; a future threshold must also account for the
+  legitimate exclusions already named above (adapter infra specifics, generated code), not apply blindly
+  to 100% of the codebase.
 
 ### 5. CI wiring
 
@@ -132,7 +163,16 @@ named explicitly because it was called out by issue #19 and the external ADR rev
   `docker-compose` already provides locally; in CI, the equivalent services (Postgres, MinIO) run as CI
   job services, mirroring the local stack.
 - **E2E (Playwright) is a separate CI job**, not part of `bun run test` — heavier (needs a running app).
-  Its exact cadence (every PR vs. merge-to-main/nightly) is **O3**, not decided here.
+
+  **Confirmed R3:** runs on **every PR** for now. **Caveat/edge case:** "every PR" applies to PRs marked
+  ready for review — draft/WIP PRs may skip the E2E job on intermediate pushes to avoid burning CI budget
+  on work-in-progress, running it once the PR is marked ready. **Related but distinct concern:** if the
+  E2E suite becomes flaky (intermittent failures unrelated to the change under test), the fix is
+  quarantining/fixing the flaky test, not silently loosening the cadence — a flaky-but-frequent suite and
+  a stable-but-rare suite are different problems and should not be solved with the same lever. **Must be
+  revisited when:** total E2E suite runtime exceeds roughly 5–10 minutes (a concrete, checkable threshold
+  rather than a vague "if it becomes annoying") — at that point, move to merge-to-`main`/nightly cadence
+  or parallelize/shard the suite instead of accepting slow PR feedback as the new normal.
 - **Relation to `bun run arch` (issue #9):** the conformance harness is conceptually this pyramid's
   fastest, "layer 0" tier — structural/architectural fitness functions with no runtime behavior. It
   already runs as its own CI step before `test` (`CLAUDE.md`'s documented order: install → lint →
@@ -153,10 +193,11 @@ mirroring the ADR 0002 biome precedent.
 and the multi-client sync-simulation harness is real upfront engineering, ahead of most of the code that
 will consume them — mitigated by building each incrementally as its first real adapter/plugin appears,
 not as a big-bang test-infrastructure sprint. A qualitative coverage bar is inherently more subjective to
-enforce in review than a number, and this ADR explicitly defers (rather than settles) whether to add a
-numeric floor later (**O2**) — this area may need revisiting once enough real code exists to calibrate
-one. E2E cadence and its CI cost are likewise deferred (**O3**), so this ADR does not fully pin down E2E's
-ongoing cost.
+enforce in review than a number; **R2** commits to report-only coverage for now, with an explicit revisit
+trigger once enough real code exists to calibrate a floor — until then, a periodic recurring-task check
+is the only backstop against silent erosion. **R3** commits E2E to every ready-for-review PR, with a
+concrete runtime threshold (~5–10 minutes) as the trigger to reconsider cadence — so this ADR does not
+leave E2E's ongoing CI cost fully open-ended, but it is not free either.
 
 ## Alternatives considered
 
@@ -165,8 +206,8 @@ ongoing cost.
   "one tool per job" bias for no identified benefit.
 - **A numeric coverage threshold enforced now** (e.g. 80% lines) — rejected for now: with almost no real
   code existing, a number would be either meaningless (100% of nothing) or arbitrary; revisit once
-  `core-domain`/adapters have enough real code to calibrate a sensible floor (flagged as **O2**, not
-  silently deferred forever).
+  `core-domain`/adapters have enough real code to calibrate a sensible floor (**R2**, not silently
+  deferred forever).
 - **Call-sequence mocking libraries** (e.g. `jest.fn()`-style mocks) for Application-layer port tests —
   rejected in favor of **state-based fakes**: a fake exercises the actual contract behavior (an in-memory
   `EventStorePort` really enforces optimistic concurrency), while a call-sequence mock couples a test to
@@ -175,30 +216,30 @@ ongoing cost.
 - **Testing plugins purely by manual/code review**, no shipped contract-test kit — rejected: doesn't
   scale to third-party plugin authors (ADR 0006's stated audience) and gives no CI-enforceable signal.
 
-## Open questions (for owner review)
+## Resolved questions (owner decisions, 2026-07-07)
 
-- **O1 — Where do reusable test fakes/contract-test kits live?** (a) a new `packages/test-kit` added to
-  ADR 0003 §3's module map now, or (b) each port's fake/contract-suite lives alongside its declaration in
-  `core-domain` (a `testing` sub-path), with the plugin-SDK's kit living inside `plugin-sdk` itself — no
-  new package. Recommend **(b)**: avoids adding a package to the module map for what is fundamentally
-  test-only tooling, and keeps each fake next to the port it fakes; revisit only if reuse pressure across
-  many packages later argues for extraction.
-- **O2 — Numeric coverage floor:** enforce a percentage threshold in CI now, or report-only (no gate)
-  until enough real code exists to calibrate a sensible number? Recommend **report-only for now**
-  (`bun test --coverage` as a visibility signal, not a merge gate); add a numeric floor once
-  `core-domain`/adapters exist and a baseline can be measured, rather than guessing a number today.
-- **O3 — E2E (Playwright) cadence in CI:** every PR (fastest feedback, higher CI time/cost) vs. only on
-  merge-to-`main`/nightly (cheaper, slower regression feedback)? Given the project's cost-consciousness
-  (`docs/hosting.md`: maximize free tiers) balanced against wanting trustworthy fast feedback as a solo
-  owner, recommend **starting with every PR** once E2E tests exist (they will be few at first —
-  walking-skeleton scale, ADR 0022) and revisiting the cadence only once suite runtime becomes a real
-  friction point.
-- **O4 — Should the qualitative coverage bar (§4) be a hard PR-review expectation** — every guarded
-  Domain transition must have an explicit rejection-path test, not just a happy-path one — or is that
-  left to reviewer judgement per case? Recommend making it **explicit** (a hard expectation), since it is
-  what operationalizes §4's "success *and* failure paths" bar into something enforceable in review rather
-  than aspirational — but this changes what a reviewer can block a PR for, so it is worth the owner's
-  explicit sign-off.
+All four review questions were resolved by the owner (following the recommended default in each case),
+with explicit caveats, edge cases and revisit triggers requested and recorded — the decisions above
+already reflect them; this section is the compact summary.
+
+- **R1 — Test-kit location.** *Confirmed:* inline — `core-domain` `testing` sub-path per port,
+  `plugin-sdk`'s own kit for plugins — no new package (§1). **Caveat:** must stay out of production
+  bundles (dev-only export, enforced once feasible). **Revisit when:** a third-party plugin registry
+  opens (ADR 0006 §5).
+- **R2 — Coverage gating.** *Confirmed:* report-only via `bun test --coverage`, no CI gate now (§4).
+  **Caveat:** report-only can silently erode without anyone blocking on it — mitigated by a periodic
+  check added to `docs/recurring-tasks.md`. **Revisit when:** `core-domain` + first adapters exist with
+  real suites to calibrate a number against, and any future threshold must respect the exclusions
+  already named in §4 (adapter infra specifics, generated code).
+- **R3 — E2E cadence.** *Confirmed:* every ready-for-review PR (§5). **Edge case:** draft/WIP PRs may
+  skip intermediate E2E runs. **Distinct concern:** flakiness is fixed by quarantining/fixing the flaky
+  test, not by loosening cadence. **Revisit when:** total E2E runtime exceeds ~5–10 minutes — move to
+  merge-to-`main`/nightly or shard, rather than accepting slow PR feedback as normal.
+- **R4 — Coverage bar enforceability.** *Confirmed:* hard PR-review expectation, not case-by-case
+  judgement (§4). **Scope caveat:** only *guarded* Domain transitions (a real invariant/precondition to
+  violate) — not every method, and not infrastructure failures (those are layer-4 adapter tests, not
+  this rule). **Revisit if:** the rule causes low-value friction (boilerplate rejection tests written
+  only to satisfy it) — loosen via the normal amendment path (ADR 0001) rather than silently ignoring it.
 
 ## References
 
