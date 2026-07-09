@@ -119,9 +119,11 @@ reviewed in-repo. Its stable shape is frozen when built, ahead of that registry.
 
 - Reaffirm `plugins-only-sdk`: a plugin imports **only** `@grimora/plugin-sdk` (+ `@grimora/shared-types`)
   — already enforced, validated by the skeleton on real modules (ADR 0022 §9 criterion 6).
-- **New:** assert the `@grimora/plugin-sdk` public entry re-exports **no** host/adapter/port types (§3 —
-  the SDK must not leak ambient authority into the plugin surface). Added to the harness (ADR 0003 §2 /
-  ADR 0010 §7).
+- **New (planned, not yet implemented):** assert the `@grimora/plugin-sdk` public entry re-exports
+  **no** host/adapter/port types (§3 — the SDK must not leak ambient authority into the plugin surface).
+  *(Amended 2026-07-09: the earlier wording "Added to the harness" was **incorrect** — this check does
+  not exist yet; the harness currently ships nine dependency-cruiser rules, none being this one.
+  Implementation is tracked in #76.)* (ADR 0003 §2 / ADR 0010 §7).
 - Determinism in plugin behaviour (no `Math.random`/wall-clock) is already an ADR 0021 §3 fitness
   function; the SDK's seeded-`rng`-only context is what makes it satisfiable.
 
@@ -190,3 +192,13 @@ weaker until it lands — acceptable only while plugins are first-party and revi
   (§3 AI-tool descriptors), ADR 0011 (§8/§11 plugin API/tool contributions),
   [`docs/legal/dsa5-content-boundary.md`](../legal/dsa5-content-boundary.md),
   `packages/plugin-sdk` (the provisional v0 this ADR freezes). Issue #62.
+
+## Amendments
+
+- **2026-07-09** — *Authorized by the project owner.* Corrected §7: the SDK public-entry re-export
+  fitness function was described as "Added to the harness" in the present perfect, but it does **not**
+  exist yet — the harness ships nine dependency-cruiser rules, none being this check. Reworded to
+  "planned, not yet implemented"; implementation tracked in **#76**. By the repo's own "stale
+  documentation is a defect" rule this was a defect in a freshly-accepted ADR. Prompted by a cross-model
+  ADR review (logged in [`docs/meta/agent-collaboration-log.md`](../meta/agent-collaboration-log.md)).
+  No decision changed — only the false implementation-status claim.
