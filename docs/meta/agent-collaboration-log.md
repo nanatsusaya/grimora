@@ -664,3 +664,50 @@ well-evidenced, while the one he had not (the web framework) had no rationale at
 'decisions' were ever actually *decided*?" is worth asking periodically across the accepted set. And the
 honest answer to the question is to read the record and report the gap plainly ("it was never
 justified"), not to construct a justification after the fact.
+
+## 2026-07-09 — Second cross-model round, now *code-verified*: it found a bug in my own ADR
+
+**Trigger:** The owner ran the same parallel cross-model pattern a second time (ChatGPT + Claude Fable
+over the whole repo at the ADR-run's end) and pasted both reports, asking for my assessment and whether
+anything needed fixing before Phase 2. Unlike the first round (2026-07-07, mostly prose over ADR text),
+**both models this time were code-grounded** — Fable cited `file:line`, ChatGPT linked raw source — so
+the reports made concrete, checkable claims about the actual code, not just the ADRs.
+
+**Action / method:** I applied the now-established discipline — **verify every checkable claim against
+the source before judging** — and read ~12 real files (`.dependency-cruiser.cjs`, the arch tests,
+`character.ts`, `use-cases.ts`, `sync-harness.ts`, `fakes.ts`, `events.ts`, `describe.ts`, `ports.ts`,
+`shared-types`). The results, and what made this round different from the last:
+- **No confidently-false flagship this time.** The first round's loudest claim (ChatGPT's "the index is
+  broken") was factually wrong; here every load-bearing claim I checked was **true against source** — a
+  signal the reviews were trustworthy, so I could act on the convergent core rather than triage half of
+  it away.
+- **The strongest finding was an *interaction seam*, not an error inside one ADR.** Fable's C10: ADR 0024
+  §4 hides rolls by **stream routing**, but a roll's seed sequence folds only from its owning aggregate's
+  stream (`character.ts applyCharacter`), so routing a hidden roll off that stream would **reuse the
+  seed**. Two ADRs each internally correct; their *combination* wrong. Only a whole-corpus read finds
+  that — the class of gap a single-ADR review structurally cannot.
+- **A finding hit my *own* work.** ADR 0014 §2 (which I had written days earlier) claimed the fitness
+  functions were "already enforced by CI" — the exact overclaim ADR 0025 §7 had been amended for the day
+  before. I **conceded and corrected it** rather than defend it; the author being the reviewee is not a
+  reason to weight the finding less.
+
+**Impact:** Four PRs (#89 harness scope-holes — plugin→plugin/plugin→node/deep-import/secrets-port-path;
+#90 CI reproducibility — bun+action pinning; #91 owner-authorized ADR amendments — the C10 seed×visibility
+seam in 0024 §4 + 0021 §3, and the 0014 §2 erratum; #93 doc accuracy + skeleton boundaries), plus #76
+expanded and a new #92 (the ADR 0023 skeleton-classification refactor, previously unticketed), plus an
+**explicit Phase-1 close-out cut** in `STATUS.md`. The owner added a standing steer — **"explizit ist
+immer besser als implizit"** — which reshaped *how* each fix was made: every latent assumption the review
+found was also **stated at its site** (the seed/stream invariant in code and ADR, the harness's
+"import-boundaries-only" reach, the secrets-port layout contract, the existence-oracle convention, the
+`replicate` version-uniqueness gap).
+
+**Lessons learned:** (1) A **code-verified** external review is a materially higher-signal instrument than
+a prose one — the claims are falsifiable against source, and the verification pass, though it reclassified
+nothing as false this time, is exactly what let me *trust the convergence* and catch the one finding that
+landed on my own ADR. (2) **Interaction seams between two separately-correct ADRs** are a distinct failure
+mode from errors within an ADR; parallel whole-corpus review is the tool that surfaces them, extending the
+prior round's "a gate only catches what it runs". (3) The owner's **"explicit > implicit"** rule is a
+strong general principle for AI-agent-legible code: the assumptions a fresh model (or a future agent)
+trips on are precisely the unstated ones, so encoding them at the site is cheap insurance — and it turned
+a defect-fixing batch into a documentation-hardening one. (4) Being the author of a flagged artifact is
+not grounds to discount the flag; conceding my own ADR 0014 §2 error kept the review honest.
