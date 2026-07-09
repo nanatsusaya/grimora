@@ -587,3 +587,45 @@ being prose, could not. Concretely for this project's method — leaning on the 
 re-arguing them, and "run the thing end-to-end, don't just pass tests" (CLAUDE.md's verify habit)
 remained the highest-signal check — the runnable `walk` is what makes the slice legibly *work*, not just
 be green.
+
+## 2026-07-09 — Parallel cross-model audit of the whole accepted-ADR set
+
+**Trigger:** After a critical self-review caught real gaps in ADR 0015 *only when the owner asked me to
+recheck* (not on my first pass), the owner ran **two external models in parallel** — ChatGPT and Claude
+Fable — over **all 16 accepted ADRs** and handed me both reports to evaluate ("would you agree? is it
+worth addressing? be maximally critical"). This is the first *parallel, whole-corpus* external cross-check
+in the project (earlier entries were single-reviewer or self-driven).
+
+**Action / method:** Rather than accept or dismiss either report wholesale, I **verified the checkable
+claims against the actual code and ADRs** before judging. That separation mattered:
+- **Confirmed true** (against source): the formula AST has no `floor/ceil/round/mod` and unspecified `div`
+  (`formula.ts`); the harness ships exactly 9 dependency rules, so ADR 0025 §7's "Added to the harness"
+  was false; ADR 0004 §2 "metadata … no PII" is wrong (`actorId/deviceId/sessionId` are pseudonymous
+  personal data); ADR 0021↔code drift (`diceTerm` vs `dice`); ADR 0003 plugin-dep wording vs. harness.
+- **Confirmed false:** ChatGPT's loudest P0 — "the ADR index is broken, 0011/0015/0017/0021/0022 still
+  Planned" — is factually wrong against `main` (all Accepted); its "make the index CI-blocking" ask is
+  already implemented (`adr-index.test.ts`). A confidently-wrong flagship finding is itself a signal about
+  how much to weight that reviewer's framing.
+- **Convergence as signal:** where *both* independent models flagged the same thing — sync-trust
+  (event-push without semantic validation), crypto-shred **key distribution** in offline multi-device,
+  roll-seed **predictability**, metadata-PII — confidence is high; those became the priority set.
+
+**Impact:** Four **owner-authorized amendments** to accepted ADRs (ADR 0001 route, recorded in each
+*Amendments* section), split by kind: two errata (0025 §7 false-status; 0021 code drift) and three
+substantive corrections (0021 formula-set extension `floor/ceil/round/mod` + `div` semantics; 0004
+metadata-PII; 0015 Art. 49 vs. SCC/DPF transfer mechanism). Two implementation tickets (#75 formula-AST,
+#76 the missing fitness functions). The **distributed-systems gates** (sync trust, key management, seed
+fairness, sub-stream visibility, checkpoint backfill) were routed into the now-**pulled-forward** ADR 0023
+(privacy/keys/metadata) and ADR 0024 (realtime/sync-trust), ahead of 0012/0014 — because both reviewers
+independently judged them Phase-2 blockers, not backlog.
+
+**Lessons learned:** (1) The gap the owner named is real and methodological: my walking-skeleton gate +
+single-ADR-scoped reviews validated the **static** architecture and the **single-device** golden path, but
+the **distributed** reality (multi-device sync trust, per-subject key distribution, seed predictability)
+was never exercised — so those holes survived until a whole-corpus read hit them. A gate only catches what
+it *runs*. (2) **Parallel** cross-model review beats serial/single: two independent reads let convergence
+act as a confidence filter and let one model's confident error (the "broken index" P0) be caught by
+checking source rather than by trusting the reviewer. (3) The agent's value-add on a review dump is
+**verification, not deference** — checking each claim against the code reclassified roughly a third of the
+findings (false, already-done, or over-stated for the project's stage) and kept the response from
+amplifying an authoritative-sounding but wrong P0.
