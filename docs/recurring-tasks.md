@@ -29,6 +29,24 @@ proactively and **then updates the date here via a commit**.
 - **After each check:** update the "last checked" date above (commit), with a short finding note if
   relevant.
 
+### Pinned bun version — bump deliberately (quarterly, or when a needed fix lands)
+
+- **Interval:** quarterly, tied to shared project work (not an unattended cron).
+- **Last checked:** **2026-07-09** · **next check due from: 2026-10-09**.
+- **Context:** CI pins `bun-version` to a concrete version in `.github/workflows/ci.yml` (not `latest`)
+  for reproducibility (matches the frozen-lockfile discipline; a bun release cannot break CI unbidden).
+  The pin therefore ages and must be bumped **deliberately**, never implicitly. Current pin: **1.3.14**
+  (local dev version at the time). `setup-bun` is SHA-pinned and maintained by Dependabot; the
+  `bun-version` **input** is not — hence this manual check.
+- **How to check:** compare the pinned version against the latest stable
+  (`gh api repos/oven-sh/bun/releases/latest --jq .tag_name`) and the version used locally; note any
+  bun changelog item Grimora actually needs.
+- **If a bump is warranted → action:** update `bun-version` in `ci.yml` (and this line), run the **full
+  local chain** on the new version first, as a branch + PR. Treat a major bump like any dependency
+  upgrade (own PR, rationale, check results — CLAUDE.md).
+- **After each check:** update the "last checked" date above (commit), with a short note (even "still on
+  1.3.14, no bump needed").
+
 ### Test coverage trend — watch for silent erosion (monthly)
 
 - **Interval:** monthly, tied to shared project work (not an unattended cron).
