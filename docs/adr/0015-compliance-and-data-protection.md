@@ -12,9 +12,10 @@
   [ADR 0010](0010-security-and-privacy-by-design.md) (§4 `SecretsPort`, §5 `CryptoPort`, §6 crypto-shredding
   erasure capability + data locality, §8 DSA/JMStV hooks, §9 Impressum routing).
   Relates to [ADR 0011](0011-api-design.md) (§9 auth in the contract, contract surface for a future
-  withdrawal/DSAR endpoint), ADR 0019 (analytics/telemetry consent — still Planned), ADR 0023
-  (event-payload personal-data classification — still Planned; owns the per-field exclusion mechanism §3
-  relies on).
+  withdrawal/DSAR endpoint), ADR 0012 (frontend consent-capture UI — still Planned), ADR 0014 (DevOps:
+  backup-retention policy — still Planned), ADR 0019 (analytics/telemetry consent — still Planned),
+  ADR 0023 (event-payload personal-data classification — still Planned; owns the per-field exclusion
+  mechanism §3 relies on).
 
 ## Context
 
@@ -67,7 +68,10 @@ already built; it introduces **no new persistence, crypto, or authz mechanism**.
 *content/policy* (imprint text, ToS) or belongs to a still-Planned ADR (telemetry categories → ADR 0019),
 this ADR **routes it with an explicit trigger** rather than deciding it ahead of that ADR (CLAUDE.md
 "do not implement ahead of a decision"). Everything here is scaled to the project's actual stage
-(solo, pre-revenue, no public launch) — trigger-gated, not speculative.
+(solo, pre-revenue, no public launch) — trigger-gated, not speculative. The **DSA5 content boundary**
+(no copyrighted Ulisses text/values) is an **IP/copyright** matter, **not** data protection; it is owned
+by [`docs/legal/dsa5-content-boundary.md`](../legal/dsa5-content-boundary.md) and is **out of scope**
+here — noted only because issue #17 lists it among the topics to place.
 
 ### 2. Consent is an event-sourced, versioned, scoped record
 
@@ -79,12 +83,17 @@ Consent is **first-class domain state**, recorded as **intention-revealing, past
 and the **timestamp**. This makes consent **auditable and provable** (DSGVO Art. 7(1) — the controller
 must be able to demonstrate consent) directly from the event log, and **withdrawable** (Art. 7(3) —
 withdrawal must be as easy as granting) by appending `consent.withdrawn`, which takes effect immediately
-for all future processing. Consent state is exposed to the Application layer through a **`ConsentPort`**
-(`core-domain/application/ports`), queried by any use case before a consent-gated action; the port is a
-pure read over the folded consent projection, no I/O in Domain (ADR 0003 §1). The consent record's own
-personal identifier is subject to the same crypto-shredding as other personal data on erasure (§5), but
-the **non-personal** proof-of-consent structure survives (Art. 7(1) accountability vs. Art. 17 erasure are
-reconciled the same way ADR 0010 §6 reconciles the audit log).
+for all future processing. Withdrawal is **prospective** (Art. 7(3)): it does not make prior,
+already-lawful processing unlawful, and it cannot recall data already transmitted to a provider — that
+data's deletion is governed by the provider's DPA (§6). Consent state is exposed to the Application layer
+through a **`ConsentPort`** (`core-domain/application/ports`), queried by any use case before a
+consent-gated action; the port is a pure read over the folded consent projection, no I/O in Domain
+(ADR 0003 §1). The consent record's own personal identifier is subject to the same crypto-shredding as
+other personal data on erasure (§5), but the **non-personal** proof-of-consent structure survives
+(Art. 7(1) accountability vs. Art. 17 erasure are reconciled the same way ADR 0010 §6 reconciles the audit
+log). **Capacity (Art. 8):** consent is valid only from a subject able to give it — the service's **ToS
+restricts use to users aged ≥ 16** (the German digital-consent age); minor / parental-consent handling is
+**deferred to the future age-gate hook** (ADR 0010 §8), not built now (R4).
 
 ### 3. External-AI consent is resource/group-scoped, and transfer requires *all* affected subjects' consent
 
@@ -130,6 +139,17 @@ ad-hoc scripts:
   read-model deletion** (ADR 0010 §6), and **emits an erasure/redaction event that sync propagates**
   (ADR 0005) so every replica converges to the erased state. Non-personal, structural event data survives
   for replay integrity.
+- **Backups & completeness of erasure:** personal data in **event-log backups** is covered by
+  crypto-shredding — destroying the per-subject key renders the encrypted payload unrecoverable in
+  **every** copy, backups included; personal data in **read-model backups** ages out per the
+  **backup-retention policy** (ADR 0014 DevOps), so an erasure is *complete* only once backups still
+  holding plaintext have rotated. That window is **disclosed** in the RoPA retention entry (§6), not hidden.
+- **Restriction / Art. 18:** a **`processing.restricted`** domain event flags an aggregate so projections
+  suppress it — the data is neither used nor erased — without breaking the immutable log; restriction is a
+  read-model state, not a deletion.
+- **Notification / Art. 19:** rectification/erasure/restriction propagate to all **replicas** via the sync
+  events above (ADR 0005); notifying **external processors** of an erasure is an **operational** step
+  driven by the processor register (§6), not an automatic mechanism.
 - **Identity verification:** the **authenticated account is the primary proof of identity** for a
   logged-in subject's request — DSAR flows run as authenticated use-cases, so no *additional* personal
   data is collected merely to verify a requester (data-minimization, ADR 0010 §6). Out-of-band requests
@@ -140,13 +160,21 @@ ad-hoc scripts:
   **operational SLA**, tracked as such; the architecture makes it *cheap to meet* (the use-cases above),
   it does not itself enforce a clock.
 
-### 5. Retention, purpose limitation & data minimization (Art. 5)
+### 5. Lawful basis, purpose limitation, retention & data minimization (Art. 5 & 6)
 
+- **Lawful basis (Art. 6) — the foundational distinction:** the **core service** (accounts, characters,
+  campaigns) is processed on **contract-necessity (Art. 6(1)(b))**, *not* consent — so a consent
+  withdrawal never disables the service itself. **Consent (Art. 6(1)(a), plus Art. 49(1)(a) as the
+  derogation for the US transfer)** is reserved for processing that is *not* necessary to the service:
+  **external-AI transmission (§3)** and, later, **analytics (§9 / ADR 0019)**. Legitimate interest
+  (Art. 6(1)(f)) is used only where documented in the RoPA, e.g. minimal security/diagnostic logging
+  (ADR 0009 §2). Each basis is recorded **per purpose** in the RoPA (§6).
 - **Purpose limitation:** each processing purpose is named in the RoPA (§6) and, for consent-gated
   purposes, in the consent enum (§2); data collected for one purpose is not silently repurposed.
-- **Data minimization (reaffirms ADR 0010 §6):** the account holds the **minimum identity**; optional
-  fields stay optional; prompts to AI carry only what a task needs (ADR 0008 §6). No new collection is
-  introduced by this ADR.
+- **Data minimization & privacy by default (Art. 5(1)(c) + Art. 25 — architecturally owned by
+  ADR 0010 §6, operationalized here):** the account holds the **minimum identity**; optional fields stay
+  optional; prompts to AI carry only what a task needs (ADR 0008 §6). No new collection is introduced by
+  this ADR.
 - **Retention:** user aggregates (characters, campaigns) are retained **while the account is active** and
   erased on account deletion / Art. 17 request (§4). **Operational logs** (ADR 0009 §2) are short-lived
   and PII-redacted, retained only for diagnostics. Concrete retention **periods** per data class are an
@@ -166,6 +194,9 @@ ad-hoc scripts:
   (Anthropic/OpenAI). For the **US-based AI providers**, a **Transfer Impact Assessment (TIA) + SCCs**
   (Schrems II) is required **before** the provider is enabled, documented per provider (matrix Schrems-II
   row; ADR 0008 §7 consent is the transfer's legal basis, the TIA is the transfer-mechanism safeguard).
+  The provider contract must additionally **prohibit use of transmitted data for model training and
+  require minimal / zero data retention** (use a zero-data-retention endpoint where the provider offers
+  one) — the material safeguard that makes the transfer defensible, recorded in the TIA.
 - **Release gate:** "every active processor has a signed DPA (and, for external transfers, a TIA)" is a
   **go-live checklist item** before real users are onboarded — a checklist gate, not a code artifact.
 
@@ -209,7 +240,9 @@ the compliance matrix, without building anything in Phase 1:
   consent; **anything else** (analytics, tracking) needs a prior opt-in. Grimora ships **no non-essential
   client storage** today; the **consent record mechanism** for it is §2's, but the **specific
   analytics/telemetry categories and banner** are **ADR 0019's** turf (still Planned) — routed there,
-  **not decided here**, so we do not pre-empt that ADR.
+  **not decided here**, so we do not pre-empt that ADR. The **consent-capture UI** (banner/settings) is a
+  **frontend concern** routed to **ADR 0012** (web rendering & frontend state, still Planned); the
+  frontend must gate any non-essential storage/tracking behind the §2 consent record **before** it fires.
 - **Widerrufsbutton / Fernabsatzrecht (§312j BGB)** — mandatory since **19 Jun 2026**, but applicable
   **only once a paid consumer tier launches** (matrix). **Trigger:** before any paid tier goes live, the
   two-step withdrawal button + withdrawal flow must exist; the **contract-surface detail** is routed to
@@ -220,8 +253,10 @@ the compliance matrix, without building anything in Phase 1:
 ### 10. Enforcement (fitness functions)
 
 - **New:** the external `AiProviderPort` adapter is reachable **only** via a use case that consults
-  `ConsentPort` (§3) — a direct external-AI call that bypasses the consent gate is a harness-flagged
-  boundary violation (ADR 0003 §2 / ADR 0010 §7), the consent analogue of default-deny authorization.
+  `ConsentPort` (§3) — a direct external-AI call that bypasses the consent gate is a conformance violation,
+  enforced as a **custom check** (a call-graph assertion, like the ADR 0010 §7.4 default-deny lint — not
+  merely a dependency-import rule), the consent analogue of default-deny authorization (ADR 0003 §2 /
+  ADR 0010 §7).
 - **New:** consent state changes only through `consent.granted` / `consent.withdrawn` **events** — no
   generic consent field-setter (ADR 0004 intent-events rule; reuses the existing "no `setField`"
   guardrail).
@@ -240,8 +275,8 @@ checkable go-live gate; the AI-Act and routed content obligations are captured w
 so nothing is silently dropped or prematurely built.
 
 **Negative / costs:** the resource-scoped consent + all-subjects-must-consent rule adds **real complexity
-to the AI egress path** (per-payload subject enumeration, redaction/fallback) — the cost of doing the
-transfer lawfully; a `ConsentPort` + consent aggregate is upfront design before any AI chat exists,
+to the AI egress path** (per-payload subject enumeration and a consented-subjects-only egress path, with
+the concrete exclusion mechanism itself deferred to ADR 0023) — the cost of doing the transfer lawfully; a `ConsentPort` + consent aggregate is upfront design before any AI chat exists,
 justified because it is cheap to design now and expensive to retrofit into event sourcing later.
 Several items (imprint timing, retention periods, ToS/notice-and-action, Widerrufsbutton) are
 **deliberately routed onward or trigger-gated**, so this ADR's *operational* completeness depends on
@@ -294,6 +329,11 @@ self-executing compliance.
   special-category processing, no profiling), **no full DPIA is required**, recorded as a documented
   screening with explicit re-trigger conditions (special-category data, large scale, profiling, public
   content). A full DPIA is premature until one of those triggers fires.
+- **R4 — Minors / age of consent (§2, Art. 8).** Decided: the **ToS restricts the service to users aged
+  ≥ 16** (the German digital-consent age), so consent is given by capable subjects; **parental-consent /
+  minor-handling flows are deferred** to the future age-gate hook (ADR 0010 §8), not built now — building
+  them at Phase 1, pre-user, would be over-engineering. Stays subject to owner/legal confirmation as part
+  of the ToS content (§9).
 
 ## References
 
@@ -305,6 +345,7 @@ self-executing compliance.
   RBAC, PII-safe logging), [ADR 0010](0010-security-and-privacy-by-design.md) (§4 secrets, §5 crypto,
   §6 crypto-shredding erasure + data locality, §8 DSA/JMStV hooks, §9 Impressum routing),
   [ADR 0011](0011-api-design.md) (§9 auth in contract; future withdrawal/DSAR endpoint surface),
+  ADR 0012 (frontend consent-capture UI — Planned), ADR 0014 (DevOps: backup-retention policy — Planned),
   ADR 0019 (analytics/telemetry consent — Planned), ADR 0023 (event-payload personal-data classification
   — Planned; owns the §3 per-field exclusion mechanism),
   [`docs/legal/eu-de-compliance-matrix.md`](../legal/eu-de-compliance-matrix.md) (authoritative
