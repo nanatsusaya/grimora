@@ -151,7 +151,7 @@ Three logical environments, no more than the stage warrants:
 **No separate long-lived Staging environment is created now** — local + per-PR preview cover
 pre-production validation for a solo developer, and a standing staging tier is cost/maintenance the
 stage does not warrant. **Trigger:** the first external testers or a paid tier → introduce a dedicated
-staging environment then (**O1**).
+staging environment then (**R1**).
 
 **Data isolation (hard rule):** the production Supabase project is **separate** from every non-prod
 environment, with its **own secrets**; **no non-production environment ever points at production
@@ -193,7 +193,7 @@ free tiers in Terraform is more ceremony than value today. **Trigger:** the infr
 needing to stand up production from scratch. **When triggered, the recommended tool is OpenTofu** (the
 open-source, Terraform-compatible fork — avoids the HashiCorp BSL licence question) with the **Supabase
 + Cloudflare providers**; Pulumi (real-language IaC) is the alternative if typed IaC in TypeScript is
-preferred (**O2**). **Bicep is rejected** (Azure-only; we are not on Azure).
+preferred (**R2**). **Bicep is rejected** (Azure-only; we are not on Azure).
 
 ### 6. Secrets in CI & rotation — makes ADR 0010 §4 operational
 
@@ -243,9 +243,9 @@ replicas can re-seed the cloud. This is a genuine resilience property, not a sub
 **Backup mechanism:** rely primarily on **Supabase's managed backups** (daily automated; PITR on the
 Pro tier when real users justify it) for Postgres; **object storage** via bucket versioning/lifecycle;
 the **key store** on its own separate schedule. All backups stay **EU-region** (ADR 0015). For the
-self-host case, the runbook documents `pg_dump` + volume snapshots. Whether to also keep **one
-independent, off-Supabase logical dump** of the (small, precious) event log as vendor-loss insurance is
-**O4**.
+self-host case, the runbook documents `pg_dump` + volume snapshots. In addition, **one independent,
+off-Supabase logical dump** of the (small, precious) event log is kept as vendor-loss insurance, added
+**once real users exist** (**R4**) — managed backups alone would concentrate all DR trust in one vendor.
 
 **RTO / RPO (rough, stage-scaled targets — not contractual SLAs pre-revenue):**
 
@@ -256,7 +256,8 @@ independent, off-Supabase logical dump** of the (small, precious) event log as v
 
 The **effective** user-visible RPO is often **near-zero** for a user's own recent edits regardless of
 cloud cadence, because those edits are still on their device (offline-first). Targets **tighten when a
-paid tier / SLA commitment exists** (trigger). Proposed as **O3**.
+paid tier / SLA commitment exists** (trigger); the owner accepted these as an **upper bound that may be
+loosened rather than tightened** for a hobby project (**R3**).
 
 **Restore procedure & DR drill:** the restore steps (restore events + master data + keys → replay
 projections → smoke-test) are documented as a `docs/ops/` runbook (follow-up). A **live DR drill** (a
@@ -291,11 +292,11 @@ every speculative piece (staging, full IaC, DR drill, SBOM, API/SDK deploy) is *
 named trigger**, so nothing is built early and nothing is lost.
 
 **Negative / costs:** relying on managed backups concentrates DR trust in **Supabase** as a single
-vendor until an independent dump is added (**O4**); config-in-repo means some infra (org security
+vendor until the independent dump is added (**R4**); config-in-repo means some infra (org security
 toggles) is **click-configured**, reproducible only via a documented checklist, not a single `apply`
-— accepted now, revisited at the IaC trigger (**O2**); **no staging tier** means preview + local must
-catch pre-production regressions (accepted for a solo dev, revisited at **O1**); the RTO/RPO targets
-(**O3**) are **best-effort, not SLAs**, appropriate only while there is no paid commitment; and several
+— accepted now, revisited at the IaC trigger (**R2**); **no staging tier** means preview + local must
+catch pre-production regressions (accepted for a solo dev, revisited at **R1**); the RTO/RPO targets
+(**R3**) are **best-effort, not SLAs**, appropriate only while there is no paid commitment; and several
 deliverables here (the `docs/ops/` rotation + restore runbooks, the first verified test restore) are
 **follow-up tasks**, so this ADR's *operational* completeness depends on them landing at their triggers.
 
@@ -322,25 +323,29 @@ deliverables here (the `docs/ops/` rotation + restore runbooks, the first verifi
   fits a solo project with no externally-distributed app artifact yet; the release flow is trigger-gated
   to the first published SDK / store submission (§3).
 
-## Open questions (for owner review)
+## Resolved questions (owner decisions, 2026-07-09)
 
-- **O1 — Staging environment: trigger-gated, or stand one up now?** *Recommendation:* **trigger-gated**
-  (no dedicated staging until the first external testers / paid tier; local + per-PR preview suffice for
-  a solo dev). The alternative is standing up a staging Supabase project + Pages environment now for
-  extra pre-prod safety, at ongoing maintenance/cost. Owner call: is the extra safety worth the standing
-  cost yet?
-- **O2 — IaC commitment.** *Recommendation:* **config-in-repo now**, and **reach for OpenTofu** (Supabase
-  + Cloudflare providers) when the §5 trigger fires. Alternatives: commit to **Pulumi** (typed IaC in
-  TypeScript, closer to our stack) instead of OpenTofu, or adopt full IaC **earlier** than the trigger.
-  Does the owner want to pre-commit to a specific IaC tool, or keep it trigger-gated as recommended?
-- **O3 — Rough RTO/RPO targets for Phase 3+ (real users).** *Recommendation:* **RPO ≤ 24 h, RTO ≤ 1
-  business day** (best-effort until then, tightened at a paid tier), explicitly as **targets, not SLAs**.
-  Does the owner accept these figures, or want them tighter/looser (which trades cost — e.g. PITR,
-  more-frequent backups — against risk)?
-- **O4 — Independent off-Supabase backup of the event log?** *Recommendation:* **rely on Supabase
-  managed backups primarily, and add *one* periodic independent logical dump of the (small, precious)
-  event log** once real users exist, as cheap vendor-loss insurance. Alternative: managed backups only
-  (simpler, but single-vendor DR risk). How much vendor-loss insurance does the owner want?
+- **R1 — Staging environment (§4).** Decided as recommended: **trigger-gated**. No dedicated staging tier
+  now — for a solo developer, `Local` + per-PR `Preview` cover pre-production validation, and a standing
+  staging Supabase project + Pages environment is cost/maintenance the stage does not warrant. A staging
+  environment is stood up at the **first external testers / paid tier** trigger.
+- **R2 — IaC commitment (§5).** Decided as recommended: **config-in-repo now** (docker-compose, Supabase
+  migration files, `wrangler.toml`, `.github/`), with **full declarative IaC trigger-gated**. When the §5
+  trigger fires (multiple reproducible cloud environments, a self-managed VM fleet, or a second person
+  standing up production), the tool is **OpenTofu** (Supabase + Cloudflare providers — open-source,
+  Terraform-compatible, avoids the HashiCorp BSL licence question); **Pulumi** remains the typed-IaC
+  alternative. No pre-commitment beyond "OpenTofu when triggered"; **Bicep** is rejected (Azure-only).
+- **R3 — Rough RTO/RPO targets for Phase 3+ (§7).** Decided as recommended: **RPO ≤ 24 h, RTO ≤ 1
+  business day** for real cloud users (best-effort until then), explicitly as **targets, not contractual
+  SLAs**, tightened only when a paid tier / SLA commitment exists. The owner noted these figures are, if
+  anything, **conservative** for a hobby project — so they are treated as an **upper bound that may be
+  loosened**, not a floor to invest below. The offline-first replica model already keeps the *effective*
+  user-visible RPO near-zero for a user's own recent edits (still on their device), independent of the
+  cloud backup cadence.
+- **R4 — Independent off-Supabase event-log backup (§7).** Decided as recommended: **Supabase managed
+  backups primarily, plus one periodic independent logical dump** of the (small, precious) event log,
+  added **once real users exist**, as cheap vendor-loss insurance. Managed-backups-only was rejected —
+  it would concentrate all disaster-recovery trust in a single vendor. The dump stays EU-region (ADR 0015).
 
 ## References
 
