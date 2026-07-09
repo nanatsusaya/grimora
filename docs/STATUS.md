@@ -10,9 +10,9 @@
   `tsconfig.base.json` (strict), CI (`.github/workflows/ci.yml`), `docker-compose` (Postgres + MinIO
   + self-hosted auth via `gotrue` + optional Ollama), `packages/shared-types`, ADR / `docs/legal/` structure.
 - **Phase 1 (architecture as ADRs):** 🟡 in progress — the architectural foundation is worked out as
-  ADRs and merged one PR at a time. **16 ADRs Accepted** (0001–0011 + 0015 + 0017 + 0020 + 0021 + 0022 +
-  0025). The first implementation ticket (conformance harness, #9) is done and merged (`scripts/arch/` +
-  `.dependency-cruiser.cjs`, wired as the CI `arch` step).
+  ADRs and merged one PR at a time. **17 ADRs Accepted** (0001–0011 + 0015 + 0017 + 0020 + 0021 + 0022 +
+  0023 + 0025). The first implementation ticket (conformance harness, #9) is done and merged
+  (`scripts/arch/` + `.dependency-cruiser.cjs`, wired as the CI `arch` step).
 - **Walking skeleton built (gate passed):** ✅ #61 / PR #64 — the **first real code beyond
   `shared-types`**: provisional-v0 `packages/plugin-sdk` + `packages/core-domain` (with a
   `/testing` fakes subpath) + minimal `plugins/dsa5` + an `apps/skeleton-walk` composition root and
@@ -21,8 +21,9 @@
   core (0022 R1). The gate surfaced two real refinements (harness: `apps/*` exempt from the
   `src/index.ts` entry rule; SDK: formula `if`-node `then`→`whenTrue`/`whenFalse`).
 - **Repo state:** `main` has the skeleton packages, all `.vscode/` workspace settings (#65/#66/#68), and
-  ADR 0025 (#69) + ADR 0015 (#70), both Accepted. No open PRs at time of writing — everything
-  merged/cleaned up.
+  ADR 0025 (#69) + ADR 0015 (#70) + ADR 0023 (#81), all Accepted, plus four owner-authorized amendments
+  (#77–#80: ADR 0021 formula-AST, 0025 §7, 0004 metadata-PII, 0015 transfer-mechanism) from the
+  2026-07-09 cross-model review. No open PRs at time of writing — everything merged/cleaned up.
 
 ### Accepted ADRs
 
@@ -44,6 +45,7 @@
 | 0020 | Core-vs-plugin boundary (rule-agnostic meta-model) |
 | 0021 | Rules Execution: formula AST, generic dice/roll model, seeded-RNG determinism, roll event schema |
 | 0022 | Walking Skeleton gate: core/backend vertical slice (not UI E2E), provisional-v0 SDK shapes, deterministic in-memory validation, pass criteria |
+| 0023 | Event-payload privacy: declarative per-field classification (validated at load, SDK privacy metadata), metadata pseudonyms, per-subject DEK crypto-shredding (offline-distributed), graceful degradation (Constraint D), external-AI exclusion mechanism (R1–R3) |
 | 0025 | Plugin-SDK v0 contract freeze: `0.x` semver line (not permanent), skeleton-validated surface frozen, hard security boundary, 1.0/registry trigger-gated (R1–R3) |
 
 ### New: EU/DE compliance matrix
@@ -87,19 +89,24 @@ numeric, but implementation-blocking ADRs first. All under **Epic #1**; Epic #10
    decisions R1–R4 (max-utility external AI once *all* affected subjects consent + Ollama as an opt-in
    sovereignty alternative; imprint timing; no DPIA now; ToS ≥16 for Art. 8). **Operational follow-up
    tickets opened** (RoPA/processor-register doc, ToS+imprint content, ConsentPort/consent-gate at Phase 2).
-8. **ADR 0023 — Event-payload privacy (classification, per-subject keys, crypto-shredding)** (#43) —
-   **← current focus** (Proposed, this PR). **Pulled forward ahead of 0012/0014** after the 2026-07-09
-   parallel cross-model ADR review (ChatGPT + Claude Fable) flagged it — with 0024 — as a **Phase-2
-   gate, not backlog**: it shapes the event schema (subject model, per-field classification incl. the
-   ADR 0004 metadata fix, per-subject DEK key management for offline crypto-shredding, and the ADR 0015
-   §3/R1 external-AI exclusion mechanism) and must precede real personal aggregates.
-9. **ADR 0024 — Realtime session, presence & sync-trust** (#44) — next after 0023. Absorbs the remaining
-   review gates: **sync integrity** (event-push vs. server-side command revalidation), **checkpoint
-   backfill** on late access grant, **roll-seed fairness/predictability**, presence transport.
+8. ✅ **ADR 0023 — Event-payload privacy (classification, per-subject keys, crypto-shredding)** (#43) —
+   Accepted 2026-07-09 (PR #81). Pulled forward ahead of 0012/0014 (2026-07-09 cross-model review gate).
+   Declarative per-field privacy classification (validated at load; additive SDK privacy metadata),
+   metadata pseudonyms erased via the account mapping, per-subject DEK crypto-shredding
+   (offline-distributed), graceful degradation (Constraint D), and the concrete external-AI exclusion
+   mechanism resolving ADR 0015 §3/R1. Owner decisions R1–R3 (free-text all-members consent; residual
+   erasure boundary accepted; minimal high-sensitivity encrypted subset).
+9. **ADR 0024 — Realtime session, presence & sync-trust** (#44) — **← current focus.** Absorbs the
+   remaining cross-model-review gates: **sync integrity** (client event-push vs. server-side command
+   revalidation — the strongest shared finding), **checkpoint backfill** on late access grant,
+   **roll-seed fairness/predictability** (may trigger an ADR 0021 amendment), sub-stream (gmOnly)
+   visibility, and presence/live-delivery transport.
 10. **ADR 0012** (#14, before `apps/web`) · **ADR 0014** (#16, before cloud sync / real users) — after
     0023/0024.
 11. **Trigger-gated backlog** (not blocking now): ADR 0013 perf budgets (#15), ADR 0019 Analytics (#23),
-    ADR 0016 a11y/i18n (#18). Further deferred/trigger-gated topics (asset pipeline, plugin
+    ADR 0016 a11y/i18n (#18), ADR 0026 user-docs / handbook site (#82, Epic #83 — Diátaxis, in-repo
+    static site, i18n; depends on 0012/0016; trigger: a usable product to document). Further
+    deferred/trigger-gated topics (asset pipeline, plugin
     registry/signing & DX, authz-matrix depth, conflict/undo UX, search, notifications, monetization +
     Widerrufsbutton, mobile security) are tracked in **Epic #52** — promoted to real tickets only when
     their trigger fires.

@@ -1,7 +1,7 @@
 # ADR 0023 — Event-payload privacy classification, per-subject encryption & crypto-shredding keys
 
-- **Status:** Proposed
-- **Date:** 2026-07-09
+- **Status:** Accepted
+- **Date:** 2026-07-09 (accepted via PR #81, issue #43)
 - **Deciders:** project owner + AI agents
 - **Depends on:** [ADR 0003](0003-overall-architecture.md) (§1 dependency rule, §6.2 adapters validate
   input, §7 ports), [ADR 0004](0004-event-sourcing-cqrs.md) (§2 event envelope + metadata [as amended
