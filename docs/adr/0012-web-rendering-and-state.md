@@ -3,8 +3,8 @@
 - **Status:** Proposed
 - **Date:** 2026-07-09
 - **Deciders:** project owner + AI agents
-- **Depends on:** [ADR 0002](0002-tech-stack-and-tooling.md) (Web = Next.js, Desktop = Tauri wrapping the
-  web app, Mobile = Expo; design-tokens JSON; no runtime CSS-in-JS), [ADR 0003](0003-overall-architecture.md)
+- **Depends on:** [ADR 0002](0002-tech-stack-and-tooling.md) (Web = **Vite + React** [amended 2026-07-09],
+  Desktop = Tauri wrapping the web app, Mobile = Expo; design-tokens JSON; no runtime CSS-in-JS), [ADR 0003](0003-overall-architecture.md)
   (§1 dependency rule, §3 module map — `ui` = presentation, `apps/*` composition roots), [ADR 0004](0004-event-sourcing-cqrs.md)
   (§5 the UI reads **read models only**, never the event store), [ADR 0005](0005-persistence-and-sync.md)
   (§1 local SQLite-WASM/OPFS store, §3 sync, §4 domain rebase), [ADR 0007](0007-theming.md) (§5 theme
@@ -26,8 +26,8 @@ event log and the CQRS **read-model projections** in a local store (SQLite-WASM/
 the UI reads **read models only, never the event store** (ADR 0004 §5), and the API/sync is a background
 replication path (ADR 0011 §7), not the UI's primary read path. This **inverts** the usual SSR assumption:
 a server cannot render the authenticated app from data it does not have — the user's authoritative state
-lives on their device. ADR 0002 already fixed the tools (Web = Next.js, Desktop = Tauri **wrapping the web
-app**, Mobile = Expo; design-tokens JSON SSOT; no runtime CSS-in-JS); several ADRs then **routed
+lives on their device. ADR 0002 fixed the tools (Web = **Vite + React** [amended 2026-07-09], Desktop =
+Tauri **wrapping the web app**, Mobile = Expo; design-tokens JSON SSOT; no runtime CSS-in-JS); several ADRs then **routed
 frontend concerns here**: consent-capture UI (ADR 0015 §9), conflict-UX (ADR 0024 §8), i18n rendering
 (ADR 0009/0016), and E2E enablement (ADR 0017). A cross-model ADR review (2026-07-09) additionally
 flagged **client token storage** as an unowned security question for this ADR.
@@ -48,8 +48,10 @@ Two route classes, each with a fixed strategy:
 - **The authenticated application** (character sheets, campaigns, play) — **client-rendered against the
   local store**, delivered as an **installable, offline-capable PWA app shell**. It is **not** SSR'd:
   the authoritative data is the user's **local** projections (ADR 0005 §1), which the server does not
-  hold, and SSR would fight offline-first. Next.js is used, but for the app it is a **static app shell +
-  client components** (no server-rendering of user data), not a server-rendered-per-request app.
+  hold, and SSR would fight offline-first. The app is built with **Vite + React** (ADR 0002, amended
+  2026-07-09) as a **static app shell + client components** (no server-rendering of user data); a small
+  static generator (e.g. Astro) may render the public routes. The **router** (TanStack Router / React
+  Router 7 in SPA/data mode) is an `apps/web` implementation detail.
 
 This split is **forced by offline-first**, not a preference. It answers issue #14's rendering-per-route
 and hosting questions; the concrete hosting target (**R1**: a static app shell on Cloudflare Pages + a
@@ -234,15 +236,13 @@ discipline now for a Phase-5 payoff.
   heavy data-layer or global-state framework, because the domain lives in `core-domain`. Kept behind a
   thin abstraction so the concrete library stays swappable.
 
-> **Note (2026-07-09):** the **web *framework*** itself (ADR 0002's `Web = Next.js`) is under a separate,
-> owner-requested re-evaluation. R1–R3 are **framework-independent** (offline-first PWA posture, hosting,
-> cross-platform sharing, state layering hold for any React/SPA framework). If that review selects a
-> framework other than Next.js, it lands as an **owner-authorized amendment to ADR 0002**, and §1/§9's
-> framework references here are updated to match — before this ADR is accepted.
+> **Note (2026-07-09):** the web *framework* was re-evaluated at the owner's request; **the decision is
+> Vite + React** (replacing Next.js), authorized as an **amendment to ADR 0002** carried in this same PR.
+> R1–R3 were framework-independent and are unaffected; §1/§9 now reflect Vite + React.
 
 ## References
 
-- [ADR 0002](0002-tech-stack-and-tooling.md) (Next.js / Tauri / Expo; tokens JSON; no runtime CSS-in-JS),
+- [ADR 0002](0002-tech-stack-and-tooling.md) (Vite + React / Tauri / Expo; tokens JSON; no runtime CSS-in-JS),
   [ADR 0003](0003-overall-architecture.md) (§1 dependency rule, §3 module map / composition roots),
   [ADR 0004](0004-event-sourcing-cqrs.md) (§5 UI reads read models), [ADR 0005](0005-persistence-and-sync.md)
   (§1 local store, §3 sync, §4 rebase), [ADR 0007](0007-theming.md) (§5 cascade; semantic tokens),
