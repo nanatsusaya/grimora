@@ -35,6 +35,7 @@ listed here with a status.
 | [0023](0023-event-payload-privacy.md) | Event-payload privacy classification, per-subject encryption & crypto-shredding keys | Proposed |
 | 0024 | Realtime Session & Presence | Planned (issue #44) |
 | [0025](0025-plugin-sdk-v0-contract.md) | Plugin-SDK v0 contract freeze | Accepted |
+| 0026 | User documentation & docs-site architecture (Diátaxis, i18n) | Planned (issue #82) |
 
 Status values: `Proposed` · `Accepted` · `Superseded` · `Planned` (ticketed, not yet written).
 
