@@ -224,7 +224,8 @@ Agents write the tickets too; hold them to the same bar as code.
   constraints (legal/security/ADR references).
 - **Definition of Done** (before closing): acceptance criteria met and **verified**; code **and docs**
   updated; CI green; the PR merged; for ADR tickets the ADR is `Accepted` and the index/`STATUS.md`
-  synced; the ticket closed via `Closes #…`.
+  synced; the ticket closed via a `Closes #NN` line in the PR body — written as **plain text**, never
+  inside a code span/backticks, or GitHub silently won't auto-close the issue (this bit us on issue #16).
 
 ### Agent guardrails
 
