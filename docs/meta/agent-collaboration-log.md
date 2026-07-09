@@ -711,3 +711,49 @@ strong general principle for AI-agent-legible code: the assumptions a fresh mode
 trips on are precisely the unstated ones, so encoding them at the site is cheap insurance — and it turned
 a defect-fixing batch into a documentation-hardening one. (4) Being the author of a flagged artifact is
 not grounds to discount the flag; conceding my own ADR 0014 §2 error kept the review honest.
+
+## 2026-07-09 — Third cross-model round, aimed at *documentation quality* — it exposed an ambiguity in our own rule
+
+**Trigger:** The owner restated a long-standing standard — *"jede funktion, jeder parameter, jeder typ und
+auch jedes property eines types [soll] angemessen dokumentiert werden … Es soll nicht sagen, was passiert,
+sondern warum"* — and asked me to judge, against exactly that bar, whether the walking-skeleton's dummy
+code was already adequately documented. He had put the same question to ChatGPT and Claude Fable and pasted
+both reviews, asking whether I agreed and where to adjust. Same parallel cross-model pattern as the two
+prior rounds, but pointed for the first time at **code-comment quality against the owner's own written
+standard**, not at the ADRs/architecture.
+
+**Action / method:** Applied the now-established verify-not-defer discipline — re-read ~15 source files
+under the documentation lens before judging — and confirmed both reviews were accurate against source
+(again no confidently-false flagship). The value-add was **disentangling three problems the reviews
+conflated**: (1) genuinely *missing* coverage, (2) *what-not-why* comments that paraphrase the code, and
+(3) real *contract gaps* where the missing doc hid a load-bearing invariant — the standout being that
+`EventStorePort.readStream/readAll` are **exclusive** on `fromVersion`/`fromPosition`, which the projection
+checkpoint silently depends on. But the more consequential finding sat *upstream of the code*: the standard
+itself was **ambiguous** — CLAUDE.md said "never single-line `/** … */`", which could mean *headers* must be
+multi-line, or that *every property doc* must be too. Rather than silently pick a reading and patch comments
+to match, I surfaced the ambiguity to the owner as an explicit choice (`AskUserQuestion`): he chose the
+**refined** reading (multi-line headers + `@param` always; property docs may be single-line but must carry
+the *why/contract*, not restate the type) and a **lightweight machine check**. I then (a) rewrote the
+CLAUDE.md rule to state that explicitly, and (b) built a `ts-morph` fitness function that enforces the
+**presence** half — it enumerated exactly **32** violations, which became the objective worklist — then
+fixed all 32 plus the verified contract-whys.
+
+**Impact:** Two PRs, merged 2026-07-10: **#95** (CLAUDE.md rule disambiguated + a stale "only shared-types
+has real code" line fixed) and **#96** (`doc-conformance.test.ts` wired into `bun run arch`, now 22 checks,
+plus the full doc pass across ~15 files). A previously **subjective** quality bar ("is this documented
+enough?") became a **measurable gate** for the checkable half, while the *why-not-what* judgement was
+deliberately **left to review** — the check asserts presence, not semantics, and its own header says so, to
+avoid pretending a machine can grade comment quality.
+
+**Lessons learned:** (1) A cross-model review aimed at *the code against a stated standard* (not the
+architecture) is a distinct, useful instrument — and its highest-value output here was not a code fix but
+the discovery that **our own rule was ambiguous**. The right response to a rule a review trips on is to
+**sharpen the rule and, where possible, machine-enforce it**, not just patch the instances — the previous
+day's **"explizit > implizit"** applied one level up, to the *standard* itself rather than only the code.
+(2) Splitting a fuzzy "quality" bar into a **machine-checkable half (presence)** and a **review-only half
+(why-vs-what)** is more honest than either pretending a linter can judge semantics or leaving the whole
+thing to feel — encode the objective floor as a gate so it cannot erode, keep the subjective ceiling a
+human/agent call, and *say which is which at the check's site*. (3) Verify-not-defer held for a third round:
+reading the files myself before judging is what let me separate the three conflated problem-classes and
+locate the one contract gap (`readStream` exclusivity) that actually mattered, instead of treating the
+review as a flat to-do list.
