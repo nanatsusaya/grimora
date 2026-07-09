@@ -87,14 +87,22 @@ numeric, but implementation-blocking ADRs first. All under **Epic #1**; Epic #10
    decisions R1–R4 (max-utility external AI once *all* affected subjects consent + Ollama as an opt-in
    sovereignty alternative; imprint timing; no DPIA now; ToS ≥16 for Art. 8). **Operational follow-up
    tickets opened** (RoPA/processor-register doc, ToS+imprint content, ConsentPort/consent-gate at Phase 2).
-8. **ADR 0012** (#14, before `apps/web`) · **ADR 0014** (#16, before cloud sync / real users) —
-   **← current focus** (the next implementation-blocking ADRs).
-9. **Trigger-gated backlog** (not blocking now): ADR 0023 Event-Payload-Privacy (#43, before real
-   aggregates), ADR 0024 Realtime/Presence (#44), ADR 0013 perf budgets (#15), ADR 0019 Analytics (#23),
-   ADR 0016 a11y/i18n (#18). Further deferred/trigger-gated topics (asset pipeline, plugin
-   registry/signing & DX, authz-matrix depth, conflict/undo UX, search, notifications, monetization +
-   Widerrufsbutton, mobile security) are tracked in **Epic #52** — promoted to real tickets only when
-   their trigger fires.
+8. **ADR 0023 — Event-payload privacy (classification, per-subject keys, crypto-shredding)** (#43) —
+   **← current focus** (Proposed, this PR). **Pulled forward ahead of 0012/0014** after the 2026-07-09
+   parallel cross-model ADR review (ChatGPT + Claude Fable) flagged it — with 0024 — as a **Phase-2
+   gate, not backlog**: it shapes the event schema (subject model, per-field classification incl. the
+   ADR 0004 metadata fix, per-subject DEK key management for offline crypto-shredding, and the ADR 0015
+   §3/R1 external-AI exclusion mechanism) and must precede real personal aggregates.
+9. **ADR 0024 — Realtime session, presence & sync-trust** (#44) — next after 0023. Absorbs the remaining
+   review gates: **sync integrity** (event-push vs. server-side command revalidation), **checkpoint
+   backfill** on late access grant, **roll-seed fairness/predictability**, presence transport.
+10. **ADR 0012** (#14, before `apps/web`) · **ADR 0014** (#16, before cloud sync / real users) — after
+    0023/0024.
+11. **Trigger-gated backlog** (not blocking now): ADR 0013 perf budgets (#15), ADR 0019 Analytics (#23),
+    ADR 0016 a11y/i18n (#18). Further deferred/trigger-gated topics (asset pipeline, plugin
+    registry/signing & DX, authz-matrix depth, conflict/undo UX, search, notifications, monetization +
+    Widerrufsbutton, mobile security) are tracked in **Epic #52** — promoted to real tickets only when
+    their trigger fires.
 
 Extend the harness rules (#9, merged) in parallel as `core-domain`/adapters/plugins actually appear
 (the forward-looking rules then bite automatically).
