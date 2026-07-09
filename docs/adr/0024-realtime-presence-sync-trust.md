@@ -1,7 +1,7 @@
 # ADR 0024 — Realtime session, presence & sync-trust
 
-- **Status:** Proposed
-- **Date:** 2026-07-09
+- **Status:** Accepted
+- **Date:** 2026-07-09 (accepted via PR #85, issue #44)
 - **Deciders:** project owner + AI agents
 - **Depends on:** [ADR 0004](0004-event-sourcing-cqrs.md) (§2 event/version/position, immutable durable
   log), [ADR 0005](0005-persistence-and-sync.md) (§3 pull/push sync + checkpoints, §4 domain rebase, §7

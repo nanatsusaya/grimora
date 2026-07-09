@@ -10,8 +10,8 @@
   `tsconfig.base.json` (strict), CI (`.github/workflows/ci.yml`), `docker-compose` (Postgres + MinIO
   + self-hosted auth via `gotrue` + optional Ollama), `packages/shared-types`, ADR / `docs/legal/` structure.
 - **Phase 1 (architecture as ADRs):** 🟡 in progress — the architectural foundation is worked out as
-  ADRs and merged one PR at a time. **17 ADRs Accepted** (0001–0011 + 0015 + 0017 + 0020 + 0021 + 0022 +
-  0023 + 0025). The first implementation ticket (conformance harness, #9) is done and merged
+  ADRs and merged one PR at a time. **18 ADRs Accepted** (0001–0011 + 0015 + 0017 + 0020 + 0021 + 0022 +
+  0023 + 0024 + 0025). The first implementation ticket (conformance harness, #9) is done and merged
   (`scripts/arch/` + `.dependency-cruiser.cjs`, wired as the CI `arch` step).
 - **Walking skeleton built (gate passed):** ✅ #61 / PR #64 — the **first real code beyond
   `shared-types`**: provisional-v0 `packages/plugin-sdk` + `packages/core-domain` (with a
@@ -21,9 +21,10 @@
   core (0022 R1). The gate surfaced two real refinements (harness: `apps/*` exempt from the
   `src/index.ts` entry rule; SDK: formula `if`-node `then`→`whenTrue`/`whenFalse`).
 - **Repo state:** `main` has the skeleton packages, all `.vscode/` workspace settings (#65/#66/#68), and
-  ADR 0025 (#69) + ADR 0015 (#70) + ADR 0023 (#81), all Accepted, plus four owner-authorized amendments
-  (#77–#80: ADR 0021 formula-AST, 0025 §7, 0004 metadata-PII, 0015 transfer-mechanism) from the
-  2026-07-09 cross-model review. No open PRs at time of writing — everything merged/cleaned up.
+  ADR 0025 (#69) + ADR 0015 (#70) + ADR 0023 (#81) + ADR 0024 (#85), all Accepted, plus four
+  owner-authorized amendments (#77–#80: ADR 0021 formula-AST, 0025 §7, 0004 metadata-PII, 0015
+  transfer-mechanism) from the 2026-07-09 cross-model review. No open PRs at time of writing — everything
+  merged/cleaned up.
 
 ### Accepted ADRs
 
@@ -46,6 +47,7 @@
 | 0021 | Rules Execution: formula AST, generic dice/roll model, seeded-RNG determinism, roll event schema |
 | 0022 | Walking Skeleton gate: core/backend vertical slice (not UI E2E), provisional-v0 SDK shapes, deterministic in-memory validation, pass criteria |
 | 0023 | Event-payload privacy: declarative per-field classification (validated at load, SDK privacy metadata), metadata pseudonyms, per-subject DEK crypto-shredding (offline-distributed), graceful degradation (Constraint D), external-AI exclusion mechanism (R1–R3) |
+| 0024 | Realtime session, presence & sync-trust: durable/ephemeral split, social-contract sync-trust (hard tenancy/provenance, own-aggregate fabrication bounded), visibility-by-stream-routing, on-grant backfill, RealtimePort (Supabase Realtime), deterministic rolls kept (R1–R3) |
 | 0025 | Plugin-SDK v0 contract freeze: `0.x` semver line (not permanent), skeleton-validated surface frozen, hard security boundary, 1.0/registry trigger-gated (R1–R3) |
 
 ### New: EU/DE compliance matrix
@@ -96,13 +98,18 @@ numeric, but implementation-blocking ADRs first. All under **Epic #1**; Epic #10
    (offline-distributed), graceful degradation (Constraint D), and the concrete external-AI exclusion
    mechanism resolving ADR 0015 §3/R1. Owner decisions R1–R3 (free-text all-members consent; residual
    erasure boundary accepted; minimal high-sensitivity encrypted subset).
-9. **ADR 0024 — Realtime session, presence & sync-trust** (#44) — **← current focus.** Absorbs the
-   remaining cross-model-review gates: **sync integrity** (client event-push vs. server-side command
-   revalidation — the strongest shared finding), **checkpoint backfill** on late access grant,
-   **roll-seed fairness/predictability** (may trigger an ADR 0021 amendment), sub-stream (gmOnly)
-   visibility, and presence/live-delivery transport.
-10. **ADR 0012** (#14, before `apps/web`) · **ADR 0014** (#16, before cloud sync / real users) — after
-    0023/0024.
+9. ✅ **ADR 0024 — Realtime session, presence & sync-trust** (#44) — Accepted 2026-07-09 (PR #85). The
+   last of the pulled-forward cross-model-review gates. Durable/ephemeral split (event log stays SoT,
+   realtime is liveness-only); **social-contract sync-trust** (hard server enforcement of tenancy /
+   actor-binding / provenance / cross-aggregate; own-aggregate fabrication a bounded, attributable
+   residual); **visibility by stream routing** (+ per-audience encryption reusing 0023); **additive
+   on-grant backfill** (no 0005 change); `RealtimePort` (Supabase Realtime, swappable); presence
+   ephemeral / never event-sourced. Owner decisions R1–R3 (social-contract default; Supabase Realtime
+   behind a mandatory port; deterministic rolls kept — predictability accepted for a hobby TTRPG).
+   **Two optional cross-reference amendments (ADR 0021 §2, ADR 0010 §1) flagged, pending owner
+   authorization** (§10); the previously-flagged 0021 §3 seed amendment is dropped (R3).
+10. **ADR 0012** (#14, before `apps/web`) · **ADR 0014** (#16, before cloud sync / real users) —
+    **← current focus** (the next implementation-blocking ADRs, now that the review gates are closed).
 11. **Trigger-gated backlog** (not blocking now): ADR 0013 perf budgets (#15), ADR 0019 Analytics (#23),
     ADR 0016 a11y/i18n (#18), ADR 0026 user-docs / handbook site (#82, Epic #83 — Diátaxis, in-repo
     static site, i18n; depends on 0012/0016; trigger: a usable product to document). Further
