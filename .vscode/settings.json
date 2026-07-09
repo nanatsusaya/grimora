@@ -25,7 +25,7 @@
   "[typescript]": {
     "js/ts.preferences.quoteStyle": "single",
     "js/ts.preferences.useAliasesForRenames": false,
-    "js/ts.preferences.importModuleSpecifier": "relative"
+    "js/ts.preferences.importModuleSpecifier": "shortest"
   },
   "workbench.colorCustomizations": {
     "activityBar.activeBackground": "#002466",
