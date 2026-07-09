@@ -17,7 +17,11 @@ export type Brand<T, TBrand extends string> = T & { readonly __brand: TBrand };
 /** Stable identifier for any entity (aggregate) in the system. */
 export type EntityId = Brand<string, 'EntityId'>;
 
-/** ISO-8601 timestamp string. */
+/**
+ * A timestamp — kept as an **ISO-8601 string** (not a `Date` or epoch number) on purpose, so the whole
+ * event envelope stays trivially JSON-serializable for the append-only log and for insert-only sync
+ * across devices (ADR 0004 §2 / ADR 0005 §3), with a stable textual form that never drifts by timezone.
+ */
 export type IsoTimestamp = Brand<string, 'IsoTimestamp'>;
 
 /**
@@ -117,5 +121,17 @@ export type Result<T, E = Error> =
   | { readonly ok: true; readonly value: T }
   | { readonly ok: false; readonly error: E };
 
+/**
+ * Wrap a success value as a `Result` — the ok-path constructor callers use instead of returning a bare
+ * value, so success and failure share one return type that the caller must narrow before use.
+ * @param value  the success payload
+ * @returns      an `ok` result carrying `value`
+ */
 export const ok = <T>(value: T): Result<T, never> => ({ ok: true, value });
+/**
+ * Wrap an expected failure as a `Result` — used instead of `throw` for anticipated errors (validation,
+ * conflicts, not-found), so the failure is part of the type and cannot be silently ignored (ADR 0009 §1).
+ * @param error  the failure value (typically an `AppError`)
+ * @returns      an `err` result carrying `error`
+ */
 export const err = <E>(error: E): Result<never, E> => ({ ok: false, error });

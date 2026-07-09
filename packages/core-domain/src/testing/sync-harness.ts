@@ -67,7 +67,12 @@ function wireDeps(store: InMemoryEventStore, plugin: GrimoraPlugin, idPrefix: st
   };
 }
 
-/** Create a sync harness whose clients all load the injected `plugin`. */
+/**
+ * Create a sync harness whose cloud store and every client load the injected `plugin` (the plugin is
+ * injected, never imported, because `core-domain` may not depend on a plugin — `core-no-adapters`).
+ * @param plugin  the rule-system plugin all simulated stores load, so rebased use-cases resolve rules
+ * @returns       a harness exposing the canonical cloud store + client factory / push / pull operations
+ */
 export function createSyncHarness(plugin: GrimoraPlugin): SyncHarness {
   const cloud = createInMemoryEventStore();
   const cloudDeps = wireDeps(cloud, plugin, 'C');

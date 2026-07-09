@@ -12,15 +12,24 @@ import type { CampaignCreated, CampaignEvent, StoredEvent } from './events';
 /** Folded campaign state. `version` tracks the last applied event's per-aggregate version. */
 export interface CampaignState {
   readonly id: EntityId;
+  /** Whether a `campaign.created` event has been folded — distinguishes an **empty stream** (never
+   * created, or unknown id) from a real campaign, so decide-functions can enforce create-once. */
   readonly exists: boolean;
+  /** The last applied event's per-aggregate version — the optimistic-concurrency baseline on append. */
   readonly version: number;
   readonly name: string;
   /** The owner (creator) — the provisional minimal authz subject (ADR 0022 §7). */
   readonly ownerId: EntityId;
 }
 
-/** The zero state for a campaign stream before any event is applied. */
+/**
+ * The zero state for a campaign stream before any event is applied (the fold's identity element).
+ * @param id  the campaign stream id this empty state stands for
+ * @returns   a non-existent (`exists: false`, `version: 0`) campaign state
+ */
 export function emptyCampaign(id: EntityId): CampaignState {
+  // Empty-string sentinels for the branded id/name: this state is never read for those fields while
+  // `exists` is false (the guard above), so a throwaway value is safe and avoids an Option everywhere.
   return { id, exists: false, version: 0, name: '', ownerId: '' as EntityId };
 }
 

@@ -59,7 +59,17 @@ async function rehydrate<S>(
   return { state, version };
 }
 
-/** Wrap decided domain events into full `shared-types` envelopes ready to append (ADR 0004 §2). */
+/**
+ * Wrap decided domain events into full `shared-types` envelopes ready to append (ADR 0004 §2): stamp
+ * each with a fresh id, the next sequential per-aggregate `version`, provenance metadata and the clock.
+ * @param deps           the ports supplying the id generator and clock (kept injectable for determinism)
+ * @param streamId       the aggregate stream these events belong to
+ * @param aggregateType  the stream type (e.g. "character") recorded on each envelope
+ * @param baseVersion    the version rehydrated from; the first new event is `baseVersion + 1`
+ * @param newEvents      the domain events the decide-function returned, in order
+ * @param actor          the acting user, stamped as `metadata.actorId` (pseudonymous — ADR 0023 §3)
+ * @returns              append-ready envelopes with contiguous versions
+ */
 function toEnvelopes(
   deps: CommandDeps,
   streamId: EntityId,
@@ -74,6 +84,8 @@ function toEnvelopes(
     aggregateType,
     type: event.type,
     version: baseVersion + index + 1,
+    // schemaVersion starts at 1 for every event type; a breaking payload change bumps it and adds an
+    // upcaster that maps old payloads forward on read (ADR 0004 §6) — the hook is per-event-type, here.
     schemaVersion: 1,
     occurredAt: deps.clock.now(),
     metadata: { actorId: actor.userId },
@@ -81,7 +93,12 @@ function toEnvelopes(
   }));
 }
 
-/** Create a campaign (owner = the creating actor). */
+/**
+ * Create a campaign (the acting actor becomes its owner). Authorizes, rehydrates, decides, appends.
+ * @param deps   the command ports (event store, ids, clock, `PolicyPort`, rule registry)
+ * @param input  `campaignId` (client-generated stream id), `name`, and the acting `actor`
+ * @returns      ok on append, or a `Forbidden`/`Validation`/`Conflict` error
+ */
 export async function createCampaign(
   deps: CommandDeps,
   input: { readonly campaignId: EntityId; readonly name: string; readonly actor: Actor },
@@ -104,7 +121,14 @@ export async function createCampaign(
   );
 }
 
-/** Create a character bound to one loaded rule system, stamping plugin provenance (ADR 0006 §4). */
+/**
+ * Create a character bound to one loaded rule system, stamping plugin provenance (ADR 0006 §4). The
+ * rule system must be loaded (so its provenance is known); the `campaignId` is stored but **not** yet
+ * validated against a real campaign / membership — that is the Phase-2 authz-matrix work (Epic #52).
+ * @param deps   the command ports (incl. the rule registry the provenance comes from)
+ * @param input  `characterId`, `name`, `campaignId`, `ruleSystemId`, and the acting `actor` (= owner)
+ * @returns      ok on append, or a `Forbidden`/`NotFound`(rule system)/`Validation`/`Conflict` error
+ */
 export async function createCharacter(
   deps: CommandDeps,
   input: {
@@ -139,7 +163,12 @@ export async function createCharacter(
   );
 }
 
-/** Set a character attribute (resource-scoped authz: only the owner may edit). */
+/**
+ * Set a character attribute to an absolute value (resource-scoped authz: only the owner may edit).
+ * @param deps   the command ports (incl. `PolicyPort` and the rule registry for bounds validation)
+ * @param input  `characterId`, `attributeId`, the absolute `value`, and the acting `actor`
+ * @returns      ok on append, or a `NotFound`/`Forbidden`/`Validation` error
+ */
 export async function setAttribute(
   deps: CommandDeps,
   input: {
@@ -177,7 +206,13 @@ export async function setAttribute(
   );
 }
 
-/** Roll a check for a character (resource-scoped authz: only the owner may roll). */
+/**
+ * Roll a check for a character (resource-scoped authz: only the owner may roll). The roll id is
+ * generated here (application layer) and passed into the pure domain `rollCheck` (ADR 0021 §5).
+ * @param deps   the command ports (incl. `IdGeneratorPort` for the roll id and the rule registry)
+ * @param input  `characterId`, the plugin `checkId` to roll, and the acting `actor`
+ * @returns      ok on append, or a `NotFound`/`Forbidden`/`Validation` error
+ */
 export async function rollCheck(
   deps: CommandDeps,
   input: { readonly characterId: EntityId; readonly checkId: string; readonly actor: Actor },

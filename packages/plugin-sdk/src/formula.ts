@@ -59,24 +59,36 @@ export const f = {
   trait: (traitId: string): FormulaAst => ({ kind: 'traitRef', traitId }),
   /** A dice leaf; its rolled value is injected by the core at evaluation time, keyed by `ref`. */
   dice: (ref: string, term: DiceTerm): FormulaAst => ({ kind: 'dice', ref, term }),
+  /** `left + right`. */
   add: (left: FormulaAst, right: FormulaAst): FormulaAst => ({ kind: 'add', left, right }),
+  /** `left - right`. */
   sub: (left: FormulaAst, right: FormulaAst): FormulaAst => ({ kind: 'sub', left, right }),
+  /** `left * right`. */
   mul: (left: FormulaAst, right: FormulaAst): FormulaAst => ({ kind: 'mul', left, right }),
+  /** **Real** (non-truncating) division; division by zero fails evaluation (never `NaN`/`Infinity`).
+   * Write integer division explicitly as `floor(div(a, b))` (ADR 0021 §1). */
   div: (left: FormulaAst, right: FormulaAst): FormulaAst => ({ kind: 'div', left, right }),
+  /** The smaller of the two operands (e.g. cap a value). */
   min: (left: FormulaAst, right: FormulaAst): FormulaAst => ({ kind: 'min', left, right }),
+  /** The larger of the two operands (e.g. floor a value at 0). */
   max: (left: FormulaAst, right: FormulaAst): FormulaAst => ({ kind: 'max', left, right }),
+  /** A comparison that evaluates to **1 (true) or 0 (false)** — usable as the `cond` of an `if`. */
   cmp: (op: CmpOp, left: FormulaAst, right: FormulaAst): FormulaAst => ({
     kind: 'cmp',
     op,
     left,
     right,
   }),
+  /** Ternary: evaluates `whenTrue` if `cond` is non-zero, else `whenFalse` (branches named to avoid a
+   * thenable `then` key — see the `if` node above). */
   if: (cond: FormulaAst, whenTrue: FormulaAst, whenFalse: FormulaAst): FormulaAst => ({
     kind: 'if',
     cond,
     whenTrue,
     whenFalse,
   }),
+  /** Look up a plugin-supplied keyed table by the evaluated `key` (the numeric key is coerced to a
+   * string for the lookup); a missing entry fails evaluation. */
   tableLookup: (tableId: string, key: FormulaAst): FormulaAst => ({
     kind: 'tableLookup',
     tableId,
