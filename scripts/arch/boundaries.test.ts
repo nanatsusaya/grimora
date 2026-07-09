@@ -23,10 +23,15 @@ describe('architecture boundaries (ADR 0003 §2)', () => {
     const report = await cruisePaths(['scripts/arch/__fixtures__/violations']);
     const firedRules = new Set(report.violations.map((v) => v.rule));
 
-    // If these ever stop firing, the harness has gone blind — fail loudly.
+    // If these ever stop firing, the harness has gone blind — fail loudly. Every rule listed here
+    // has a dedicated fixture under __fixtures__/violations; expand both together when adding rules.
     expect(report.errors).toBeGreaterThan(0);
     expect(firedRules.has('core-no-adapters')).toBe(true);
     expect(firedRules.has('plugins-only-sdk')).toBe(true);
     expect(firedRules.has('shared-types-is-a-leaf')).toBe(true);
+    // Newly-covered scope holes (this PR): plugin→plugin imports, plugin→Node-builtins, and deep
+    // internal imports (the imports-adapter fixture also deep-imports another package's src).
+    expect(firedRules.has('plugins-no-node-builtins')).toBe(true);
+    expect(firedRules.has('no-deep-import')).toBe(true);
   });
 });

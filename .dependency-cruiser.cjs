@@ -12,9 +12,21 @@
  * (`scripts/arch/__fixtures__/…/packages/…`), without duplicating rules. See
  * `scripts/arch/boundaries.test.ts`, which proves a deliberate violation is caught.
  *
+ * **Scope of these rules is *import boundaries* only.** The ADRs also mandate *call-graph* /
+ * *content* fitness functions the dependency-cruiser cannot express — default-deny `PolicyPort`
+ * (ADR 0010 §7.4), the external-AI consent gate (ADR 0015 §10), per-field privacy classification
+ * (ADR 0023 §8), UI-reads-read-models-only (ADR 0012 §11) and a `@grimora/core-domain/testing`
+ * production-import guard (ADR 0017 R1). Those are **not yet enforced here** — tracked in **#76** —
+ * so "green `arch`" means "import boundaries hold", not "every ADR invariant is machine-checked".
+ * This is stated explicitly so no reader mistakes the harness's current reach for the full set.
+ *
  * Run via `bun run arch`. Referenced ADR sections are cited per rule.
  */
 
+// Adapter packages (ADR 0003 §3 module map). This is an **allowlist**: when a new adapter package
+// is added (e.g. a Supabase sync adapter), it MUST be appended here, or `core-no-adapters` /
+// `adapters-no-cross-adapter` will not govern it. Kept explicit rather than a wildcard so a new
+// top-level `packages/*` cannot silently be treated as an adapter (or silently escape adapter rules).
 const ADAPTER_PKGS = 'event-store|cqrs-read|offline-sync|ai-agent';
 
 /** @type {import('dependency-cruiser').IConfiguration} */
@@ -72,13 +84,28 @@ module.exports = {
       name: 'plugins-only-sdk',
       severity: 'error',
       comment:
-        "ADR 0003 §2.4 + ADR 0006 §1 — a plugin's only core dependency is @grimora/plugin-sdk " +
-        '(plus @grimora/shared-types); it must never import core internals, adapters, or apps.',
-      from: { path: '(?:^|/)plugins/' },
+        "ADR 0003 §2.4 + ADR 0006 §1 + ADR 0010 §3 — a plugin's only core dependency is " +
+        '@grimora/plugin-sdk (plus @grimora/shared-types); it must never import core internals, ' +
+        'adapters, apps, or **another plugin** (ADR 0010 §3 hard boundary: no reaching into another ' +
+        "plugin's namespace/state). A plugin may still import its *own* files (the `plugins/$1/` " +
+        'self-exception below).',
+      // `([^/]+)` captures the plugin package name as $1 so the self-exception can allow a plugin
+      // to import its own modules while still forbidding plugin→other-plugin imports.
+      from: { path: '(?:^|/)plugins/([^/]+)/' },
       to: {
-        path: '(?:^|/)(?:packages|apps)/',
-        pathNot: '(?:^|/)packages/(?:plugin-sdk|shared-types)/',
+        path: '(?:^|/)(?:packages|apps|plugins)/',
+        pathNot: '(?:^|/)(?:packages/(?:plugin-sdk|shared-types)|plugins/$1)/',
       },
+    },
+    {
+      name: 'plugins-no-node-builtins',
+      severity: 'error',
+      comment:
+        'ADR 0006 §3 + ADR 0010 §3 — plugin code has **no ambient authority**: no filesystem, ' +
+        'network, timers or globals. Like the Domain, a plugin obtains everything through the ' +
+        'injected SDK/host surface, never Node core/builtin modules (mirrors domain-no-node-builtins).',
+      from: { path: '(?:^|/)plugins/' },
+      to: { dependencyTypes: ['core'] },
     },
     {
       name: 'shared-types-is-a-leaf',
@@ -97,9 +124,12 @@ module.exports = {
       name: 'no-deep-import',
       severity: 'error',
       comment:
-        'ADR 0003 §2.6 / §5 — packages import another package via its public entry ' +
-        "(@grimora/x → src/index.ts), never via deep internal paths into another package's src.",
-      from: { path: '(?:^|/)packages/([^/]+)/' },
+        'ADR 0003 §2.6 / §5 — a module imports another package via its public entry ' +
+        "(@grimora/x → src/index.ts), never via a deep internal path into another package's src. " +
+        'Governs imports **from packages, apps *and* plugins** (an app/plugin deep-importing a ' +
+        "package's internals is the same violation). Legitimate `@grimora/x` bare imports resolve " +
+        'via the package `exports`/symlink, not to a `src/` path, so they never match this.',
+      from: { path: '(?:^|/)(?:packages|apps|plugins)/([^/]+)/' },
       to: {
         path: '(?:^|/)packages/([^/]+)/src/',
         pathNot: '(?:^|/)packages/$1/',
@@ -110,7 +140,12 @@ module.exports = {
       severity: 'error',
       comment:
         'ADR 0010 §4/§7 + ADR 0003 §6.4 — SecretsPort (and any secrets adapter) may be imported ' +
-        'only by composition roots (apps/*); never from Domain, Application, or plugins.',
+        'only by composition roots (apps/*); never from Domain, Application, or plugins. ' +
+        '**Layout contract (explicit, so this path rule can actually bite):** SecretsPort MUST be ' +
+        'declared in its own module `packages/core-domain/src/application/ports/secrets.ts` — NOT ' +
+        'folded into the shared `application/ports.ts` barrel, because a path-based rule cannot ' +
+        'discriminate a single interface inside a shared file, which would leave this (the most ' +
+        'security-critical) rule silently dead. Enforced when SecretsPort is introduced (Phase 2).',
       from: { pathNot: '(?:^|/)apps/' },
       to: { path: '(?:^|/)packages/core-domain/src/application/ports/secrets' },
     },
