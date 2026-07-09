@@ -140,8 +140,9 @@ Concrete surface for ADR 0005 §3, behind `SyncPort`; RLS (ADR 0005 §7) bounds 
 
 - **Bearer JWT** (Supabase access token) in `Authorization`, validated **only** at the inbound adapter
   (ADR 0009 §3); refresh via Supabase.
-- Because the API is **token-in-header, not cookie-session, CSRF does not apply to it**. If the Next.js
-  web app uses any cookie-based session at its own layer, it applies standard SameSite/CSRF there.
+- Because the API is **token-in-header, not cookie-session, CSRF does not apply to it**. Where the web
+  app uses a cookie-based session at its own layer — e.g. the `HttpOnly` refresh-token cookie decided in
+  ADR 0012 §5 — it applies standard SameSite/CSRF there.
 - **Authorization** is enforced in the Application layer (`AuthorizationPort`, ADR 0009/0010), never in
   the route handler; Postgres RLS is defense-in-depth (ADR 0005 §7), never the sole gate.
 
@@ -220,3 +221,11 @@ All five review questions were resolved by the owner; the decisions above reflec
   rate limits, authz), ADR 0006 (plugin contributions), ADR 0013 (sync/batch/perf budgets), ADR 0024
   (realtime/presence transport), [ADR 0002](0002-tech-stack-and-tooling.md) (Node-compatible runtime).
   Issue #13.
+
+## Amendments
+
+- **2026-07-09** — *Authorized by the project owner.* §9 update (no decision change): replaced the
+  illustrative "the Next.js web app" with "the web app" following the ADR 0002 framework amendment
+  (Next.js → Vite + React), and pointed the cookie-session / CSRF note at the concrete case that now
+  realizes it — the `HttpOnly` refresh-token cookie decided in ADR 0012 §5. The token-in-header /
+  CSRF-not-applicable decision itself is unchanged.

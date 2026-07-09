@@ -20,7 +20,8 @@ Cost goal: maximize free tiers. The stack was confirmed with the project owner.
   inference). Keep a **minimal ESLint config only for `eslint-plugin-react-hooks`** in React/Expo
   packages, since biome does not fully cover that rule set yet. Prettier is not used.
 - **Backend platform:** **Supabase** (Postgres + Auth + RLS + Storage), EU region.
-- **Frontend:** Web = Next.js; Mobile = React Native / Expo; Desktop = Tauri (wraps the web app).
+- **Frontend:** Web = **Vite + React** (SPA / offline-first PWA — see ADR 0012); Mobile = React Native /
+  Expo; Desktop = Tauri (wraps the web app). *(Amended 2026-07-09 — was `Next.js`; see Amendments.)*
 - **Theming:** **modern CSS** (custom properties, `@layer`, `light-dark()`, container queries; no
   runtime CSS-in-JS). Cross-platform via **design tokens (JSON) as the single source of truth**,
   generated per platform (CSS vars for web, RN StyleSheet for native).
@@ -43,4 +44,24 @@ Cost goal: maximize free tiers. The stack was confirmed with the project owner.
 
 - Expo — Work with monorepos: https://docs.expo.dev/guides/monorepos/
 - Turborepo + bun + Next + Expo example: https://github.com/allipiopereira/turborepo-bun-next-expo
+
+## Amendments
+
+- **2026-07-09** — *Authorized by the project owner.* **Web framework: Next.js → Vite + React.** The
+  original stack listed `Web = Next.js` with **no recorded rationale or alternatives** (the
+  Evaluated-alternatives section covered only pnpm and ESLint). When ADR 0012 fixed the frontend as an
+  **offline-first PWA** — the authenticated app is **client-rendered against the local store** (the
+  device is the source of truth, ADR 0005), so **SSR of user data is neither possible nor wanted** —
+  Next.js's headline strength (SSR/RSC) goes unused while its weight and static-export/offline friction
+  remain. **Decision: Vite + React** for `apps/web` — lean, first-class PWA tooling (`vite-plugin-pwa`),
+  no SSR baggage, fast DX, and it **keeps React alignment** with Mobile (Expo/RN, for shared
+  view-model/hook logic) and the largest ecosystem + AI-assist corpus; Tauri (desktop) wraps it
+  unchanged; deploys to Cloudflare Pages (ADR 0012 R1). The **router** (TanStack Router or React
+  Router 7 in SPA/data mode) is an `apps/web` implementation detail, not a stack pillar; public/marketing
+  pages may use a small static generator (e.g. Astro — ties to ADR 0026). **Alternatives weighed
+  (2026-07 review):** *keep Next.js* (safe, biggest ecosystem, but SSR unused, heavier) — rejected as a
+  poorer offline-first fit; *React Router 7 / TanStack Start* (React, Vite-based, client-first) — viable,
+  folded into the Vite+React family as the router choice; *SvelteKit* (leanest, best DX) — rejected
+  because it **breaks React/RN alignment** and shrinks the AI-assist corpus; *Nuxt/Vue, SolidStart, Qwik,
+  Angular* — rejected (non-React alignment cost, or maturity/fit). ADR 0012 §1/§9 reflect this choice.
 - Biome vs ESLint + Prettier (2026): https://www.pkgpulse.com/blog/biome-vs-eslint-prettier-linting-2026
