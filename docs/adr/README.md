@@ -32,7 +32,7 @@ listed here with a status.
 | [0020](0020-core-vs-plugin-boundary.md) | Core vs. plugin domain boundary | Accepted |
 | [0021](0021-rules-execution.md) | Rules Execution: Formula, Dice & Deterministic Runtime | Accepted |
 | [0022](0022-walking-skeleton.md) | Walking Skeleton / Golden Use Cases (validation gate) | Accepted |
-| 0023 | Event Payload Privacy Classification & per-subject encryption | Planned (issue #43) |
+| [0023](0023-event-payload-privacy.md) | Event-payload privacy classification, per-subject encryption & crypto-shredding keys | Proposed |
 | 0024 | Realtime Session & Presence | Planned (issue #44) |
 | [0025](0025-plugin-sdk-v0-contract.md) | Plugin-SDK v0 contract freeze | Accepted |
 
