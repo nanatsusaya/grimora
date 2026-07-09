@@ -23,7 +23,7 @@ listed here with a status.
 | [0011](0011-api-design.md) | API design & contracts | Accepted |
 | [0012](0012-web-rendering-and-state.md) | Web rendering & frontend state | Accepted |
 | 0013 | Scalability, performance & caching | Planned (issue #15) |
-| 0014 | DevOps: CI/CD, IaC, environments, backup/DR | Planned (issue #16) |
+| [0014](0014-devops-and-delivery.md) | DevOps: CI/CD, IaC, environments & backup/DR | Proposed |
 | [0015](0015-compliance-and-data-protection.md) | Compliance & data protection (DSGVO ops, consent, EU residency) | Accepted |
 | 0016 | Accessibility (WCAG 2.2 AA / BFSG) & i18n | Planned (issue #18) |
 | [0017](0017-testing-strategy.md) | Testing strategy | Accepted |
