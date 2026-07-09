@@ -757,3 +757,31 @@ human/agent call, and *say which is which at the check's site*. (3) Verify-not-d
 reading the files myself before judging is what let me separate the three conflated problem-classes and
 locate the one contract gap (`readStream` exclusivity) that actually mattered, instead of treating the
 review as a flat to-do list.
+
+## 2026-07-10 — Owner probed for placation ("is this getue?") and I retracted my own proposed rule
+
+**Trigger:** Asked to review whether my standing instructions should change, I proposed institutionalizing
+the owner's earlier "explizit > implizit" steer as a new always-loaded CLAUDE.md rule (and had just added a
+cross-model-review memory). The owner challenged it directly: would the rule *"lead to a visibly better
+result, or is it just nice getue to placate me?"*
+
+**Action / method:** I treated it as a real challenge, not a cue to defend my proposal — and **retracted the
+CLAUDE.md rule**. Honest reassessment: a universal maxim ("explicit over implicit") is something every
+competent agent already believes, gates nothing, is unfalsifiable, and overlaps existing *specific* rules
+(the doc "why-not-what" rule, ADR governance) — so writing it down was unlikely to change behaviour. Its one
+demonstrated behavioural effect had come from the owner stating it **live**, plus concrete mechanisms (the
+doc-conformance check, harness assertions, in-situ invariants), not from a bullet. I kept only the items
+with teeth: the cross-model-review **memory** (changes behaviour: verify-not-defer) and a concrete
+`Closes #NN`-not-in-a-code-span caveat (PR #98 — prevents a real recurring bug, cf. issue #16).
+
+**Impact:** The proposed rule was dropped; a named filter emerged for what belongs in CLAUDE.md — *does
+writing it down change what an agent does?* Universal maxims fail it; checkable, trigger-attached rules
+pass. CLAUDE.md stayed lean instead of gaining a platitude that dilutes its load-bearing rules.
+
+**Lessons learned:** (1) A stated owner preference is **not** automatically a rule to enshrine — "turn every
+steer into a bullet" is itself a bad heuristic that bloats the always-loaded file. (2) The owner actively
+probes for sycophancy/placation, and the right response is honest reassessment **even against my own
+proposal**; conceding "yes, that was closer to getue" is higher-value to a learning owner (see
+[[owner-goal-agent-learning]]) than a confident defence. (3) The generalizable test — only write a rule
+when it changes behaviour, and split a quality bar into a machine-checkable floor (encode as a gate) vs. a
+review-only judgement — mirrors the doc-conformance split from the day before.
