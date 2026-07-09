@@ -44,12 +44,20 @@ over a small, closed set of node kinds — not a text DSL, not an arbitrary Type
 WASM:
 
 - **Leaf nodes:** `const` (a literal number), `traitRef` (reference to an attribute/skill/resource id
-  in the generic trait meta-model, ADR 0020), `diceTerm` (see §2 — a roll *is* a leaf in the same
-  tree, so "COU + 1d6" is one AST, not two glued-together systems).
+  in the generic trait meta-model, ADR 0020), and a **dice leaf** (see §2 — a roll *is* a leaf in the
+  same tree, so "COU + 1d6" is one AST, not two glued-together systems). *(Amended 2026-07-09: the
+  frozen SDK names this leaf **`dice`** with shape `{ ref, term: DiceTerm }` — the already-rolled value
+  is injected by the core, keyed by `ref` — not `diceTerm`; the name is corrected here to match the
+  contract frozen in ADR 0025.)*
 - **Operator nodes:** `add`, `sub`, `mul`, `div`, `min`, `max`, `cmp` (`eq`/`lt`/`gt`/`lte`/`gte`),
-  `if` (ternary), `tableLookup` (a keyed table the plugin supplies, e.g. DSA5's encumbrance-by-STR
-  table). This set is the **v1 closed set, confirmed R1** — extend only by amendment/superseding ADR,
-  mirroring the closed error-category precedent (ADR 0009 §1).
+  `if` (ternary; the frozen SDK names its branches **`whenTrue`/`whenFalse`**, since a `then` key would
+  make the node thenable and break `await`), `tableLookup` (a keyed table the plugin supplies, e.g.
+  DSA5's encumbrance-by-STR table), and — **added by the 2026-07-09 amendment** — the rounding/remainder
+  nodes **`floor`**, **`ceil`**, **`round`** (half away from zero) and **`mod`**. **`div` is real
+  (non-truncating) division; division or `mod` by zero fails evaluation with a `PluginError`**
+  (ADR 0009 §1), never `NaN`/`Infinity` — integer division is written explicitly as `floor(div(a, b))`.
+  This is the **v1 closed set, confirmed R1** (as amended) — extend only by amendment/superseding ADR,
+  mirroring the closed error-category precedent (ADR 0009 §1). Implementation is tracked in #75.
 - The AST is **pure data**: JSON-serializable, JSON-Schema-validatable at plugin load time like other
   Definition APIs (ADR 0006 §3), embeddable directly in event payloads (§4) and plugin manifests, and
   walkable by a single core **interpreter** with no `eval`/`vm`/dynamic code execution — satisfying
@@ -189,7 +197,10 @@ All four review questions were resolved by the owner; the decisions above alread
 - **R1 — Initial AST node-kind set.** *Confirmed:* the proposed v1 closed set (`const`, `traitRef`,
   `diceTerm`, `add`, `sub`, `mul`, `div`, `min`, `max`, `cmp`, `if`, `tableLookup`, §1) is adopted now,
   without first scouting DSA5's concrete formulas. Extend only via amendment/superseding ADR, mirroring
-  the closed error-category precedent (ADR 0009 §1).
+  the closed error-category precedent (ADR 0009 §1). *(Amended 2026-07-09 — see Amendments: the dice
+  leaf is `dice`/`{ ref, term }`, not `diceTerm`; and `floor`/`ceil`/`round`/`mod` were added with `div`
+  specified as real division and div/`mod`-by-zero → `PluginError`, after the set proved unable to
+  express common rounding — e.g. D&D-5e `floor((score−10)/2)` and DSA5 halved values.)*
 - **R2 — Where the builder-API sugar lives.** *Confirmed:* it ships in `@grimora/plugin-sdk` from day
   one (§1), rather than DSA5 hand-constructing raw AST nodes first. Rationale: the SDK is versioned and
   extensible at any time (ADR 0006 §4), so there is no cost to building it now, only to withholding it.
@@ -212,3 +223,19 @@ All four review questions were resolved by the owner; the decisions above alread
   payloads note), [ADR 0020](0020-core-vs-plugin-boundary.md) (core/plugin boundary, seven-system
   comparison), [`docs/research/rule-systems-comparison.md`](../research/rule-systems-comparison.md).
   Issue #41.
+
+## Amendments
+
+- **2026-07-09** — *Authorized by the project owner.* Prompted by a cross-model ADR review (ChatGPT +
+  Claude Fable; logged in [`docs/meta/agent-collaboration-log.md`](../meta/agent-collaboration-log.md)).
+  Two changes to §1:
+  1. **Drift correction (no decision change):** the dice leaf is renamed from `diceTerm` to the frozen
+     SDK's **`dice`** node (`{ ref, term: DiceTerm }`), and the `if` node's branches are documented as
+     `whenTrue`/`whenFalse`. The code (`packages/plugin-sdk/src/formula.ts`) was already correct; the ADR
+     text lagged it — aligned here with the contract frozen in ADR 0025.
+  2. **Node-set extension (additive):** `floor`, `ceil`, `round` (half away from zero) and `mod` are
+     added to the v1 closed set, and `div` is specified as **real** division with division/`mod` by zero
+     failing as a `PluginError`. Rationale: the original set could not express common rounding (D&D-5e
+     ability modifier `floor((score−10)/2)`, DSA5 halved values) — a concrete gap the seven-system
+     comparison missed. Additive within the SDK `0.x` line (ADR 0025 §1), so **ADR 0025 needs no
+     change**. Implementation in the SDK builder/AST and the core interpreter is tracked in **#75**.
