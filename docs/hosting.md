@@ -12,7 +12,7 @@ target / backup. Because of offline-first, running "completely on localhost" is 
 | DB / event-sync / Auth / Storage | **Supabase** (Free → Pro $25/mo), EU region | Postgres + Auth + RLS + Storage in one |
 | Object storage (asset library) | **Cloudflare R2** (10 GB free, no egress fee) | many images/maps; alt: Supabase Storage |
 | CDN / DNS / WAF | **Cloudflare** (Free) | protects assets + API (CRA-relevant) |
-| Web frontend | **Cloudflare Pages** or Vercel Hobby (Free) | Next.js; bun build |
+| Web frontend | **Cloudflare Pages** (Free) | Vite + React SPA/PWA (ADR 0012); bun build |
 | API (only where needed) | **Fly.io** / Railway (bun-native) or Hetzner ~€4/mo | Supabase covers most; add a service only if needed |
 | Mobile (iOS/Android) | **Expo EAS** (free build quota) | one codebase |
 | Desktop (Win/Mac/Linux) | **Tauri** (wraps the web app) | light/cheap vs. Electron |
