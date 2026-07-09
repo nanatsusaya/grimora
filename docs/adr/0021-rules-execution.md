@@ -111,6 +111,19 @@ lives in a plugin-supplied Behaviour API resolution function.
   ADR 0010 §3) — never `Math.random` or wall-clock time. The seed is derived from the aggregate stream
   id plus a per-aggregate roll sequence number, so **replaying the event stream reproduces identical
   rolls** (ADR 0004 §9), and `RollResult.seed` records the derivation inputs for audit.
+- **Seed classification & aggregate-stream invariant (2026-07-09 amendment — makes an implicit
+  requirement explicit).** `RollResult.seed` (stream id + sequence) is classified **`nonPersonal`**
+  (ADR 0023 §2) and stored **plaintext** — it reveals only *that a roll happened* and its counter, no
+  personal or secret outcome. This is required because the per-aggregate sequence must fold **identically
+  on every authorized replica** (each device folds the aggregate locally, ADR 0005), so the counter
+  advances everywhere and the **next roll's seed cannot silently collide/reuse**. **Invariant:** a roll
+  event **stays on its owning aggregate's stream** (the character), and is **never routed to a separate
+  audience stream**, so folding always restores the sequence. A **hidden** roll (`visibility gmOnly` /
+  `private`) is hidden by **per-audience encryption of its `outcome`/result** (ADR 0023), **not** by
+  moving the event off the aggregate stream — see [ADR 0024 §4](0024-realtime-presence-sync-trust.md).
+  Routing a roll off its aggregate stream would stop the sequence advancing on replicas that cannot see
+  the routed stream, silently re-using the seed for the next visible roll — the seam this amendment
+  closes.
 - Formula evaluation (§1) is a **pure function** of `(trait values, constants, dice results already
   rolled)` — no hidden state, no I/O — so it also replays identically given the same inputs.
 - **Enforcement** (extends the ADR 0010 §7 fitness-function list): no `Math.random`/`Date.now`/wall-clock
@@ -246,3 +259,15 @@ All four review questions were resolved by the owner; the decisions above alread
   roll `visibility` is **enforced** by stream routing / per-audience encryption, decided in
   [ADR 0024 §4](0024-realtime-presence-sync-trust.md) — this ADR defined the field but left enforcement
   open. (ADR 0024 §10 flagged this cross-reference.)
+- **2026-07-09** — *Authorized by the project owner.* §3 seed classification & aggregate-stream
+  invariant (makes an implicit requirement explicit; **no change to the seed *derivation***). A
+  code-verified cross-model review (ChatGPT + Claude Fable; logged in
+  [`docs/meta/agent-collaboration-log.md`](../meta/agent-collaboration-log.md)) found an **unnamed seam**
+  between the seed mechanism and ADR 0024 §4 visibility-by-stream-routing: because `rollSequence` folds
+  only from the character's own stream ([`character.ts`](../../packages/core-domain/src/domain/character.ts)
+  `applyCharacter`), routing a hidden roll to a *separate* audience stream would stop the sequence
+  advancing → the next visible roll reuses the same seed. §3 now states explicitly that `seed` is
+  **`nonPersonal` plaintext** and that a roll event **stays on its owning aggregate's stream**, with
+  hidden rolls hidden by per-audience **encryption of the outcome** (ADR 0023), not by routing. Paired
+  with the reciprocal [ADR 0024 §4](0024-realtime-presence-sync-trust.md) amendment. Neither the seed
+  derivation nor R3 changes.

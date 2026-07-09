@@ -100,6 +100,18 @@ roll. That machinery is therefore **not rejected, only deferred** — trigger-ga
 play with untrusted groups** exists. Consequently the ADR 0021 §3 seed derivation is **unchanged** (no
 amendment — see §10).
 
+**Concurrent-collision note (2026-07-09 amendment — makes an accepted consequence explicit).** Because the
+seed is deterministic per `(stream, sequence)`, two **offline replicas** that produce the **same next
+sequence on the same aggregate** roll **identical pips**. On sync, the per-aggregate optimistic-concurrency
+check (ADR 0005 §4) lets only one event hold each `version`; the late writer's roll **rebases to the next
+free version keeping its carried result** (ADR 0022 §6 — a rebased roll is **not** re-rolled), so the two
+surface as **two distinct events with identical pips**. This visible "two identical back-to-back rolls" is
+the **bounded, accepted** face of R3's predictability — **not a bug** — recorded so it is not reported as
+one. **Store requirement:** the durable event store MUST enforce per-aggregate `version` uniqueness on
+insert/replicate to bound the collision to that one rebased pair; the in-memory skeleton `sync-harness`
+does **not** yet (it blind-`replicate`s roll facts, dedup-by-`id` only) — a **skeleton-fidelity gap**
+tracked with the Phase-2 fitness-function work (#76).
+
 ### 4. Visibility is enforced by stream routing, not a client-side flag
 
 ADR 0021 §2's `visibility` cannot be enforced client-side (the event is already on every member's device).
@@ -116,6 +128,20 @@ annotation on a shared map), the fallback is **per-audience payload encryption**
 model (encrypt for the authorized audience's key; it replicates to all but only they can decrypt). This
 **fills the enforcement ADR 0021 §2 left open** (net-new); a clarifying cross-reference in ADR 0021 §2 is a
 minor §10 flagged amendment.
+
+**Exception — events that carry per-aggregate fold state MUST NOT be stream-routed (2026-07-09
+amendment).** A **roll** is a `character.checkRolled` event on the **character aggregate**, and its
+`seed.sequence` (ADR 0021 §3) is folded from **that aggregate's own stream**. Routing a *hidden* roll to
+a separate GM/owner sub-stream would stop the sequence advancing on replicas not authorized for the
+routed stream, so the per-aggregate counter would desync and the **next visible roll would reuse the same
+seed** (a determinism bug, verified against `character.ts` `applyCharacter`). Therefore **fold-bearing
+events (rolls) are the encryption case, not the routing case**: the event **stays on its owning aggregate
+stream** — every authorized member folds it, advancing the sequence — and its **sensitive parts (the
+`outcome`/result) are hidden by per-audience encryption** (ADR 0023), while `seed` stays **`nonPersonal`
+plaintext** (ADR 0021 §3, reciprocal amendment). Stream **routing** (above) remains the mechanism for
+*non-fold-bearing* visibility content (hidden map annotations, GM-only notes) that no aggregate invariant
+folds over. The general rule: **an event that a per-aggregate invariant folds over is never routed away
+from its aggregate stream; hide it by encryption instead.**
 
 ### 5. Backfill on access grant (additive to ADR 0005 §3)
 
@@ -257,3 +283,21 @@ play ever demands it.
   [ADR 0021](0021-rules-execution.md) (§2 roll visibility, §3 seeded RNG), [ADR 0023](0023-event-payload-privacy.md)
   (per-audience encryption, presence classification), ADR 0012 (conflict-UX — Planned), ADR 0013
   (latency/backpressure budgets — Planned), ADR 0019 (presence vs. analytics — Planned). Issue #44.
+
+## Amendments
+
+- **2026-07-09** — *Authorized by the project owner.* **§4 + §3 — the roll×visibility seam, made
+  explicit (no decision reversal).** A code-verified cross-model review (ChatGPT + Claude Fable; logged in
+  [`docs/meta/agent-collaboration-log.md`](../meta/agent-collaboration-log.md)) found that §4's
+  visibility-**by-stream-routing** collides with the ADR 0021 §3 seed mechanism: a roll's
+  `seed.sequence` folds only from its **owning aggregate's stream**, so routing a hidden roll to a
+  separate audience stream would desync the sequence and **reuse the seed** for the next visible roll
+  (verified against `character.ts` `applyCharacter`). **§4 now states the exception explicitly:**
+  fold-bearing events (rolls) stay on their aggregate stream and are hidden by **per-audience encryption**
+  of the outcome, never routed; `seed` is **`nonPersonal` plaintext** (reciprocal amendment in
+  [ADR 0021 §3](0021-rules-execution.md)). **§3 now documents the accepted concurrent collision**
+  (two offline replicas → identical pips, both surviving via version-rebase) as a bounded, non-bug
+  consequence of R3, plus the store's per-aggregate `version`-uniqueness requirement (a skeleton
+  `sync-harness` fidelity gap, tracked #76). This **extends** the §10-flagged cross-references (ADR 0021 §2
+  and ADR 0010 §1, already applied in PR #86); the previously-dropped seed-*derivation* change stays
+  dropped — the derivation is unchanged.
