@@ -21,7 +21,7 @@ listed here with a status.
 | [0009](0009-cross-cutting-concerns.md) | Cross-cutting: error handling, logging, security & auth | Accepted |
 | [0010](0010-security-and-privacy-by-design.md) | Security & Privacy by Design | Accepted |
 | [0011](0011-api-design.md) | API design & contracts | Accepted |
-| [0012](0012-web-rendering-and-state.md) | Web rendering & frontend state | Proposed |
+| [0012](0012-web-rendering-and-state.md) | Web rendering & frontend state | Accepted |
 | 0013 | Scalability, performance & caching | Planned (issue #15) |
 | 0014 | DevOps: CI/CD, IaC, environments, backup/DR | Planned (issue #16) |
 | [0015](0015-compliance-and-data-protection.md) | Compliance & data protection (DSGVO ops, consent, EU residency) | Accepted |

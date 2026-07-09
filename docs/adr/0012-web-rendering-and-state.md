@@ -1,7 +1,7 @@
 # ADR 0012 — Web rendering & frontend state
 
-- **Status:** Proposed
-- **Date:** 2026-07-09
+- **Status:** Accepted
+- **Date:** 2026-07-09 (accepted via PR #87, issue #14)
 - **Deciders:** project owner + AI agents
 - **Depends on:** [ADR 0002](0002-tech-stack-and-tooling.md) (Web = **Vite + React** [amended 2026-07-09],
   Desktop = Tauri wrapping the web app, Mobile = Expo; design-tokens JSON; no runtime CSS-in-JS), [ADR 0003](0003-overall-architecture.md)
