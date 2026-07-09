@@ -10,8 +10,7 @@
   `tsconfig.base.json` (strict), CI (`.github/workflows/ci.yml`), `docker-compose` (Postgres + MinIO
   + self-hosted auth via `gotrue` + optional Ollama), `packages/shared-types`, ADR / `docs/legal/` structure.
 - **Phase 1 (architecture as ADRs):** 🟡 in progress — the architectural foundation is worked out as
-  ADRs and merged one PR at a time. **20 ADRs Accepted** (0001–0012 + 0015 + 0017 + 0020 + 0021 + 0022 +
-  0023 + 0024 + 0025) — the count was off by one in earlier revisions; corrected here against the index.
+  ADRs and merged one PR at a time. **21 ADRs Accepted** (0001–0012 + 0014 + 0015 + 0017 + 0020–0025).
   The first implementation ticket (conformance harness, #9) is done and merged (`scripts/arch/` +
   `.dependency-cruiser.cjs`, wired as the CI `arch` step).
 - **Walking skeleton built (gate passed):** ✅ #61 / PR #64 — the **first real code beyond
@@ -22,11 +21,12 @@
   core (0022 R1). The gate surfaced two real refinements (harness: `apps/*` exempt from the
   `src/index.ts` entry rule; SDK: formula `if`-node `then`→`whenTrue`/`whenFalse`).
 - **Repo state:** `main` has the skeleton packages, all `.vscode/` workspace settings (#65/#66/#68), and
-  ADR 0025 (#69) + ADR 0015 (#70) + ADR 0023 (#81) + ADR 0024 (#85) + ADR 0012 (#87), all Accepted, plus
-  owner-authorized amendments from the 2026-07-09 cross-model review (#77–#80: ADR 0021 formula-AST,
-  0025 §7, 0004 metadata-PII, 0015 transfer-mechanism; #86: ADR 0021 §2 + 0010 §1 cross-refs) and the
-  web-framework decision (#87: ADR 0002 Next.js → **Vite + React**, ADR 0011 §9). No open PRs at time of
-  writing — everything merged/cleaned up.
+  ADR 0025 (#69) + ADR 0015 (#70) + ADR 0023 (#81) + ADR 0024 (#85) + ADR 0012 (#87) + ADR 0014 (#88), all
+  Accepted, plus owner-authorized amendments from the 2026-07-09 cross-model review (#77–#80: ADR 0021
+  formula-AST, 0025 §7, 0004 metadata-PII, 0015 transfer-mechanism; #86: ADR 0021 §2 + 0010 §1 cross-refs)
+  and the web-framework decision (#87: ADR 0002 Next.js → **Vite + React**, ADR 0011 §9; #88 also synced
+  the stale `hosting.md` web-frontend line to match). No open PRs at time of writing — everything
+  merged/cleaned up.
 
 ### Accepted ADRs
 
@@ -44,6 +44,7 @@
 | 0010 | Security & Privacy by Design (STRIDE threat model, plugin sandbox, `SecretsPort`/`CryptoPort`, crypto-shredding for DSGVO erasure, security fitness functions for #9) |
 | 0011 | API design & contracts |
 | 0012 | Web rendering & frontend state: offline-first PWA (client-rendered vs. local read-models, no SSR of user data), Vite+React (ADR 0002 amended from Next.js), thin state (domain in core-domain), secure token storage, consent UI, Cloudflare Pages (R1–R3) |
+| 0014 | DevOps: CI/CD, IaC, environments & backup/DR: hardened CI gate (+ ADR 0010 §7 security gates), Cloudflare Pages PWA delivery (per-PR preview + deploy-on-merge, atomic rollback), Local/Preview/Prod (staging trigger-gated), config-in-repo IaC (OpenTofu when triggered), least-privilege CI secrets + rotation runbook, key-store-separate backup (ADR 0023 §5), event-sourced DR (RPO ≤ 24h / RTO ≤ 1 business day) (R1–R4) |
 | 0015 | Compliance & data protection (DSGVO ops): event-sourced/scoped consent (ConsentPort), resource-scoped external-AI consent + all-subjects transfer rule (point E), DSAR over crypto-shredding + Art. 12(3) SLA, required RoPA + processor/DPA/TIA register, DPIA screening, ToS ≥16 (R1–R4) |
 | 0017 | Testing strategy: 5-layer pyramid, port/plugin-SDK contract tests, `bun test`+Playwright+fast-check, qualitative coverage bar |
 | 0020 | Core-vs-plugin boundary (rule-agnostic meta-model) |
@@ -117,10 +118,23 @@ numeric, but implementation-blocking ADRs first. All under **Epic #1**; Epic #10
     (domain stays in `core-domain`), secure token storage (in-memory access + HttpOnly/secure-store
     refresh), consent-capture UI, Cloudflare Pages hosting. Owner decisions R1–R3. Unblocks Playwright E2E
     (ADR 0017).
-11. **ADR 0014 — DevOps: CI/CD, IaC, environments, backup/DR** (#16, before cloud sync / real users) —
-    **← current focus.** Now has concrete inputs: the key-store-separate-from-data-backups invariant
-    (ADR 0023 §5), read-model backup retention (ADR 0015 §4 / ADR 0023 §5), secret/key rotation ops
-    (ADR 0010 §4), CI security gates + SBOM (ADR 0010 §7), DPA/TIA go-live gate (ADR 0015 §6).
+11. ✅ **ADR 0014 — DevOps: CI/CD, IaC, environments & backup/DR** (#16) — Accepted 2026-07-09 (PR #88).
+    The operational-delivery layer over the fixed stack (no new package/port/mechanism): the existing CI
+    gate is reused and only **hardened** (+ ADR 0010 §7 security gates; SBOM + PR-time `bun audit`
+    trigger-gated); web delivery = Vite PWA on **Cloudflare Pages** (per-PR preview + deploy-on-merge,
+    atomic rollback); **Local/Preview/Prod** environments with a dedicated **staging trigger-gated** and
+    hard prod-data isolation; **config-in-repo IaC** now (OpenTofu at the trigger; Bicep rejected);
+    least-privilege CI secrets in GitHub Environments + a **rotation runbook** operationalizing the
+    ADR 0023 §5 **key-store-separate-backup** invariant; and **event-sourced backup/DR** (event log +
+    master data + object storage + key store are the backup set — read models rebuild by replay) with
+    rough RTO/RPO and a go-live backup/DR gate feeding ADR 0015 §6. Owner decisions R1–R4 (staging
+    trigger-gated; config-in-repo now + OpenTofu at trigger; RPO ≤ 24h / RTO ≤ 1 business day as targets,
+    not SLAs; managed backups + one independent off-Supabase event-log dump). Also synced the stale
+    `hosting.md` web line. **Follow-ups opened:** `docs/ops/` rotation + restore runbooks, first verified
+    test restore, PR-time `bun audit` step when gate-stable.
+
+    **→ With this, the currently-planned architecture-ADR run (items 1–11) is complete.** What remains is
+    the trigger-gated backlog (item 12) — pulled into a real ADR only when its trigger fires.
 12. **Trigger-gated backlog** (not blocking now): ADR 0013 perf budgets (#15), ADR 0019 Analytics (#23),
     ADR 0016 a11y/i18n (#18), ADR 0026 user-docs / handbook site (#82, Epic #83 — Diátaxis, in-repo
     static site, i18n; depends on 0012/0016; trigger: a usable product to document). Further

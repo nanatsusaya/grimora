@@ -1,7 +1,7 @@
 # ADR 0014 — DevOps: CI/CD, IaC, environments & backup/DR
 
-- **Status:** Proposed
-- **Date:** 2026-07-09
+- **Status:** Accepted
+- **Date:** 2026-07-09 (accepted via PR #88, issue #16)
 - **Deciders:** project owner + AI agents
 - **Depends on:** [ADR 0002](0002-tech-stack-and-tooling.md) (bun/Turborepo/biome toolchain; Supabase
   EU, Cloudflare Pages, Fly.io/Hetzner hosting targets — as amended to Vite + React),
