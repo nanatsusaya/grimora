@@ -57,7 +57,7 @@ this ADR adds is a **liveness + coordination** layer — presence, "new events a
 selections — that is **never a second source of truth**: a realtime message can **never** be the origin of
 a durable state change (§6, §7). This split is the load-bearing decision; everything below follows from it.
 
-### 2. Sync-trust model — hard server enforcement of tenancy/provenance; own-aggregate fabrication is social contract (O1)
+### 2. Sync-trust model — hard server enforcement of tenancy/provenance; own-aggregate fabrication is social contract (R1)
 
 On `POST /sync/push` (ADR 0011 §7) the server **hard-enforces**, rejecting the batch otherwise:
 
@@ -77,21 +77,28 @@ server-side revalidation would require running plugins server-side and **contrad
 matter by default** — a player could fabricate their own roll exactly as they could lie at a physical
 table — **bounded** by three hard facts: it can **never** affect another player's aggregate (stream authz);
 it is **fully attributable and auditable** (immutable log + provenance, ADR 0004/0010 §1 Repudiation); and
-**higher-trust modes are opt-in** for competitive contexts (server-side revalidation, GM-verified or
-commit-reveal rolls — §3, O1). This makes ADR 0010 §1's "forged sync events" boundary **precise**:
+**higher-trust modes are opt-in / deferred** for any future competitive context (server-side revalidation,
+GM-verified or commit-reveal rolls — R1). This makes ADR 0010 §1's "forged sync events" boundary **precise**:
 cross-tenant forgery is mitigated **hard**; own-aggregate fabrication is a **named, bounded** residual, not
 a silent hole. *(This refines ADR 0010 §1's threat row → §10 flagged amendment.)*
 
-### 3. Unpredictable seeds for online rolls (fairness) — server-contributed entropy (O3)
+### 3. Rolls stay deterministic and (accepted) predictable — no server entropy now (R3)
 
-ADR 0021 §3's seed (stream id + sequence number) is fine for **offline/solo** replay but is **predictable**
-in shared play. Decision: an **online/shared** roll's seed must mix in **entropy the rolling client cannot
-predict** — a **server-issued roll nonce** folded into the seed derivation, so no participant can precompute
-the outcome. `RollResult.seed` (ADR 0021 §3) records the nonce alongside the existing inputs, preserving
-**auditability and replay** (the nonce is part of the recorded derivation). Offline/solo rolls keep the
-pure-deterministic seed but are **flagged lower-trust** (acceptable for solo/cooperative). **Commit-reveal**
-(the stronger mutual scheme) is **deferred** unless real competitive play needs it (O3). *(Adding
-server-nonce entropy changes ADR 0021 §3's seed derivation → §10 flagged amendment.)*
+Rolls remain **deterministic** in the ADR 0021 §3 sense — the seed derivation (stream id + per-aggregate
+sequence number) is **unchanged**, so `RollResult.seed` keeps every roll **reproducible and auditable**
+(anti-repudiation, ADR 0010 §1), keeps event-folding a **pure function** (replay convergence, ADR 0004 §9),
+keeps plugin behaviour free of ambient entropy (ADR 0010 §3), and keeps tests reproducible (ADR 0017).
+
+A deterministic seed derived from **public** inputs is also **predictable in advance** (a client could
+precompute its next roll — a timing nuance). This ADR **accepts that predictability**: Grimora is a
+**cooperative hobby TTRPG**, not a competitive or for-stakes context, so the timing nuance is handled by the
+**same social contract as §2/R1** (bad-faith players leave the social group), and unpredictability machinery
+would be over-engineering. Note that *determinism-on-replay* and *unpredictability-in-advance* are **not**
+opposites — a **server-contributed seed nonce** (or full commit-reveal) would keep the roll fully
+reproducible (the nonce is simply recorded in `RollResult.seed`) while making it unpredictable before the
+roll. That machinery is therefore **not rejected, only deferred** — trigger-gated to if/when real **online
+play with untrusted groups** exists. Consequently the ADR 0021 §3 seed derivation is **unchanged** (no
+amendment — see §10).
 
 ### 4. Visibility is enforced by stream routing, not a client-side flag
 
@@ -170,31 +177,35 @@ a **presentation** concern reserved to **ADR 0012**; this ADR only guarantees th
 
 ### 10. Refinements to accepted ADRs — flagged for owner authorization, not made here
 
-Three accepted ADRs would need a small **owner-authorized amendment** (ADR 0001) to stay consistent with
-this ADR; they are **flagged, not edited**, and become amendment PRs once O1/O3 are resolved:
+Two small **owner-authorized amendments** (ADR 0001) would keep accepted ADRs cross-referenced with this
+ADR; they are **flagged, not edited**, to become amendment PRs **if** the owner authorizes them. Neither is
+consistency-critical — nothing in those ADRs is now *false*; these are completeness cross-references:
 
-- **ADR 0021 §3** — fold a server-contributed nonce into the seed derivation for online rolls (§3, O3).
-- **ADR 0021 §2** — clarify that `visibility` is enforced by stream routing/encryption, not a client filter
-  (§4).
+- **ADR 0021 §2** — add a cross-reference that roll `visibility` is *enforced* by stream routing /
+  per-audience encryption (§4), which ADR 0021 left unspecified.
 - **ADR 0010 §1** — point the "forged sync events" tampering row at this ADR's precise sync-trust model
-  (§2).
+  (§2), so the threat model reflects the cross-tenant-hard / own-aggregate-social-contract split.
+
+*(The previously-flagged ADR 0021 §3 seed-derivation amendment is **no longer needed** — R3 keeps the
+deterministic seed unchanged.)*
 
 ## Consequences
 
 **Positive:** the ephemeral/durable split keeps a single source of truth (the event log) while enabling
 live co-play; **sync-trust is made honest** — cross-tenant forgery is hard-blocked, own-aggregate
-fabrication is a named/bounded social-contract residual rather than a pretended mitigation; online rolls
-become **unpredictable** without losing auditable replay; **visibility** finally has a real enforcement
+fabrication is a named/bounded social-contract residual rather than a pretended mitigation; rolls stay
+**deterministic and auditable** with no added machinery (R3); **visibility** finally has a real enforcement
 mechanism (stream routing) instead of a toothless flag; the **late-join backfill** closes a concrete
 data-loss gap **additively**; presence is cleanly ephemeral, so it never pollutes the immutable log or
 erasure model.
 
 **Negative / costs:** a realtime transport + `RealtimePort` is new infrastructure to build and operate
 (reconnection, backpressure, scaling — budgets are ADR 0013's); visibility-by-routing multiplies the number
-of streams (a campaign now has audience-scoped sub-streams) and adds routing logic; server-nonce rolls add
-a round-trip for online rolls and a required ADR 0021 amendment; the social-contract trust default (O1)
-means the platform does **not** cryptographically prevent a player from fabricating **their own** rolls —
-an accepted, bounded limit for a cooperative TTRPG, revisited only if competitive play demands it.
+of streams (a campaign now has audience-scoped sub-streams) and adds routing logic; the social-contract
+trust default (R1) plus predictable seeds (R3) mean the platform does **not** cryptographically prevent a
+player from fabricating or precomputing **their own** rolls — an accepted, bounded limit for a cooperative
+hobby TTRPG, revisited (server revalidation / seed nonce, both trigger-gated) only if untrusted/competitive
+play ever demands it.
 
 ## Alternatives considered
 
@@ -215,24 +226,26 @@ an accepted, bounded limit for a cooperative TTRPG, revisited only if competitiv
 - **Keep predictable seeds** (rely on social contract for all rolls) — rejected for online/competitive
   rolls: precomputable outcomes are a real fairness hole; server entropy is cheap (§3).
 
-## Open questions (for owner review)
+## Resolved questions (owner decisions, 2026-07-09)
 
-- **O1 — Sync-trust / anti-cheat level (§2).** Confirm the **social-contract default** — the server
-  hard-enforces authorization, actor-binding, provenance and cross-aggregate integrity, but does **not**
-  re-execute rules to prevent a player fabricating **their own** aggregate's events — with higher-trust
-  modes (server-side revalidation, GM-verified / commit-reveal rolls) **opt-in** for competitive contexts?
-  **Recommendation: yes** — it matches a cooperative TTRPG's real trust model (you could lie at a physical
-  table too) and offline-first, keeps everything attributable, and avoids over-building anti-cheat; build a
-  higher-trust mode only when real competitive play needs it. (Product/security call.)
-- **O2 — Realtime transport (§6).** **Supabase Realtime** (managed, already in the stack, self-hostable) vs.
-  a **custom WebSocket** service vs. **SSE** — all behind `RealtimePort`. **Recommendation: Supabase
-  Realtime**, least new infrastructure and consistent with ADR 0002/0009, swappable via the port if we
-  outgrow it. (Infra/vendor call.)
-- **O3 — Online-roll fairness mechanism (§3).** **(a)** server-contributed **nonce entropy** (recommended;
-  needs an ADR 0021 §3 amendment), **(b)** full **commit-reveal** (strongest, more round-trips/UX), or
-  **(c)** accept predictability (rejected for competitive). **Recommendation: (a) now** — unpredictable and
-  cheap, keeping auditable replay — with **(b) deferred** to if/when competitive play needs it. Confirming
-  (a) authorizes the flagged ADR 0021 §3 amendment (§10).
+- **R1 — Sync-trust / anti-cheat level (§2).** **Social-contract default confirmed.** The server
+  hard-enforces authorization, actor-binding, provenance, `version` and cross-aggregate integrity (so
+  cross-tenant forgery is blocked), but does **not** re-execute rules to prevent a player fabricating
+  **their own** aggregate's events. Rationale (owner): it is a **cooperative game** where you should trust
+  your table; bad-faith players are removed from the social group sooner or later anyway; everything stays
+  attributable. Higher-trust modes (server-side revalidation, GM-verified / commit-reveal rolls) are
+  **deferred, opt-in** for any future competitive context — not built now.
+- **R2 — Realtime transport (§6).** **Supabase Realtime now**, kept behind the **`RealtimePort`** so it can
+  be **swapped for a custom WebSocket service later with manageable effort**. Owner requirement made
+  explicit: the abstraction must be present **from day one** — the port is mandatory, the transport is the
+  swappable detail (least new infrastructure now, no lock-in).
+- **R3 — Roll fairness (§3).** **(c) accept predictability, keep rolls purely deterministic** — the
+  ADR 0021 §3 seed is **unchanged** (no server nonce, no commit-reveal). Rationale (owner): Grimora is a
+  **hobby TTRPG for personal fun, not a casino / not for stakes**; unpredictability machinery would be
+  over-engineering, and the timing nuance is covered by the same social contract as R1. Server-contributed
+  entropy / commit-reveal are **not rejected, only deferred** — trigger-gated to if/when real online play
+  with **untrusted** groups exists. **Consequence:** the ADR 0021 §3 amendment flagged in §10 is **no longer
+  needed**.
 
 ## References
 
