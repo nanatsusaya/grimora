@@ -1,6 +1,6 @@
 # Grimora — Project status & next steps
 
-> Living handoff note between working sessions. Last updated: **2026-07-09**.
+> Living handoff note between working sessions. Last updated: **2026-07-10**.
 > The binding architecture lives in the ADRs (`docs/adr/`); this file is only the progress/handoff overview.
 > Stable working rules (not the current state) live in `CLAUDE.md`.
 
@@ -25,8 +25,10 @@
   Accepted, plus owner-authorized amendments from the 2026-07-09 cross-model review (#77–#80: ADR 0021
   formula-AST, 0025 §7, 0004 metadata-PII, 0015 transfer-mechanism; #86: ADR 0021 §2 + 0010 §1 cross-refs)
   and the web-framework decision (#87: ADR 0002 Next.js → **Vite + React**, ADR 0011 §9; #88 also synced
-  the stale `hosting.md` web-frontend line to match). No open PRs at time of writing — everything
-  merged/cleaned up.
+  the stale `hosting.md` web-frontend line to match). Since then a **documentation-hardening** pass landed
+  (#95–#97: the refined CLAUDE.md doc rule + a machine-checked `scripts/arch/doc-conformance.test.ts`, now
+  part of `bun run arch`, plus the source brought up to the standard) and a `Closes #NN` PR-hygiene caveat
+  (#98). No open PRs at time of writing — everything merged/cleaned up.
 
 ### Accepted ADRs
 
@@ -204,6 +206,17 @@ static architecture boundaries**, with real gaps in *runtime behaviour*. Derived
   manually via `bun update`.
 - ✅ **Owner toggle:** **Dependabot alerts** + **security updates** enabled (owner, 2026-07-07,
   org-wide). Secret scanning + push protection also on → ADR 0010 §7 dependency-scanning gate covered.
+
+## Session tooling (Claude Code skills)
+
+Repeatable procedures under `.claude/skills/` (checked into the repo, invoked as `/<name>`):
+
+- **`grimora-adr-author`** — authoring/reworking an ADR (branch → `Proposed` → PR-with-owner-questions →
+  `Accepted`, house style, index/`STATUS` sync).
+- **`feierabend`** — session wind-down / close-out: tidy git & branch state, finish or safely park
+  in-flight work at an honest stopping point, bring the living docs current (this file, the meta-log,
+  memory), run any due recurring task, then a hand-off summary + "Schönen Feierabend". Deliberately does
+  **not** start new work or merge PRs (the owner merges).
 
 ## Per-ADR workflow
 
