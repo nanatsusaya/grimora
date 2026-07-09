@@ -52,7 +52,8 @@ Two route classes, each with a fixed strategy:
   client components** (no server-rendering of user data), not a server-rendered-per-request app.
 
 This split is **forced by offline-first**, not a preference. It answers issue #14's rendering-per-route
-and hosting questions; the concrete hosting target (static app shell + separate API) is **O1**.
+and hosting questions; the concrete hosting target (**R1**: a static app shell on Cloudflare Pages + a
+separate API) is decided in the Resolved questions.
 
 ### 2. The UI's data source is the local read models; the API is bootstrap/fallback
 
@@ -91,7 +92,8 @@ in the UI (frontend-first, ADR 0008 §2):
   ADR 0024 §7).
 
 The concrete **state library** (a minimal reactive/signals store + a query-subscription adapter vs. a
-heavier framework) is **O3**; whatever is chosen stays behind a thin abstraction so it is swappable.
+heavier framework) is decided in **R3** (a minimal reactive store + a thin subscription adapter);
+whatever is chosen stays behind a thin abstraction so it is swappable.
 
 ### 5. Client auth & token storage (security)
 
@@ -147,15 +149,15 @@ AI output is visibly labelled).
 - `apps/web` is a **composition root** (ADR 0003 §3): it wires adapters (local store, sync, auth, logger,
   realtime) to the core-domain ports and mounts the UI. Presentation components live in **`packages/ui`**
   (ADR 0003 module map).
-- **Cross-platform posture (O2):** share the **core-domain + design tokens + view-model/hook logic**
+- **Cross-platform posture (R2):** share the **core-domain + design tokens + view-model/hook logic**
   across platforms; keep **platform-specific rendering** (web DOM vs. React Native) at the edge. **Desktop
   = Tauri wrapping this web app** (ADR 0002), so it inherits these decisions. **Mobile (Expo/RN) is
   deferred to its Phase-5 ADR** — this ADR only requires the shared layer not assume the DOM so mobile
-  stays reachable. Whether to adopt a single cross-platform component framework now (e.g. RN-Web /
-  Tamagui) vs. per-platform components is **O2**.
-- **Hosting (O1):** a static app shell + PWA assets fit **static hosting** (Cloudflare Pages / Vercel,
-  cost-goal-friendly, ADR 0002); the API (`apps/api`) and sync are separate (ADR 0011). The concrete
-  target is **O1**.
+  stays reachable. Per **R2**, a single cross-platform component framework (e.g. RN-Web / Tamagui) is
+  **not** adopted now; per-platform components + shared logic/tokens, revisited at Phase 5.
+- **Hosting (R1):** a static app shell + PWA assets fit **static hosting**; the target is **Cloudflare
+  Pages** (strong free tier + edge, ADR 0002 cost goal); the API (`apps/api`) and sync are separate
+  (ADR 0011).
 
 ### 10. E2E enablement (ADR 0017)
 
@@ -216,25 +218,27 @@ discipline now for a Phase-5 payoff.
 - **Adopt a single cross-platform UI framework now** (RN-Web/Tamagui) — deferred, not rejected: premature
   before mobile starts; share core-domain + tokens now, decide the component strategy at Phase 5 (O2).
 
-## Open questions (for owner review)
+## Resolved questions (owner decisions, 2026-07-09)
 
-- **O1 — Rendering posture confirmation + hosting target (§1/§9).** Confirm: the authenticated app is a
-  **client-rendered offline-first PWA shell** (no SSR of user data), SSR/SSG only for public routes; and
-  pick the **static hosting** target — **Cloudflare Pages** vs. Vercel (both free-tier-friendly, ADR 0002
-  cost goal), API hosted separately. **Recommendation: confirm the PWA posture** (it is forced by
-  offline-first) and **Cloudflare Pages** for the static shell (strong free tier, edge, fits the cost
-  goal), revisitable. (Hosting/vendor + product/SEO call.)
-- **O2 — Cross-platform UI sharing (§9).** **(a)** adopt a shared cross-platform component framework now
-  (React-Native-Web / Tamagui — one component set for web + mobile) vs. **(b)** share only core-domain +
-  design tokens + view-model logic and keep **per-platform** components, deciding a shared component lib
-  when mobile actually starts (Phase 5). **Recommendation: (b)** — avoids over-committing to a
-  cross-platform UI framework before mobile exists, keeps web idiomatic, and the tokens/domain sharing
-  already prevents divergence; revisit at Phase 5. (Product/eng call.)
-- **O3 — Frontend state library (§4).** A **minimal reactive/signals store** (e.g. Zustand/Jotai/signals)
-  + a thin query-subscription adapter over the local read-model store, vs. a heavier data-layer (e.g.
-  TanStack Query) vs. a full framework. **Recommendation: the minimal reactive store + thin subscription
-  adapter** — the domain lives in `core-domain`, so the frontend needs only ephemeral view state +
-  projection subscriptions; keep it behind an abstraction so it is swappable. (Tooling call.)
+- **R1 — Rendering posture + hosting (§1/§9).** Confirmed: the authenticated app is a **client-rendered
+  offline-first PWA shell** (no SSR of user data), SSR/SSG only for public/data-less routes; **static
+  hosting on Cloudflare Pages** (strong free tier + edge, ADR 0002 cost goal), the API hosted separately.
+  The posture is forced by offline-first; the hosting target is revisitable via the `apps/web` structure.
+- **R2 — Cross-platform UI sharing (§9).** Decided **(b)**: share **core-domain + design tokens +
+  view-model/hook logic** across platforms and keep **per-platform** components; a single cross-platform
+  component framework (RN-Web / Tamagui) is **not** adopted now — that choice is revisited when mobile
+  actually starts (Phase 5). Avoids over-committing before mobile exists; the token/domain sharing already
+  prevents divergence.
+- **R3 — Frontend state library (§4).** Decided **(a)**: a **minimal reactive/signals store** (for
+  ephemeral view state) + a **thin query-subscription adapter** over the local read-model store — no
+  heavy data-layer or global-state framework, because the domain lives in `core-domain`. Kept behind a
+  thin abstraction so the concrete library stays swappable.
+
+> **Note (2026-07-09):** the **web *framework*** itself (ADR 0002's `Web = Next.js`) is under a separate,
+> owner-requested re-evaluation. R1–R3 are **framework-independent** (offline-first PWA posture, hosting,
+> cross-platform sharing, state layering hold for any React/SPA framework). If that review selects a
+> framework other than Next.js, it lands as an **owner-authorized amendment to ADR 0002**, and §1/§9's
+> framework references here are updated to match — before this ADR is accepted.
 
 ## References
 
