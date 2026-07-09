@@ -6,9 +6,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Grimora is an **engine-agnostic tabletop RPG platform**: the core is independent of any rule system;
 concrete rule systems (first *Das Schwarze Auge 5* / DSA5) are **plugins**. See `docs/vision.md` for
-the full product vision. The project is currently in **Phase 1 (architecture-as-ADRs)** — most of
-`apps/` and `packages/` are still scaffold-only; only `packages/shared-types` has real code today.
-Check `docs/STATUS.md` for the current phase/next-step snapshot before starting work.
+the full product vision. The project is in **Phase 1 (architecture-as-ADRs)**, at the Phase-1→Phase-2
+boundary: the ADR run is complete and the **walking skeleton** has been built, so beyond
+`packages/shared-types` there is now real (still skeleton-grade) code in `packages/core-domain`,
+`packages/plugin-sdk`, `plugins/dsa5` and `apps/skeleton-walk`; the remaining `apps/`/`packages/` are
+still scaffold-only. Check `docs/STATUS.md` for the current phase/next-step snapshot before starting work.
 
 ## Commands
 
@@ -175,9 +177,10 @@ outweighs brevity, even though it enlarges the code. Keep docs **current**: when
 update the affected inline docs **and** the relevant Markdown (ADRs, `STATUS.md`, `README`s, `docs/…`)
 in the *same* change — stale documentation is a defect.
 
-- **Every file, class, and function carries a block header** documenting its purpose and, for functions,
-  **every parameter** (plus return/throws where relevant). Always use the multi-line JSDoc form —
-  **never** the single-line `/** … */`:
+- **Every file, class, and exported function/type carries a block header** documenting its purpose.
+  **File / class / function headers are always the multi-line JSDoc form** (never a single-line
+  `/** … */`), and a function header documents **every parameter** with `@param` (plus `@returns` /
+  throws where relevant):
 
   ```
   /**
@@ -186,6 +189,20 @@ in the *same* change — stale documentation is a defect.
    * @returns   what the caller gets back
    */
   ```
+
+- **Type / interface *properties*** are documented too, but here a **single-line `/** why … */`** is
+  fine when one line suffices — **as long as it gives the why / the contract**, not a paraphrase of the
+  type. Write `/** kept a string so the event envelope stays JSON-serializable */`, not
+  `/** an ISO-8601 timestamp string */`. A **purely structural** property whose meaning is fully carried
+  by its type header (e.g. an AST node's `left` / `right` operands) need not repeat it. The goal is
+  **why-coverage, never doc-for-doc's-sake** — a wall of "what" comments dilutes the load-bearing "why"s
+  and is worse than a focused header.
+
+- **This discipline will be machine-checked** (a lightweight `scripts/arch` doc-conformance test — the
+  documentation-conformance pass): every **exported** symbol must carry a doc block, and every
+  **exported function** with parameters must have a `@param` for each, so the rule cannot silently erode
+  as Phase 2 grows. The check asserts **presence**, not quality — the why-vs-what judgement stays a
+  review responsibility.
 
 - **Notably complex code gets an extra inline comment.** Short (1–3 lines) use `// …`; longer
   explanations use a block comment:
