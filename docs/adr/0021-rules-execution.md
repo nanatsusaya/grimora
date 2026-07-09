@@ -87,7 +87,10 @@ lives in a plugin-supplied Behaviour API resolution function.
 - **`RollRequest`** — `{ terms: DiceTerm[], context: (character/check reference), visibility:
   "public" | "gmOnly" | "private", groupId? }`. `visibility` covers hidden/GM-only rolls; `groupId`
   links multiple requests for opposed/group checks (each participant's roll is its own request,
-  correlated by `groupId`, rather than a special "group roll" core concept).
+  correlated by `groupId`, rather than a special "group roll" core concept). *(Amended 2026-07-09: how
+  `visibility` is **enforced** is decided in [ADR 0024 §4](0024-realtime-presence-sync-trust.md) — by
+  routing the event to an audience-scoped stream (RLS, ADR 0005 §7), or per-audience encryption
+  (ADR 0023), **not** a client-side filter; this ADR only defined the field.)*
 - **`RollResult`** — `{ requestId, rolls: raw pips per term, rerollOf?: prior RollResult id kept for
   audit, outcome: <plugin-defined value + labelKey>, seed: (§3) }`. **Confirmed R3:** `outcome`'s
   structured value is **opaque to the core** — the plugin's resolution function produces it (e.g. DSA5
@@ -239,3 +242,7 @@ All four review questions were resolved by the owner; the decisions above alread
      ability modifier `floor((score−10)/2)`, DSA5 halved values) — a concrete gap the seven-system
      comparison missed. Additive within the SDK `0.x` line (ADR 0025 §1), so **ADR 0025 needs no
      change**. Implementation in the SDK builder/AST and the core interpreter is tracked in **#75**.
+- **2026-07-09** — *Authorized by the project owner.* §2 cross-reference (no decision change): added that
+  roll `visibility` is **enforced** by stream routing / per-audience encryption, decided in
+  [ADR 0024 §4](0024-realtime-presence-sync-trust.md) — this ADR defined the field but left enforcement
+  open. (ADR 0024 §10 flagged this cross-reference.)
