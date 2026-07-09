@@ -33,7 +33,7 @@ listed here with a status.
 | [0021](0021-rules-execution.md) | Rules Execution: Formula, Dice & Deterministic Runtime | Accepted |
 | [0022](0022-walking-skeleton.md) | Walking Skeleton / Golden Use Cases (validation gate) | Accepted |
 | [0023](0023-event-payload-privacy.md) | Event-payload privacy classification, per-subject encryption & crypto-shredding keys | Accepted |
-| 0024 | Realtime Session & Presence | Planned (issue #44) |
+| [0024](0024-realtime-presence-sync-trust.md) | Realtime session, presence & sync-trust | Proposed |
 | [0025](0025-plugin-sdk-v0-contract.md) | Plugin-SDK v0 contract freeze | Accepted |
 | 0026 | User documentation & docs-site architecture (Diátaxis, i18n) | Planned (issue #82) |
 
