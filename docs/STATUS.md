@@ -1,6 +1,6 @@
 # Grimora — Project status & next steps
 
-> Living handoff note between working sessions. Last updated: **2026-07-07**.
+> Living handoff note between working sessions. Last updated: **2026-07-09**.
 > The binding architecture lives in the ADRs (`docs/adr/`); this file is only the progress/handoff overview.
 > Stable working rules (not the current state) live in `CLAUDE.md`.
 
@@ -10,8 +10,8 @@
   `tsconfig.base.json` (strict), CI (`.github/workflows/ci.yml`), `docker-compose` (Postgres + MinIO
   + self-hosted auth via `gotrue` + optional Ollama), `packages/shared-types`, ADR / `docs/legal/` structure.
 - **Phase 1 (architecture as ADRs):** 🟡 in progress — the architectural foundation is worked out as
-  ADRs and merged one PR at a time. **14 ADRs Accepted** (0001–0011 + 0017 + 0020 + 0021 + 0022). The
-  first implementation ticket (conformance harness, #9) is done and merged (`scripts/arch/` +
+  ADRs and merged one PR at a time. **15 ADRs Accepted** (0001–0011 + 0017 + 0020 + 0021 + 0022 + 0025).
+  The first implementation ticket (conformance harness, #9) is done and merged (`scripts/arch/` +
   `.dependency-cruiser.cjs`, wired as the CI `arch` step).
 - **Walking skeleton built (gate passed):** ✅ #61 / PR #64 — the **first real code beyond
   `shared-types`**: provisional-v0 `packages/plugin-sdk` + `packages/core-domain` (with a
@@ -20,8 +20,8 @@
   convergence, roll-carry, authz parity, `arch` green on real modules). Kept as the **seed** of the real
   core (0022 R1). The gate surfaced two real refinements (harness: `apps/*` exempt from the
   `src/index.ts` entry rule; SDK: formula `if`-node `then`→`whenTrue`/`whenFalse`).
-- **Repo state:** `main` has the skeleton packages. Open PRs at time of writing: **#65** (adopt single
-  quotes, biome), **#66** (commit `.vscode/` workspace settings). Everything else is merged/cleaned up.
+- **Repo state:** `main` has the skeleton packages, all `.vscode/` workspace settings (#65/#66/#68), and
+  ADR 0025 (#69, Accepted). No open PRs at time of writing — everything merged/cleaned up.
 
 ### Accepted ADRs
 
@@ -42,6 +42,7 @@
 | 0020 | Core-vs-plugin boundary (rule-agnostic meta-model) |
 | 0021 | Rules Execution: formula AST, generic dice/roll model, seeded-RNG determinism, roll event schema |
 | 0022 | Walking Skeleton gate: core/backend vertical slice (not UI E2E), provisional-v0 SDK shapes, deterministic in-memory validation, pass criteria |
+| 0025 | Plugin-SDK v0 contract freeze: `0.x` semver line (not permanent), skeleton-validated surface frozen, hard security boundary, 1.0/registry trigger-gated (R1–R3) |
 
 ### New: EU/DE compliance matrix
 
@@ -68,10 +69,14 @@ numeric, but implementation-blocking ADRs first. All under **Epic #1**; Epic #10
    architecture-validation pass across all 14 accepted ADRs (findings F1–F7 folded into the ADR).
 5. ✅ **Build the walking skeleton** (#61, PR #64) — the **Phase-1 → Phase-2 gate** passed; first real
    code beyond `shared-types`, kept as the **seed** of the real core (0022 R1). All 6 pass criteria green.
-6. **ADR 0025 — plugin-SDK v0 contract freeze** (#62, from 0022 R3) — **← current focus** (unblocked by
-   #61). A dedicated ADR that freezes the public SDK v0 as the stable third-party-facing contract,
-   *informed by* the skeleton's provisional-v0 shapes (which are explicitly not yet frozen).
-7. **ADR 0015 — Compliance ops + consent** (#17) — early (Impressum gap, AI-consent scoping = constraint E).
+6. ✅ **ADR 0025 — plugin-SDK v0 contract freeze** (#62, from 0022 R3) — Accepted 2026-07-09 (PR #69).
+   Freezes the SDK as a `0.x` semver line (real & depended-on, but not a permanent freeze): the
+   skeleton-validated surface is stable within `0.x`; the security boundary is frozen hard; the five
+   unvalidated trait kinds, plugin AI-tools and themes are *reserved*. Owner decisions R1–R3: 1.0 gated on
+   DSA5 Phase 3 + a second rule system; JSON-Schema validation deferred to before the third-party registry
+   opens; the third-party registry itself gated on 1.0.
+7. **ADR 0015 — Compliance ops + consent** (#17) — **← current focus.** Early (Impressum gap, AI-consent
+   scoping = constraint E).
 8. **ADR 0012** (#14, before `apps/web`) · **ADR 0014** (#16, before cloud sync / real users).
 9. **Trigger-gated backlog** (not blocking now): ADR 0023 Event-Payload-Privacy (#43, before real
    aggregates), ADR 0024 Realtime/Presence (#44), ADR 0013 perf budgets (#15), ADR 0019 Analytics (#23),

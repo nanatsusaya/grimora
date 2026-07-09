@@ -34,7 +34,7 @@ listed here with a status.
 | [0022](0022-walking-skeleton.md) | Walking Skeleton / Golden Use Cases (validation gate) | Accepted |
 | 0023 | Event Payload Privacy Classification & per-subject encryption | Planned (issue #43) |
 | 0024 | Realtime Session & Presence | Planned (issue #44) |
-| [0025](0025-plugin-sdk-v0-contract.md) | Plugin-SDK v0 contract freeze | Proposed |
+| [0025](0025-plugin-sdk-v0-contract.md) | Plugin-SDK v0 contract freeze | Accepted |
 
 Status values: `Proposed` · `Accepted` · `Superseded` · `Planned` (ticketed, not yet written).
 

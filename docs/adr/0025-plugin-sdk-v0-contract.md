@@ -1,7 +1,7 @@
 # ADR 0025 — Plugin-SDK v0 contract freeze
 
-- **Status:** Proposed
-- **Date:** 2026-07-08
+- **Status:** Accepted
+- **Date:** 2026-07-08 (accepted via PR #69, issue #62)
 - **Deciders:** project owner + AI agents
 - **Depends on:** [ADR 0006](0006-plugin-system.md) (§1 plugin = bounded context on the SDK, §2
   capabilities, §3 Definition/Behaviour APIs, §4 manifest/semver, §5 trust/isolation),
