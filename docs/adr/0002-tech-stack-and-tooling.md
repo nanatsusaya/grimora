@@ -64,4 +64,9 @@ Cost goal: maximize free tiers. The stack was confirmed with the project owner.
   folded into the Vite+React family as the router choice; *SvelteKit* (leanest, best DX) — rejected
   because it **breaks React/RN alignment** and shrinks the AI-assist corpus; *Nuxt/Vue, SolidStart, Qwik,
   Angular* — rejected (non-React alignment cost, or maturity/fit). ADR 0012 §1/§9 reflect this choice.
+  The **full framework-by-framework comparison** (every option with its pros/cons, the Grimora-specific
+  evaluation criteria, and the shortlist) is recorded in
+  [`docs/research/frontend-framework-comparison.md`](../research/frontend-framework-comparison.md) —
+  mirroring the ADR 0020 ↔ `rule-systems-comparison.md` decision/evidence split (added 2026-07-09 as the
+  owner-requested durable home for the comparison that previously lived only in the review conversation).
 - Biome vs ESLint + Prettier (2026): https://www.pkgpulse.com/blog/biome-vs-eslint-prettier-linting-2026
