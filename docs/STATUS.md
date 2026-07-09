@@ -10,8 +10,8 @@
   `tsconfig.base.json` (strict), CI (`.github/workflows/ci.yml`), `docker-compose` (Postgres + MinIO
   + self-hosted auth via `gotrue` + optional Ollama), `packages/shared-types`, ADR / `docs/legal/` structure.
 - **Phase 1 (architecture as ADRs):** 🟡 in progress — the architectural foundation is worked out as
-  ADRs and merged one PR at a time. **15 ADRs Accepted** (0001–0011 + 0017 + 0020 + 0021 + 0022 + 0025).
-  The first implementation ticket (conformance harness, #9) is done and merged (`scripts/arch/` +
+  ADRs and merged one PR at a time. **16 ADRs Accepted** (0001–0011 + 0015 + 0017 + 0020 + 0021 + 0022 +
+  0025). The first implementation ticket (conformance harness, #9) is done and merged (`scripts/arch/` +
   `.dependency-cruiser.cjs`, wired as the CI `arch` step).
 - **Walking skeleton built (gate passed):** ✅ #61 / PR #64 — the **first real code beyond
   `shared-types`**: provisional-v0 `packages/plugin-sdk` + `packages/core-domain` (with a
@@ -21,7 +21,8 @@
   core (0022 R1). The gate surfaced two real refinements (harness: `apps/*` exempt from the
   `src/index.ts` entry rule; SDK: formula `if`-node `then`→`whenTrue`/`whenFalse`).
 - **Repo state:** `main` has the skeleton packages, all `.vscode/` workspace settings (#65/#66/#68), and
-  ADR 0025 (#69, Accepted). No open PRs at time of writing — everything merged/cleaned up.
+  ADR 0025 (#69) + ADR 0015 (#70), both Accepted. No open PRs at time of writing — everything
+  merged/cleaned up.
 
 ### Accepted ADRs
 
@@ -38,6 +39,7 @@
 | 0009 | Cross-cutting: error taxonomy, logging (pino+Sentry), auth (Supabase Cloud + self-hosted GoTrue), RBAC (Owner/GM/Player/Spectator) |
 | 0010 | Security & Privacy by Design (STRIDE threat model, plugin sandbox, `SecretsPort`/`CryptoPort`, crypto-shredding for DSGVO erasure, security fitness functions for #9) |
 | 0011 | API design & contracts |
+| 0015 | Compliance & data protection (DSGVO ops): event-sourced/scoped consent (ConsentPort), resource-scoped external-AI consent + all-subjects transfer rule (point E), DSAR over crypto-shredding + Art. 12(3) SLA, required RoPA + processor/DPA/TIA register, DPIA screening, ToS ≥16 (R1–R4) |
 | 0017 | Testing strategy: 5-layer pyramid, port/plugin-SDK contract tests, `bun test`+Playwright+fast-check, qualitative coverage bar |
 | 0020 | Core-vs-plugin boundary (rule-agnostic meta-model) |
 | 0021 | Rules Execution: formula AST, generic dice/roll model, seeded-RNG determinism, roll event schema |
@@ -50,7 +52,9 @@
 (DSGVO transfers, AI Act Art. 50, Cyber Resilience Act, BFSG, DSA, NIS2, Data Act, Widerrufsbutton,
 JMStV, Digital Fairness Act) with an applicability assessment, deadline and lead ADR. Two deadlines
 are near-term: **AI Act Art. 50** (chatbot disclosure) on **2 Aug 2026**, **Widerrufsbutton** from
-**19 Jun 2026**. Two topics (Widerrufsbutton, JMStV) have no lead ADR yet — open gap for ADR 0010/0015.
+**19 Jun 2026**. Both formerly-unowned topics now have a lead ADR: **Widerrufsbutton → ADR 0015 §9**
+(trigger-gated to a paid tier), **JMStV → ADR 0010 §8** (private-campaign-scoped visibility + reserved
+age-gate hook, reaffirmed by ADR 0015 R4's ToS ≥16).
 
 ## Next steps (revised order)
 
@@ -75,9 +79,16 @@ numeric, but implementation-blocking ADRs first. All under **Epic #1**; Epic #10
    unvalidated trait kinds, plugin AI-tools and themes are *reserved*. Owner decisions R1–R3: 1.0 gated on
    DSA5 Phase 3 + a second rule system; JSON-Schema validation deferred to before the third-party registry
    opens; the third-party registry itself gated on 1.0.
-7. **ADR 0015 — Compliance ops + consent** (#17) — **← current focus.** Early (Impressum gap, AI-consent
-   scoping = constraint E).
-8. **ADR 0012** (#14, before `apps/web`) · **ADR 0014** (#16, before cloud sync / real users).
+7. ✅ **ADR 0015 — Compliance ops + consent** (#17) — Accepted 2026-07-09 (PR #70). The operational DSGVO
+   layer over ADR 0010/0009: event-sourced/versioned/scoped consent (`ConsentPort`); resource-scoped
+   external-AI consent + all-affected-subjects transfer rule (resolves constraint E); DSAR use-cases over
+   crypto-shredding with the Art. 12(3) SLA; required RoPA + processor/DPA/TIA register; DPIA screening;
+   AI-Act Art. 50 detail; trigger-gated Impressum / ToS / cookie (→0019) / Widerrufsbutton. Owner
+   decisions R1–R4 (max-utility external AI once *all* affected subjects consent + Ollama as an opt-in
+   sovereignty alternative; imprint timing; no DPIA now; ToS ≥16 for Art. 8). **Operational follow-up
+   tickets opened** (RoPA/processor-register doc, ToS+imprint content, ConsentPort/consent-gate at Phase 2).
+8. **ADR 0012** (#14, before `apps/web`) · **ADR 0014** (#16, before cloud sync / real users) —
+   **← current focus** (the next implementation-blocking ADRs).
 9. **Trigger-gated backlog** (not blocking now): ADR 0023 Event-Payload-Privacy (#43, before real
    aggregates), ADR 0024 Realtime/Presence (#44), ADR 0013 perf budgets (#15), ADR 0019 Analytics (#23),
    ADR 0016 a11y/i18n (#18). Further deferred/trigger-gated topics (asset pipeline, plugin

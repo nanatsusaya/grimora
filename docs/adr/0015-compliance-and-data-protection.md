@@ -1,7 +1,7 @@
 # ADR 0015 — Compliance & data protection (DSGVO ops, consent, EU residency)
 
-- **Status:** Proposed
-- **Date:** 2026-07-09
+- **Status:** Accepted
+- **Date:** 2026-07-09 (accepted via PR #70, issue #17)
 - **Deciders:** project owner + AI agents
 - **Depends on:** [ADR 0003](0003-overall-architecture.md) (§6 security/privacy-by-design, §7 ports
   catalog, §9 bounded contexts), [ADR 0004](0004-event-sourcing-cqrs.md) (intention-revealing events,

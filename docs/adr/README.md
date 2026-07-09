@@ -24,7 +24,7 @@ listed here with a status.
 | 0012 | Web rendering & frontend state | Planned (issue #14) |
 | 0013 | Scalability, performance & caching | Planned (issue #15) |
 | 0014 | DevOps: CI/CD, IaC, environments, backup/DR | Planned (issue #16) |
-| [0015](0015-compliance-and-data-protection.md) | Compliance & data protection (DSGVO ops, consent, EU residency) | Proposed |
+| [0015](0015-compliance-and-data-protection.md) | Compliance & data protection (DSGVO ops, consent, EU residency) | Accepted |
 | 0016 | Accessibility (WCAG 2.2 AA / BFSG) & i18n | Planned (issue #18) |
 | [0017](0017-testing-strategy.md) | Testing strategy | Accepted |
 | 0018 | Domain-Driven Design | Retired — folded into ADR 0003 §9 |
