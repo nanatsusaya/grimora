@@ -71,7 +71,7 @@ convention** (fragile heuristics are rejected, Alternatives):
   subject named by `subjectRef`. Subject to §4 encryption scope and §5 erasure.
 - **`personalFreeText(subjectRef)`** — free-text authored by `subjectRef` (campaign notes, handouts,
   character backstory) that **may textually mention third parties**; treated as personal, with the
-  extra third-party-mention handling of §7 / **O1**.
+  extra third-party-mention handling of §7 (R1).
 
 Rules:
 - **A field's `subjectRef` names its data-owner.** A single event may carry fields for **multiple**
@@ -103,9 +103,13 @@ and authorization-on-replay), they are treated as **pseudonyms**:
 
 ### 4. Encryption & key hierarchy — per-subject DEK, envelope-distributed to authorized devices
 
-`personal*` fields (per the §4 *scope*, which is **O3**) are encrypted **at rest** via `CryptoPort`
-(ADR 0010 §5); **`nonPersonal` stays plaintext** (preserves query/search, avoids the crypto-sprawl
-ADR 0010 §5 warned against):
+Personal fields **within the encrypted scope (R3)** are encrypted **at rest** via `CryptoPort`
+(ADR 0010 §5); **`nonPersonal` stays plaintext**, and lower-sensitivity personal fields *outside* the
+encrypted scope rely on pseudonymisation + read-model deletion + account-mapping destruction (§3/§5)
+instead of a key (this preserves query/search and avoids the crypto-sprawl ADR 0010 §5 warned against).
+**R3 scope:** a **minimal high-sensitivity subset** — real name, email and `personalFreeText` — is
+field-encrypted; the exact list is recorded in the RoPA (ADR 0015 §6) and can be tightened later. The
+key model below is the same regardless of scope:
 
 - **One Data Encryption Key (DEK) per subject** (`DEK_S`). Chosen over a per-campaign key because DSGVO
   Art. 17 requires erasing **one** person without re-keying everyone else's shared data — a per-campaign
@@ -139,11 +143,12 @@ Erasing subject **S** (makes ADR 0010 §6 + ADR 0015 §4 concrete):
    un-decryptable) log, so they are **not** a separate erasure gap; they store the **encrypted** field
    form, never a decrypted personal snapshot.
 
-**Honest residual boundary (O2):** crypto-shredding definitively covers the **controller's** stores
-(cloud DB, server backups) and instructs all app replicas to purge. It **cannot** reach data a member
-**already saw or exported** on a device outside the controller's control (a rooted device that extracted
-`DEK_S`, a screenshot, a manual export) — this is the **irreducible** limit of *any* system that shows
-data to a user, not a Grimora-specific hole; the only alternative is not offering offline/shared play.
+**Honest residual boundary (R2 — accepted):** crypto-shredding definitively covers the **controller's**
+stores (cloud DB, server backups) and instructs all app replicas to purge. It **cannot** reach data a
+member **already saw or exported** on a device outside the controller's control (a rooted device that
+extracted `DEK_S`, a screenshot, a manual export) — this is the **irreducible** limit of *any* system
+that shows data to a user, not a Grimora-specific hole; the only alternative is not offering
+offline/shared play. This boundary is **accepted** and **documented in the RoPA** (ADR 0015 §6).
 
 ### 6. Graceful degradation (Constraint D) — describe(), projections and search tolerate missing fields
 
@@ -167,9 +172,10 @@ The §2 classification is exactly the machinery ADR 0015 §3/R1 deferred. At the
 - A **`personal(subjectRef)`** field is included **only if `subjectRef` has a valid, un-withdrawn consent
   for that provider** (ADR 0015 §3); otherwise it is **dropped** (structural filtering — reliable,
   because ownership is declared, not guessed).
-- A **`personalFreeText`** field is the hard case (**O1**): it may mention third parties who never
-  consented. It is **not** transmitted to an external provider unless the O1 policy is satisfied
-  (conservative default recommended: all campaign members consented, else the action stays local/Ollama).
+- A **`personalFreeText`** field is the hard case (**R1**): it may mention third parties who never
+  consented. It is **not** transmitted to an external provider unless **all campaign members whose data
+  could be in scope have consented**; otherwise the action stays local (Ollama). The **erasure boundary**
+  is documented: B's mention inside A's note is **A's content** — erased when A is erased, not when B is.
 
 This makes ADR 0015's "never transmit non-consented personal data" **mechanically enforceable** rather
 than aspirational.
@@ -201,10 +207,11 @@ erasure boundary is **named**, not hidden.
 key-management complexity** (wrapping, membership changes, revocation) — the price of lawful
 single-subject erasure in an offline/shared model; classification is **mandatory metadata on every event
 field** (core and plugin), a modest authoring burden enforced at load; field-encrypted personal data is
-**not server-queryable** in plaintext, constraining server-side search/analytics on those fields (§9 /
-O3); and the residual boundary (O2) means erasure is **not** absolute against copies already on member
-devices — an inherent, documented limit. The scope of *what* is encrypted (O3) trades privacy strength
-against queryability and complexity and is left to the owner.
+**not server-queryable** in plaintext, constraining server-side search/analytics on those fields (§9);
+and the accepted residual boundary (R2) means erasure is **not** absolute against copies already on
+member devices — an inherent, documented limit. The chosen encrypted scope (R3 — a minimal
+high-sensitivity subset) trades some cryptographic-erasure strength on the unencrypted personal fields
+for queryability and lower complexity.
 
 ## Alternatives considered
 
@@ -226,30 +233,29 @@ against queryability and complexity and is left to the owner.
   event schema**; deciding them after real personal aggregates are built is the expensive retrofit
   ADR 0010 explicitly wanted to avoid.
 
-## Open questions (for owner review)
+## Resolved questions (owner decisions, 2026-07-09)
 
-- **O1 — Free-text fields that mention third parties (§2/§7).** A `personalFreeText` field owned by
-  author A (a campaign note) may textually contain B's personal data. For **external-AI egress**: **(a)**
-  treat the field as owned solely by A and transmit on A's consent alone (accept the mention-risk,
-  document it), **(b)** transmit only if **all** campaign members consented, else keep the action
-  local/Ollama, or **(c)** run a redaction pass first. For **erasure**: A's note mentioning B is A's
-  content, erased when **A** is erased, not when B is — is that boundary acceptable? **Recommendation:
-  (b) for egress** (conservative — free-text never leaves unless everyone consented) + **document the
-  erasure boundary** (B's mention inside A's note is A's content). This is a product/legal call.
-- **O2 — Accept the residual erasure boundary (§5)?** Confirm that crypto-shredding erases the
-  controller's stores + backups and instructs all replicas to purge, but **cannot** reach data already
-  seen/exported on a device outside the controller's control — an inherent limit, documented as the
-  erasure boundary in the RoPA. **Recommendation: yes** — it is irreducible for any offline/shared-play
-  system; the alternative is not offering offline/shared play. (Legal-risk acceptance, owner-domain.)
-- **O3 — How aggressively to field-encrypt (§4 scope).** ADR 0010 R3 chose transparent-at-rest by
-  default + field-encryption "only where identified" — this ADR is the identification. Posture **(a)
-  encrypt *all* `personal*` fields** (strongest cryptographic erasure; kills server-side query/search on
-  them; most key-management), or **(b) encrypt a *minimal high-sensitivity subset*** (real name, email,
-  `personalFreeText`) and rely on **pseudonymisation + read-model deletion + account-mapping destruction**
-  for lower-sensitivity personal fields (lighter, preserves queryability, weaker crypto-erasure for the
-  unencrypted subset). **Recommendation: (b) minimal subset**, matching ADR 0010's "avoid crypto sprawl"
-  and the project's stage — with the high-sensitivity set encrypted and the exact list recorded in the
-  RoPA (ADR 0015 §6). Owner-domain: privacy strength vs. functionality/complexity.
+- **R1 — Free-text fields that mention third parties (§2/§7).** Decided as recommended **(b)**: a
+  `personalFreeText` field is transmitted to an external AI provider **only if all campaign members whose
+  data could be in scope have consented**; otherwise the action stays local (Ollama). The **erasure
+  boundary** is documented — B's mention inside A's note is **A's content**, erased when A is erased, not
+  when B is. A plain-language user-facing explanation is deferred to the user handbook (below).
+- **R2 — Residual erasure boundary (§5).** **Accepted:** crypto-shredding erases the controller's stores
+  + backups and instructs all replicas to purge, but **cannot** reach data already seen/exported on a
+  device outside the controller's control — an irreducible limit for any offline/shared-play system,
+  documented as the erasure boundary in the RoPA (ADR 0015 §6). User-facing risk explanation deferred to
+  the user handbook.
+- **R3 — Field-encryption scope (§4).** Decided as recommended **(b) minimal high-sensitivity subset**:
+  real name, email and `personalFreeText` are field-encrypted with the per-subject DEK; lower-sensitivity
+  personal fields rely on pseudonymisation + read-model deletion + account-mapping destruction (§3/§5).
+  The exact encrypted-field list is recorded in the RoPA (ADR 0015 §6) and can be tightened later. The
+  key model (§4) is unchanged — only the scope is set. User-facing explanation deferred to the user
+  handbook.
+
+**User handbook (deferred, owner-initiated).** The owner will start a user handbook after this ADR
+merges; it will carry the plain-language, user-facing explanations of R1 (free-text / third-party data),
+R2 (the erasure boundary) and R3 (what is and is not encrypted). Recorded here so the obligation is not
+lost — the handbook document/structure is **not** created by this ADR.
 
 ## References
 
