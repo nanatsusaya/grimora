@@ -12,7 +12,9 @@
   [ADR 0010](0010-security-and-privacy-by-design.md) (§4 `SecretsPort`, §5 `CryptoPort`, §6 crypto-shredding
   erasure capability + data locality, §8 DSA/JMStV hooks, §9 Impressum routing).
   Relates to [ADR 0011](0011-api-design.md) (§9 auth in the contract, contract surface for a future
-  withdrawal/DSAR endpoint), ADR 0019 (analytics/telemetry consent — still Planned).
+  withdrawal/DSAR endpoint), ADR 0019 (analytics/telemetry consent — still Planned), ADR 0023
+  (event-payload personal-data classification — still Planned; owns the per-field exclusion mechanism §3
+  relies on).
 
 ## Context
 
@@ -96,11 +98,16 @@ US provider (a DSGVO international transfer, ADR 0010 §6 / matrix Schrems-II ro
   per-user global default. The scope is part of the consent record (§2).
 - **The transmission rule (enforced at the AI egress boundary, application layer):** an external
   provider call is permitted **only if every data subject whose personal data appears in that payload has
-  a valid, un-withdrawn consent** covering **that provider**. If any affected subject has not consented,
-  the system **must not transmit their personal data** — it either **redacts** the non-consented subjects'
-  personal fields from the prompt or **withholds** the external call and **falls back to local Ollama**
-  (ADR 0008 §7). Non-consented personal data is **never** sent to an external provider. The exact
-  default when consent is partial (redact-and-proceed vs. local-fallback vs. block) is **O1**.
+  a valid, un-withdrawn consent** covering **that provider**. When the **whole affected group has
+  consented**, external AI runs with **full context (maximum utility)** — the common, intended path.
+  **Local Ollama is offered as an equivalent, opt-in data-sovereignty alternative** (not a degraded
+  fallback), so any user can keep their data on-device by choice (ADR 0008 §7). Consent stays **informed
+  and specific** (§2): "simplest for the user" never means a pre-ticked or bundled grant (Art. 7).
+  **Invariant (non-negotiable):** the personal data of a subject who has **not** consented is **never**
+  transmitted to an external provider — where a group has not all consented, that subject's personal data
+  is **excluded** or the action uses Ollama. The **concrete exclusion mechanism** (structural read-model
+  filtering by data-owner vs. field-level redaction) is settled together with **ADR 0023** (event-payload
+  personal-data classification, still Planned), **not fixed here**, so this ADR does not pre-empt it (R1).
 - **Consent is provider-scoped:** a different provider is a different recipient (and often a different
   transfer country), so **switching provider** (e.g. Anthropic → OpenAI) requires **fresh consent** for
   the new recipient; the old consent does not carry over.
@@ -168,8 +175,8 @@ A **DPIA screening** is recorded now (in the RoPA doc) and concludes, at the **c
 full DPIA is **not** required: no large-scale processing, no systematic monitoring, no special-category
 (Art. 9) data by design. The screening defines explicit **re-trigger** conditions — a full DPIA is
 required **before** any of: processing **special-category data**, **large-scale** processing, systematic
-**profiling/scoring**, or public content feeds (ADR 0010 §8). Whether to accept this "no DPIA now"
-conclusion is **O3** (a legal-risk acceptance, owner-domain).
+**profiling/scoring**, or public content feeds (ADR 0010 §8). The "no DPIA now" conclusion is
+**accepted (R3)**, a documented legal-risk acceptance with the explicit re-triggers above.
 
 ### 8. AI-Act Art. 50 transparency — operational deployer detail
 
@@ -190,7 +197,9 @@ the compliance matrix, without building anything in Phase 1:
 - **Impressum (§5 DDG)** — the matrix flags this as plausibly required **today** (an offer beyond purely
   private/family use, incl. the public repo), independent of Gewerbe/revenue. Publishing a compliant
   imprint is a **content deliverable** (not architecture). **When** to publish it, and how to handle the
-  **owner's personal-data exposure** it requires (real name + reachable address), is **O2** (owner/legal).
+  **owner's personal-data exposure** it requires (real name + reachable address), is **decided (R2)**:
+  a minimal imprint at the first publicly reachable service, a lightweight contact/imprint in the repo
+  meanwhile, a lawful service-address permitted over a home address — subject to owner/legal confirmation.
 - **DSA notice-and-action + ToS + point of contact** — the *architectural* hooks (addressable,
   individually removable, event-sourced uploads; takedown = domain event) are already ADR 0010 §8. This
   ADR owns the **ToS content, point-of-contact publication, and the notice-and-action operational
@@ -246,8 +255,11 @@ self-executing compliance.
   prompt carries other players' personal data, so per-user consent would authorize transferring a
   non-consenting third party's data to a US provider (unlawful transfer). Resource-scoped + all-subjects
   rule (§3) is required.
-- **Redact-and-always-proceed on partial consent** — considered for §3; not fixed here because the safe
-  default (redact vs. local-fallback vs. block) is a product/legal-risk call — left as **O1**.
+- **Fixing a single partial-consent *mechanism* (per-field redaction vs. block) now** — rejected: the
+  *policy* is decided (R1 — max utility once all affected subjects consent; Ollama as an opt-in
+  data-sovereignty alternative; non-consented data never transmitted), but the *concrete exclusion
+  mechanism* for non-consented subjects depends on the per-field personal-data classification **ADR 0023**
+  owns, so it is routed there rather than pre-empted here (CLAUDE.md "do not implement ahead of a decision").
 - **Store consent as a mutable boolean flag on the user profile** — rejected: loses the Art. 7(1)
   proof trail and Art. 7(3) withdrawal history, and violates the ADR 0004 intent-event rule. Event-sourced
   consent (§2) is auditable by construction.
@@ -259,29 +271,29 @@ self-executing compliance.
   rejected: over-reaches an architecture ADR into legal-ops content and pre-empts ADR 0019 (analytics
   consent) and monetization decisions not yet made. Routed with triggers (§9) instead.
 
-## Open questions (for owner review)
+## Resolved questions (owner decisions, 2026-07-09)
 
-- **O1 — External-AI consent granularity + partial-consent default (§3).** Confirm **campaign-scoped**
-  consent (layered over an optional per-user default) as the grain, and choose the default when **not
-  all** affected subjects have consented: **(a)** redact the non-consented subjects' personal data and
-  proceed with the external call, **(b)** withhold the external call and fall back to **local Ollama**, or
-  **(c)** block the AI action entirely. **Recommendation: campaign-scoped + never transmit non-consented
-  personal data, defaulting to (b) local-fallback** (safest, keeps the app usable), with (a) redaction as
-  a later refinement — because the invariant "no non-consented personal data leaves to a US provider" must
-  hold regardless, and a local fallback preserves the frontend-first/AI-optional posture (ADR 0008 §7).
-- **O2 — Impressum: when, and how to handle personal-data exposure (§9).** The matrix says an imprint is
-  plausibly required **today** (offer beyond private/family use, incl. the public GitHub repo), yet a
-  compliant §5-DDG imprint requires the owner's **real name + a reachable address**, which is itself a
-  privacy exposure. **Recommendation (owner/legal): publish a minimal imprint when the first publicly
-  reachable Grimora service/landing page goes live, and in the meantime add a lightweight contact/imprint
-  to the public repo**, using a lawful **service/PO-box-style address** rather than a home address if the
-  owner prefers — but this is a personal-data and legal-risk call for the owner, worth a short check with
-  a lawyer given the *Abmahnung* exposure the matrix notes.
-- **O3 — Accept the "no DPIA at current scale" screening (§7)?** Confirm that, at today's scale (no
-  large-scale or special-category processing, no profiling), **no full DPIA is required**, recorded as a
-  screening with explicit re-trigger conditions. **Recommendation: yes** — a documented screening +
-  re-triggers is proportionate for a solo, pre-revenue project; a full DPIA is premature until one of the
-  named triggers (special-category data, large scale, profiling, public content) fires.
+- **R1 — External-AI consent granularity + partial-consent policy (§3).** Consent is **campaign-scoped**
+  (over an optional per-user default). The owner chose **maximum AI utility as the intended path**: once
+  **every** affected data subject (not only the acting GM) has actively, informedly consented for the
+  provider, external AI runs with **full context**. **Local Ollama is offered as an equivalent, opt-in
+  data-sovereignty alternative**, so a user can keep their data on-device by choice. The **non-negotiable
+  invariant** holds regardless: a non-consenting subject's personal data is **never** transmitted to an
+  external provider — where a group has not all consented, that subject's data is excluded or the action
+  uses Ollama. The **concrete exclusion mechanism** (structural read-model filtering vs. field-level
+  redaction) is **routed to ADR 0023** (personal-data classification), not fixed here, so this ADR does
+  not pre-empt it. Consent remains informed/specific (Art. 7) — "simplest for the user" is not a
+  pre-ticked/bundled grant.
+- **R2 — Impressum timing + personal-data exposure (§9).** Decided as recommended: publish a **minimal
+  imprint when the first publicly reachable Grimora service/landing page goes live**, add a **lightweight
+  contact/imprint to the public repo** in the meantime (the repo plausibly triggers §5 DDG already), and
+  use a lawful **service-style address** over a home address if preferred. This stays an **owner/legal**
+  action item — worth a short lawyer check given the *Abmahnung* exposure the matrix notes; the ADR fixes
+  the trigger and owner, not the imprint content.
+- **R3 — DPIA screening (§7).** Decided as recommended: at the current scale (no large-scale or
+  special-category processing, no profiling), **no full DPIA is required**, recorded as a documented
+  screening with explicit re-trigger conditions (special-category data, large scale, profiling, public
+  content). A full DPIA is premature until one of those triggers fires.
 
 ## References
 
@@ -293,7 +305,8 @@ self-executing compliance.
   RBAC, PII-safe logging), [ADR 0010](0010-security-and-privacy-by-design.md) (§4 secrets, §5 crypto,
   §6 crypto-shredding erasure + data locality, §8 DSA/JMStV hooks, §9 Impressum routing),
   [ADR 0011](0011-api-design.md) (§9 auth in contract; future withdrawal/DSAR endpoint surface),
-  ADR 0019 (analytics/telemetry consent — Planned),
+  ADR 0019 (analytics/telemetry consent — Planned), ADR 0023 (event-payload personal-data classification
+  — Planned; owns the §3 per-field exclusion mechanism),
   [`docs/legal/eu-de-compliance-matrix.md`](../legal/eu-de-compliance-matrix.md) (authoritative
   applicability/deadlines), [`docs/legal/dsa5-content-boundary.md`](../legal/dsa5-content-boundary.md).
   Primary sources checked: [DSGVO Art. 30](https://gdpr-info.eu/art-30-gdpr/) (RoPA small-org exemption),
