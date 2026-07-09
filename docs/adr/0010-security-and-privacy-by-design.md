@@ -65,7 +65,7 @@ persistence boundary (app ↔ Postgres/SQLite, guarded additionally by RLS).
 | Threat (STRIDE) | Example in Grimora | Mitigation (owning §) |
 | --- | --- | --- |
 | **S**poofing | Forged session/JWT; impersonating a GM | `AuthPort` token validation at the inbound adapter only (ADR 0009 §3); short-lived access tokens + refresh |
-| **T**ampering | Malicious plugin mutates another character; forged sync events | Plugin sandbox + host-port-only data access (§3); insert-only signed/append event log, per-aggregate authorization on replay (ADR 0004/0005); RLS defense-in-depth |
+| **T**ampering | Malicious plugin mutates another character; forged sync events | Plugin sandbox + host-port-only data access (§3); insert-only signed/append event log, per-aggregate authorization on replay (ADR 0004/0005); RLS defense-in-depth. **Sync-trust model: [ADR 0024 §2](0024-realtime-presence-sync-trust.md)** — cross-tenant forgery is hard-blocked (actor-binding + stream authz + version); a client's **own-aggregate** fabrication is a bounded, attributable social-contract residual, not cryptographically prevented (amended 2026-07-09) |
 | **R**epudiation | "I never raised that attribute" | Event sourcing is the immutable, attributable audit trail (ADR 0004); correlation IDs in log metadata (ADR 0009 §2) |
 | **I**nformation disclosure | PII in logs; secrets leaking to a plugin/AI; cross-tenant read | PII redaction at the logging adapter (ADR 0009 §2); `SecretsPort` only at composition root (§4); plugins never receive secrets (§3); AuthorizationPort + RLS (ADR 0009 §3); AI egress consent gate (ADR 0008 §7) |
 | **D**enial of service | AI token-budget exhaustion; expensive plugin behaviour; sync flooding | `RateLimited` category + per-user/plan budgets (ADR 0009 §1, ADR 0008 §6); sandbox execution limits (§3); input-size caps at adapters |
@@ -307,3 +307,12 @@ All five review questions were resolved by the owner; the decisions above alread
   (DSGVO ops: DSAR/consent/transfer impact, DSA ToS & point of contact, Impressum),
   ADR 0019 (analytics/telemetry consent), [`docs/legal/eu-de-compliance-matrix.md`](../legal/eu-de-compliance-matrix.md),
   [`docs/legal/dsa5-content-boundary.md`](../legal/dsa5-content-boundary.md). Issue #12.
+
+## Amendments
+
+- **2026-07-09** — *Authorized by the project owner.* §1 threat-model cross-reference (no decision
+  change): the "forged sync events" **T**ampering row now points at the precise sync-trust model in
+  [ADR 0024 §2](0024-realtime-presence-sync-trust.md) — cross-tenant forgery is hard-blocked, while a
+  client's own-aggregate fabrication is a **named, bounded, attributable** social-contract residual
+  (ADR 0024 R1). This makes the previously optimistic-sounding mitigation honest. (ADR 0024 §10 flagged
+  this cross-reference; the threat table is explicitly a *living* model, §1.)
