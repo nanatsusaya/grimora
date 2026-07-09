@@ -25,7 +25,10 @@ import { deriveSeed, makeSeededRng } from './rng';
 /** Folded character state, including the generic trait container and the roll sequence. */
 export interface CharacterState {
   readonly id: EntityId;
+  /** Whether a `character.created` event has been folded — distinguishes an **empty stream** from a
+   * real character so decide-functions enforce create-once and reject rolls/edits on a non-existent id. */
   readonly exists: boolean;
+  /** The last applied event's per-aggregate version — the optimistic-concurrency baseline on append. */
   readonly version: number;
   readonly name: string;
   readonly campaignId: EntityId;
@@ -40,7 +43,11 @@ export interface CharacterState {
   readonly rollSequence: number;
 }
 
-/** Identity/provenance needed to create a character, bound to exactly one rule system. */
+/**
+ * Identity/provenance needed to create a character, bound to exactly one rule system. Mirrors the
+ * `character.created` payload; the fields carry the same meaning (see `events.ts`) — notably
+ * `ruleSystemId` names the *ruleset* while `pluginId`/`pluginVersion` are the *code provenance*.
+ */
 export interface CreateCharacterInput {
   readonly name: string;
   readonly campaignId: EntityId;
@@ -50,8 +57,14 @@ export interface CreateCharacterInput {
   readonly pluginVersion: string;
 }
 
-/** The zero state for a character stream before any event is applied. */
+/**
+ * The zero state for a character stream before any event is applied (the fold's identity element).
+ * @param id  the character stream id this empty state stands for
+ * @returns   a non-existent (`exists: false`, `version: 0`) character state
+ */
 export function emptyCharacter(id: EntityId): CharacterState {
+  // Empty-string sentinels for the branded ids/name: none of these fields is read while `exists` is
+  // false (the decide-functions guard on it), so throwaway values avoid an Option on every field.
   return {
     id,
     exists: false,
@@ -71,6 +84,9 @@ export function emptyCharacter(id: EntityId): CharacterState {
  * Fold one stored event into character state (ADR 0004 §1). For `character.checkRolled`, the roll
  * sequence is restored from the stored seed so a replay re-derives the *next* roll's seed identically
  * (determinism, ADR 0021 §3) — the roll itself is never re-executed (ADR 0022 §6).
+ * @param state  the state folded so far
+ * @param event  the stored event to apply (its `version` becomes the new state version)
+ * @returns      the next character state
  */
 export function applyCharacter(state: CharacterState, event: StoredEvent): CharacterState {
   const next = { ...state, version: event.version };
@@ -115,6 +131,9 @@ export function applyCharacter(state: CharacterState, event: StoredEvent): Chara
 /**
  * Decide the events for creating a character bound to one rule system (ADR 0006 §9), recording plugin
  * provenance (ADR 0006 §4).
+ * @param state  the current (expected non-existent) character state
+ * @param input  identity + rule-system binding + plugin provenance for the new character
+ * @returns      the `character.created` event, or a `Conflict`/`Validation` error
  */
 export function createCharacter(
   state: CharacterState,
@@ -199,6 +218,9 @@ export function rollCheck(
   const rng = makeSeededRng(deriveSeed(state.id, sequence));
   const rolls = rollTerms(check, rng);
 
+  // SKELETON SIMPLIFICATION (explicit): `log` is a no-op sink — plugin diagnostic logging goes through
+  // a real `LoggerPort` (ADR 0009 §2) at the composition root once one exists; here it must simply do
+  // nothing (never touch console/globals) to keep the Domain pure.
   const resolved = check.resolve({ rolls, targets }, { rng, log: () => {} });
   if (!resolved.ok) {
     return err(appError(resolved.error.code, resolved.error.category, resolved.error.messageKey));
@@ -209,6 +231,10 @@ export function rollCheck(
     id: requestId,
     terms: check.terms,
     context: { aggregateId: state.id, checkId: check.id, targets },
+    // SKELETON SIMPLIFICATION (explicit): visibility is hardcoded `public` because the golden slice has
+    // no hidden-roll producer yet. It is architecturally significant (ADR 0024 §4 routes/encrypts by
+    // visibility, and a hidden roll must still stay on this aggregate's stream — see `applyCharacter`),
+    // so a real GM/hidden-roll path must set this deliberately, not inherit the default.
     visibility: 'public',
   };
   const result: RollResult = { requestId, rolls, outcome, seed };

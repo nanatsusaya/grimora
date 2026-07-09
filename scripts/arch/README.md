@@ -22,6 +22,7 @@ gating the same as lint/typecheck/test/build.
 | **Harness self-test** | `boundaries.test.ts` | The ruleset actually *fails* on a deliberate violation — proven against `__fixtures__/violations/` (issue #9 acceptance) |
 | **ADR index sync** | `adr-index.test.ts` | Every ADR file is linked from `docs/adr/README.md`, every link resolves, every ADR declares a Status |
 | **Workspace manifests** | `workspace-manifests.test.ts` | ADR 0003 §5 conventions: `@grimora`-scoped, private, ESM, single `src/index.ts` entry |
+| **Doc conformance** | `doc-conformance.test.ts` (ts-morph) | CLAUDE.md doc rule (**presence** half): every exported symbol carries a doc block; every exported function documents each parameter with `@param`. Presence only — the why-vs-what quality stays a review call |
 
 Most import-boundary rules are **forward-looking**: the target modules (`core-domain`, adapters,
 `plugins/*`, `apps/*`) mostly don't exist yet, so they match nothing today and start enforcing the

@@ -26,7 +26,10 @@ interface TraitDefinitionBase {
 /** A rated attribute (e.g. DSA5 "Courage"): a directly-stored numeric value with bounds. */
 export interface AttributeDefinition extends TraitDefinitionBase {
   readonly kind: 'attribute';
+  /** **Inclusive** lower bound. The **core** enforces `[min, max]` when a value is set (`setAttribute`);
+   * the plugin only declares the range, so bounds-checking is not duplicated per plugin. */
   readonly min: number;
+  /** **Inclusive** upper bound (see {@link AttributeDefinition.min}). */
   readonly max: number;
   /** Value used at character creation before any explicit assignment. */
   readonly defaultValue: number;
@@ -35,8 +38,11 @@ export interface AttributeDefinition extends TraitDefinitionBase {
 /** A rated skill (e.g. a talent): like an attribute, but tested via a check against attributes. */
 export interface SkillDefinition extends TraitDefinitionBase {
   readonly kind: 'skill';
+  /** Inclusive lower bound, core-enforced on set — same contract as {@link AttributeDefinition.min}. */
   readonly min: number;
+  /** Inclusive upper bound, core-enforced on set. */
   readonly max: number;
+  /** Value used at character creation before any explicit assignment. */
   readonly defaultValue: number;
 }
 

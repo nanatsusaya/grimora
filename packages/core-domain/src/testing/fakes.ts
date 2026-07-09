@@ -134,12 +134,23 @@ export function createInMemoryReadModelStore(): ReadModelStorePort {
   };
 }
 
-/** A deterministic clock (ADR 0004 §9): a fixed instant, so event timestamps are reproducible. */
+/**
+ * A deterministic clock (ADR 0004 §9): always returns the same instant, so event timestamps are
+ * reproducible across runs (a real wall-clock would make tests non-deterministic).
+ * @param iso  the fixed instant every `now()` returns (defaults to a stable arbitrary timestamp)
+ * @returns    a `ClockPort` whose `now()` is constant
+ */
 export function createFixedClock(iso = '2026-07-07T00:00:00.000Z'): ClockPort {
   return { now: () => iso as IsoTimestamp };
 }
 
-/** A deterministic id generator (ADR 0004 §2 in tests): sequential ids from a prefix. */
+/**
+ * A deterministic id generator (ADR 0004 §2 in tests): sequential, prefixed ids instead of random
+ * UUIDv7s, so event ids are reproducible and the per-client `prefix` keeps ids globally unique when
+ * several simulated devices push to one store (the sync harness relies on this).
+ * @param prefix  a per-generator prefix (e.g. a device label) guaranteeing cross-store id uniqueness
+ * @returns       an `IdGeneratorPort` producing `${prefix}-0001`, `${prefix}-0002`, …
+ */
 export function createSequentialIdGenerator(prefix = 'id'): IdGeneratorPort {
   let n = 0;
   return {
@@ -163,7 +174,12 @@ export function createOwnerPolicy(): PolicyPort {
   };
 }
 
-/** A scripted AI provider (ADR 0008 §1 fake): returns a pre-set tool-call proposal, or nothing. */
+/**
+ * A scripted AI provider (ADR 0008 §1 fake): returns a pre-set proposal regardless of the prompt, so the
+ * authz-parity test can drive the AI tool path deterministically without a real model.
+ * @param proposal  the tool call to always propose, or undefined to simulate "no tool proposed"
+ * @returns         an `AiProviderPort` that yields `proposal`
+ */
 export function createScriptedAiProvider(proposal: ProposedToolCall | undefined): AiProviderPort {
   return {
     async propose() {

@@ -33,9 +33,24 @@ export interface EventStorePort {
     expectedVersion: number,
     events: readonly EventEnvelope[],
   ): Promise<Result<void, AppError>>;
-  /** Read one aggregate's events in version order (optionally from a version). */
+  /**
+   * Read one aggregate's events in ascending `version` order. `fromVersion` is **exclusive** — it
+   * returns events with `version > fromVersion` (0/omitted = the whole stream). Every adapter MUST honour
+   * this exclusivity: incremental readers pass their last-seen version, so an inclusive implementation
+   * would re-fold the boundary event (double-apply) — a silent correctness bug.
+   * @param streamId     the aggregate stream to read
+   * @param fromVersion  exclusive lower bound; return events strictly after this version
+   * @returns            the stream's events after `fromVersion`, in `version` order
+   */
   readStream(streamId: EntityId, fromVersion?: number): Promise<readonly PersistedEvent[]>;
-  /** Read all events across streams in store `position` order (for projections/sync). */
+  /**
+   * Read all events across streams in store `position` order (for projections/sync). `fromPosition` is
+   * **exclusive** — returns events with `position > fromPosition` (0/omitted = from the start). The
+   * projection checkpoint relies on this exclusivity; an inclusive adapter would reprocess the last
+   * event on every run.
+   * @param fromPosition  exclusive lower bound; return events strictly after this store position
+   * @returns             events after `fromPosition`, in `position` order
+   */
   readAll(fromPosition?: number): Promise<readonly PersistedEvent[]>;
 }
 
@@ -106,7 +121,9 @@ export interface AiProviderPort {
  * `register`) and exposes the collected definitions to use cases.
  */
 export interface RuleSystemRegistryPort {
+  /** The full definition of a loaded rule system, or undefined if no plugin contributed that id. */
   getRuleSystem(ruleSystemId: string): RuleSystemDefinition | undefined;
+  /** A specific check within a rule system (the roll shape + resolution mechanic), or undefined. */
   getCheck(ruleSystemId: string, checkId: string): CheckDefinition | undefined;
   /**
    * Bounds for a **rated** trait (attribute *or* skill — both are stored, bounded values in the generic

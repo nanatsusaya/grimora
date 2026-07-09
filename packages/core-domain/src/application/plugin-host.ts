@@ -33,6 +33,10 @@ export function createPluginHost(): PluginHost {
 
   return {
     load(plugin: GrimoraPlugin): void {
+      // SKELETON SIMPLIFICATION (explicit): `manifest.sdkVersion` is NOT validated here. A real host
+      // must reject/upcast a plugin built against an incompatible SDK version (the ADR 0006 §4
+      // compatibility gate) before running its `register`; the golden slice has one first-party plugin
+      // at a known version, so the check is deferred (tracked with the SDK-freeze work, ADR 0025).
       // Capture the loading plugin's provenance so each rule-system registration is stamped with it.
       const provenance: Provenance = {
         pluginId: plugin.manifest.id,
@@ -40,6 +44,9 @@ export function createPluginHost(): PluginHost {
       };
       const registry: PluginRegistry = {
         registerRuleSystem(definition: RuleSystemDefinition): void {
+          // SKELETON SIMPLIFICATION (explicit): duplicate rule-system ids are **last-write-wins** (no
+          // conflict detection). Acceptable with a single first-party plugin; a multi-plugin/registry
+          // host must reject or namespace collisions (ADR 0006 §5) rather than silently overwrite.
           ruleSystems.set(definition.id, { definition, provenance });
         },
       };

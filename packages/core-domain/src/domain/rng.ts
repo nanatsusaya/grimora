@@ -3,6 +3,12 @@
  * stream id + a per-aggregate roll sequence number, so replaying the event stream reproduces identical
  * rolls. Uses only arithmetic globals (a `mulberry32` generator) — **never** `Math.random` or any Node
  * builtin — so it is pure and honours the determinism fitness function (ADR 0021 §3, ADR 0003 §6.1).
+ *
+ * **Deliberately NOT cryptographic.** `mulberry32` is a fast, tiny, well-known PRNG chosen for
+ * *reproducibility*, not *unpredictability*: because the seed inputs are public, a participant can
+ * precompute their next roll. That is an accepted trade-off for a cooperative hobby TTRPG (ADR 0024 R3),
+ * not a defect — this must never be mistaken for a CSPRNG or used where unpredictability matters (a
+ * server nonce / commit-reveal would be added then, ADR 0024 §3).
  */
 
 import type { SeededRng } from '@grimora/plugin-sdk';

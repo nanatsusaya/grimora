@@ -16,6 +16,7 @@ import { type CommandDeps, rollCheck, setAttribute } from './use-cases';
 
 /** A tool descriptor: a name, the use case it maps to (documented via its authz action), and its executor. */
 export interface AiTool {
+  /** The tool's stable name the provider proposes by (namespaced, e.g. "core.character.rollCheck"). */
   readonly name: string;
   /** The policy action the mapped use case enforces — same authz as the UI (ADR 0008 §2). */
   readonly action: PolicyAction;
@@ -27,7 +28,15 @@ export interface AiTool {
   ): Promise<Result<void, AppError>>;
 }
 
-/** Read a required string argument from a tool call. */
+/**
+ * Read a required string argument from a proposed tool call, returning undefined if absent or not a
+ * string. This is a **trust boundary**: `args` is **untrusted model output** (ADR 0008 §6) — the LLM may
+ * propose anything — so every value is type-checked here before it is passed into a use case, exactly as
+ * the UI validates user input. The use case then re-applies the real authorization/validation.
+ * @param args  the untrusted argument bag the AI provider proposed
+ * @param key   the argument name to extract
+ * @returns     the string value, or undefined if missing / not a string
+ */
 function requireString(args: Readonly<Record<string, unknown>>, key: string): string | undefined {
   const value = args[key];
   return typeof value === 'string' ? value : undefined;
@@ -71,6 +80,7 @@ export function coreAiTools(): readonly AiTool[] {
 
 /** The result of an AI turn that executed a tool. */
 export interface AiTurnResult {
+  /** The name of the tool that ran — enough for the caller/UI to label the AI-performed action. */
   readonly tool: string;
 }
 
