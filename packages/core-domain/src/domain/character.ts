@@ -96,6 +96,15 @@ export function applyCharacter(state: CharacterState, event: StoredEvent): Chara
     }
     case 'character.checkRolled': {
       const p = event.payload as CharacterCheckRolled['payload'];
+      /*
+       * INVARIANT (ADR 0021 §3 + ADR 0024 §4, 2026-07-09 amendment): the roll sequence folds ONLY
+       * from this aggregate's own stream, so a roll event MUST stay on the character stream and must
+       * never be routed to a separate audience stream to hide it. If a hidden roll lived on another
+       * stream, this fold would not see it, the sequence would not advance, and the next visible roll
+       * would re-use the same seed (a determinism bug). `seed` is therefore classified `nonPersonal`
+       * and kept plaintext (ADR 0023 §2) so every authorized replica can advance the counter even when
+       * the roll's *outcome* is encrypted per-audience. Hidden rolls hide the outcome, not the seed.
+       */
       return { ...next, rollSequence: Math.max(state.rollSequence, p.result.seed.sequence) };
     }
     default:

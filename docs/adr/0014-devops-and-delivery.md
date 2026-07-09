@@ -88,9 +88,14 @@ with the trigger named in-line.
 The merge gate stays the **ordered, all-blocking** chain already in
 [`ci.yml`](../../.github/workflows/ci.yml) and CLAUDE.md — **`install --frozen-lockfile → lint →
 typecheck → arch → test → build`** — running on every PR and on `main`. Ordering is deliberate: cheap
-static checks fail fast before the expensive ones. `arch` (ADR 0003 §2) and the ADR 0010 §7 / 0015 §10
-/ 0023 §8 fitness functions are part of `test`/`arch` and therefore **already enforced by CI** — CI is
-the single enforcement point for every conformance rule the harness expresses.
+static checks fail fast before the expensive ones. The harness's **import-boundary** rules (ADR 0003 §2)
+run in `arch` and are enforced by CI **today**. The **call-graph / content** fitness functions —
+default-deny `PolicyPort` (ADR 0010 §7.4), the external-AI consent gate (ADR 0015 §10), per-field
+privacy classification (ADR 0023 §8), UI-reads-read-models-only (ADR 0012 §11) — are **not yet
+implemented** (tracked in **#76**); CI is the enforcement *point* the moment they land, but a green
+`arch` today means "import boundaries hold", **not** "every ADR invariant is machine-checked".
+*(Corrected 2026-07-09 — see Amendments; the original wording claimed these were "already enforced by
+CI", the same overclaim ADR 0025 §7 was amended for.)*
 
 Added by this ADR (making ADR 0010 §7 operational):
 
@@ -362,3 +367,16 @@ deliverables here (the `docs/ops/` rotation + restore runbooks, the first verifi
   [ADR 0025](0025-plugin-sdk-v0-contract.md) (SDK registry publishing trigger-gated),
   [`docs/hosting.md`](../hosting.md) (hosting components & cost outlook),
   [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) (the existing pipeline). Issue #16.
+
+## Amendments
+
+- **2026-07-09** — *Authorized by the project owner.* **§2 erratum (no decision change).** The original
+  §2 claimed the ADR 0010 §7 / 0015 §10 / 0023 §8 fitness functions were "**already enforced by CI**".
+  A code-verified cross-model review (ChatGPT + Claude Fable; logged in
+  [`docs/meta/agent-collaboration-log.md`](../meta/agent-collaboration-log.md)) found this **false**
+  against `.dependency-cruiser.cjs`: the harness enforces only the **import-boundary** rules; the
+  call-graph/content fitness functions (default-deny `PolicyPort`, the consent gate, privacy
+  classification, UI-reads-read-models-only) are **not implemented** (tracked #76). This is the **same
+  overclaim** ADR 0025 §7 was amended for the day before. §2 is corrected to state that only import
+  boundaries are enforced today and CI is the enforcement *point* for the rest once #76 lands. Fixed in
+  the same review batch as the harness scope-hole hardening (PR #89).
