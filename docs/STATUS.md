@@ -9,10 +9,12 @@
 - **Phase 0 (foundation):** ✅ complete — monorepo scaffold (bun + Turborepo + biome),
   `tsconfig.base.json` (strict), CI (`.github/workflows/ci.yml`), `docker-compose` (Postgres + MinIO
   + self-hosted auth via `gotrue` + optional Ollama), `packages/shared-types`, ADR / `docs/legal/` structure.
-- **Phase 1 (architecture as ADRs):** 🟡 in progress — the architectural foundation is worked out as
-  ADRs and merged one PR at a time. **21 ADRs Accepted** (0001–0012 + 0014 + 0015 + 0017 + 0020–0025).
-  The first implementation ticket (conformance harness, #9) is done and merged (`scripts/arch/` +
-  `.dependency-cruiser.cjs`, wired as the CI `arch` step).
+- **Phase 1 (architecture as ADRs):** ✅ complete — **Epic #1 closed 2026-07-10.** The architectural
+  foundation is worked out as ADRs and merged one PR at a time. **21 ADRs Accepted** (0001–0012 + 0014 +
+  0015 + 0017 + 0020–0025). The first implementation ticket (conformance harness, #9) is done and merged
+  (`scripts/arch/` + `.dependency-cruiser.cjs`, wired as the CI `arch` step). "Done" here = the
+  *architecture-ADR run + the walking-skeleton gate*; the operational carry-overs (#71/#72/#76) continue as
+  tracked tickets outside the closed epic (see the close-out cut below).
 - **Walking skeleton built (gate passed):** ✅ #61 / PR #64 — the **first real code beyond
   `shared-types`**: provisional-v0 `packages/plugin-sdk` + `packages/core-domain` (with a
   `/testing` fakes subpath) + minimal `plugins/dsa5` + an `apps/skeleton-walk` composition root and
@@ -178,6 +180,40 @@ and inline-doc accuracy + explicit skeleton boundaries (this PR). None of the ca
 starting Phase 2 — but the Phase-2 slice should stay a **real vertical slice** (local store, projections,
 web shell, authz, privacy envelope), not "core engine in general", so the enforcement catches up with the
 ADRs rather than lagging them.
+
+### Phase 2 — first slice: tickets still to be written (next-session opener)
+
+**We do not yet have a usable Phase-2 plan — this is the deliberate next step, not a gap that blocks it.**
+Epic **#10** (Phase 2 — Core engine) is now **unblocked** (Epic #1 closed; its entry criteria — ADRs
+Accepted + `arch` green in CI — are met), but it is still a **placeholder**: it explicitly deferred its
+sub-issues until the ADRs landed, and the ADRs have landed. So the first Phase-2 job is a **planning pass**
+that breaks #10 into a small, ordered, *testable* ticket set for **one thin vertical slice** — proportionate,
+**not** a speculative 20-ticket dump. Do this with a fresh head at the start of the next session.
+
+**Already ticketed (slot into the slice, do not duplicate):** **#92** privacy classification on the event
+seed (the first mandatory refactor) · **#73** consent subsystem / `ConsentPort` · **#74** DSAR use-cases ·
+**#75** extended formula-AST nodes · carry-over **#76** remaining fitness functions (pull in early so
+enforcement tracks the new code).
+
+**Still to be written — the actual core vertical slice (skeleton → product), roughly in order:**
+1. **Local event-store adapter** — a real `EventStorePort` on SQLite (native) / OPFS (web), replacing the
+   in-memory fake (ADR 0005).
+2. **Persistent read-model projections** — rebuildable from the log, using the documented
+   `readStream`/`readAll` *exclusivity* checkpoint contract (ADR 0004/0005).
+3. **`apps/web` shell** — Vite + React PWA, client-rendered against the local read-models; a minimal
+   character-sheet view (ADR 0012). Likely its own small sub-epic.
+4. **Real authorization** — `PolicyPort` + the Owner/GM/Player/Spectator role×action×resource matrix,
+   replacing the owner-only skeleton policy, plus the existence-before-authz unification (ADR 0009).
+5. **Sync adapter** — insert-only replication + domain rebase against Supabase, building on the existing
+   `sync-harness` (ADR 0005/0024).
+
+**Decision to settle *before* the web-auth work (not to be decided silently in code):** **offline-session
+semantics** — who is the local user on a cold offline start (guest / local-only / multi-user per device)?
+A real ADR 0012/0009 gap → a small amendment or ADR first (CLAUDE.md: do not implement ahead of a decision).
+
+**Also produce during the planning pass:** the **ports catalog** doc (the one Epic-#1 DoD item left open —
+it is exactly the adapter map this slice needs) and keep `docs/roadmap.md` + this file in sync as the slice
+takes shape.
 
 ### External ADR review (2026-07-07) — assessment & consequences
 
