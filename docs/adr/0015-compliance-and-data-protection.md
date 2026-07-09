@@ -164,11 +164,13 @@ ad-hoc scripts:
 
 - **Lawful basis (Art. 6) — the foundational distinction:** the **core service** (accounts, characters,
   campaigns) is processed on **contract-necessity (Art. 6(1)(b))**, *not* consent — so a consent
-  withdrawal never disables the service itself. **Consent (Art. 6(1)(a), plus Art. 49(1)(a) as the
-  derogation for the US transfer)** is reserved for processing that is *not* necessary to the service:
-  **external-AI transmission (§3)** and, later, **analytics (§9 / ADR 0019)**. Legitimate interest
-  (Art. 6(1)(f)) is used only where documented in the RoPA, e.g. minimal security/diagnostic logging
-  (ADR 0009 §2). Each basis is recorded **per purpose** in the RoPA (§6).
+  withdrawal never disables the service itself. **Consent (Art. 6(1)(a))** is the basis for processing
+  that is *not* necessary to the service: **external-AI transmission (§3)** and, later, **analytics
+  (§9 / ADR 0019)**. Legitimate interest (Art. 6(1)(f)) is used only where documented in the RoPA, e.g.
+  minimal security/diagnostic logging (ADR 0009 §2). Each basis is recorded **per purpose** in the RoPA
+  (§6). *(Amended 2026-07-09: the Art. 6 **processing** basis is kept strictly separate from the
+  Chapter V cross-border **transfer mechanism** — see §6; the earlier wording wrongly folded
+  Art. 49(1)(a) in here as the transfer basis.)*
 - **Purpose limitation:** each processing purpose is named in the RoPA (§6) and, for consent-gated
   purposes, in the consent enum (§2); data collected for one purpose is not silently repurposed.
 - **Data minimization & privacy by default (Art. 5(1)(c) + Art. 25 — architecturally owned by
@@ -191,12 +193,18 @@ ad-hoc scripts:
   requirement that a **DPA / Auftragsverarbeitungsvertrag (Art. 28)** is in place **before that processor
   handles real user data**: Supabase (auth + DB + storage, EU region), any object-storage/CDN
   (Cloudflare/R2), Sentry (error tracking), and — when enabled — the external **AI providers**
-  (Anthropic/OpenAI). For the **US-based AI providers**, a **Transfer Impact Assessment (TIA) + SCCs**
-  (Schrems II) is required **before** the provider is enabled, documented per provider (matrix Schrems-II
-  row; ADR 0008 §7 consent is the transfer's legal basis, the TIA is the transfer-mechanism safeguard).
-  The provider contract must additionally **prohibit use of transmitted data for model training and
-  require minimal / zero data retention** (use a zero-data-retention endpoint where the provider offers
-  one) — the material safeguard that makes the transfer defensible, recorded in the TIA.
+  (Anthropic/OpenAI). For a **US-based AI provider**, the **Chapter V transfer mechanism** is
+  established **per provider, before it is enabled**, in this order of preference: **(1) adequacy via the
+  EU–US Data Privacy Framework (Art. 45)** if the provider is **DPF-certified for the relevant data** —
+  verify against the official DPF list (primary source) per provider; otherwise **(2) Standard
+  Contractual Clauses (Art. 46) + a Transfer Impact Assessment (TIA)**. **Art. 49(1)(a) explicit-consent
+  derogation is *not* the mechanism** — per EDPB Guidelines 2/2018 it is reserved for *occasional,
+  non-repetitive* transfers, which a standing product feature is not. Consent (Art. 6(1)(a)) is the
+  **processing** basis for the third parties' data (§3/§5) — a **separate** question from the transfer
+  safeguard, not a substitute for it. The provider contract must additionally **prohibit use of
+  transmitted data for model training and require minimal / zero data retention** (use a
+  zero-data-retention endpoint where offered). All of this is documented **per provider** in the
+  processor register / TIA.
 - **Release gate:** "every active processor has a signed DPA (and, for external transfers, a TIA)" is a
   **go-live checklist item** before real users are onboarded — a checklist gate, not a code artifact.
 
@@ -352,3 +360,18 @@ self-executing compliance.
   applicability/deadlines), [`docs/legal/dsa5-content-boundary.md`](../legal/dsa5-content-boundary.md).
   Primary sources checked: [DSGVO Art. 30](https://gdpr-info.eu/art-30-gdpr/) (RoPA small-org exemption),
   [DSGVO Art. 12](https://gdpr-info.eu/art-12-gdpr/) (one-month DSAR deadline). Issue #17.
+
+## Amendments
+
+- **2026-07-09** — *Authorized by the project owner.* Corrected a legal-dogmatic error in §5/§6: the
+  Art. 6 **processing** basis (consent) was conflated with the Chapter V cross-border **transfer
+  mechanism**. Fixes: (a) the transfer mechanism is now stated as **DPF adequacy (Art. 45) → SCCs
+  (Art. 46) + TIA**, per provider, verified against the official DPF list; (b) **Art. 49(1)(a) consent
+  derogation is explicitly *not* the mechanism** (EDPB Guidelines 2/2018 — it is for occasional,
+  non-repetitive transfers, not a standing feature); (c) consent (Art. 6(1)(a)) remains the *processing*
+  basis for third-party data, separate from the transfer safeguard. The compliance matrix Schrems-II row
+  is updated in the same change. Prompted by a cross-model ADR review (logged in
+  [`docs/meta/agent-collaboration-log.md`](../meta/agent-collaboration-log.md)). **Owner/legal review
+  still required** before external providers are enabled — this is a project checklist, not legal advice.
+  *Note:* the §9 Widerrufsbutton norm cite (`§312j BGB` vs. RL (EU) 2023/2673) is flagged for a
+  separate matrix-verification pass, not changed here.
