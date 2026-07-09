@@ -21,17 +21,22 @@ export type EntityId = Brand<string, 'EntityId'>;
 export type IsoTimestamp = Brand<string, 'IsoTimestamp'>;
 
 /**
- * Situational, non-personal correlation data attached to an event's metadata (ADR 0004 §2/§11).
+ * Situational correlation data attached to an event's metadata (ADR 0004 §2/§11).
  *
  * This exists so a change can later be attributed to the circumstances it happened in (alone vs.
- * during a live session) WITHOUT turning the domain event store into an analytics store or storing
- * behavioural PII. It is deliberately generic event-sourcing infrastructure — not domain or plugin
- * vocabulary — which is why it is allowed in this leaf package (ADR 0022 §4 note to the leaf-guard).
+ * during a live session) WITHOUT turning the domain event store into an analytics store. Its
+ * identifiers (`sessionId`, `deviceId`) are **pseudonymous personal data** — **not** "non-personal"
+ * (ADR 0004 §2 amendment 2026-07-09, ADR 0023 §3): opaque, stable pseudonyms re-identifiable only via
+ * the relational account store and erased by destroying that mapping — never a person's name/email, and
+ * never behavioural analytics (that is ADR 0019, consent-gated). It is generic event-sourcing
+ * infrastructure — not domain or plugin vocabulary — which is why it is allowed in this leaf package
+ * (ADR 0022 §4 note to the leaf-guard).
  */
 export interface EventContext {
-  /** Live play-session this change happened during, if any. */
+  /** Live play-session this change happened during, if any (a pseudonymous id, ADR 0023 §3). */
   readonly sessionId?: EntityId;
-  /** Device that produced the change (for multi-device correlation, never as an identity). */
+  /** Device that produced the change — a **stable pseudonym** for multi-device correlation
+   * (pseudonymous personal data, ADR 0023 §3), never a person's identity. */
   readonly deviceId?: string;
   /** Whether the producing device was online at the time. */
   readonly online?: boolean;
@@ -40,12 +45,17 @@ export interface EventContext {
 }
 
 /**
- * Provenance/audit metadata carried by every event (ADR 0004 §2). Deliberately holds **no PII**:
- * operational/behavioural detail belongs in logs (ADR 0009 §2), personal payload data is subject to
- * crypto-shredding (ADR 0010 §6) — this is just correlation and attribution.
+ * Provenance/audit metadata carried by every event (ADR 0004 §2). Holds **pseudonymous personal data**
+ * (`actorId`/`deviceId`/`sessionId`) — **not** free personal payload: these are opaque, stable
+ * pseudonyms re-identifiable only through the relational account store and erased by destroying that
+ * mapping (ADR 0023 §3). They deliberately stay **plaintext** because provenance, causal ordering and
+ * authorization-on-replay need them, so they are handled by **pseudonymisation**, not the per-subject
+ * crypto-shredding that covers personal *payload* data (ADR 0010 §6). Operational/behavioural detail
+ * belongs in logs (ADR 0009 §2), never here. *(Corrected 2026-07-09: the earlier "holds no PII" was
+ * wrong — ADR 0004 §2 amendment; the metadata identifiers are pseudonymous personal data.)*
  */
 export interface EventMetadata {
-  /** The actor (user) on whose authority the change was made, if known. */
+  /** The actor (user) on whose authority the change was made — a pseudonymous user id (ADR 0023 §3). */
   readonly actorId?: EntityId;
   /** Correlates all events/logs produced by one request or interaction. */
   readonly correlationId?: string;
