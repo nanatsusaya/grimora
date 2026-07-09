@@ -47,9 +47,11 @@ The plugin SDK is versioned by **semver** (ADR 0006 §4). This ADR freezes **`0.
 host advertises the SDK major(s) it supports, ADR 0006 §4) — but that **explicitly reserves the right to
 make breaking changes within `0.x`**, each accompanied by **migration notes** and a bumped compatibility
 range. The **1.0 stability commitment** — after which breaking changes require a new major — is
-**trigger-gated (see O1)**, not made now: it is irresponsible to freeze-forever a surface validated by
-one minimal plugin. This matches the project's "scale to actual stage, avoid over-engineering" rule
-(`CLAUDE.md`).
+**trigger-gated (R1)**: 1.0 is committed to once **the full DSA5 plugin (Phase 3) and at least one
+second rule system have been built against the SDK**, not made now. Committing earlier would repeat the
+"one-sample freeze" mistake this ADR avoids — real, diverse usage is what earns a permanent
+backward-compatibility promise. This matches the project's "scale to actual stage, avoid
+over-engineering" rule (`CLAUDE.md`).
 
 ### 2. What `0.x` freezes (the skeleton-validated surface)
 
@@ -99,9 +101,11 @@ its manifest) but their concrete Definition/Behaviour shapes are set by real use
 
 ADR 0006 §3 requires Definition APIs to be **JSON-Schema-validated at load** (fail-fast on a malformed
 plugin) — the skeleton validated shapes by TypeScript types only, which protects nothing at runtime
-against an untrusted third-party plugin. Whether this validation is **required as part of `0.x`** or
-**deferred to a later `0.x` minor** is **O2** (it is real implementation effort but core to third-party
-trust and to ADR 0003 §6.2 "adapters validate input").
+against an untrusted third-party plugin. This validation is **deferred (R2)** to a later `0.x` minor —
+specifically, landing **before the third-party plugin registry opens** (the same trigger as the sandbox,
+ADR 0010 R1), not now. TypeScript types + in-repo review suffice while every plugin is first-party;
+runtime schema validation earns its real implementation cost exactly when untrusted plugins arrive
+(ADR 0003 §6.2 "adapters validate input").
 
 ### 6. Contract-test kit defines "compliant"
 
@@ -121,6 +125,15 @@ reviewed in-repo. Its stable shape is frozen when built, ahead of that registry.
 - Determinism in plugin behaviour (no `Math.random`/wall-clock) is already an ADR 0021 §3 fitness
   function; the SDK's seeded-`rng`-only context is what makes it satisfiable.
 
+### 8. Third-party registry opens only at 1.0 (R3)
+
+The plugin registry stays **first-party-only** (DSA5, reviewed in-repo) for the entire `0.x` line and
+opens to third-party authors only **at or after 1.0** — i.e. once the SDK contract is stable (R1), the
+JSON-Schema validation has landed (R2), the contract-test kit exists (§6), and the untrusted-execution
+sandbox exists (ADR 0010 R1). Bundling these into one "third-party-ready" gate is deliberate: exposing a
+still-moving `0.x` contract, without schema validation or a sandbox, to outside authors would trade the
+project's own iteration speed for a trust boundary it cannot yet back up.
+
 ## Consequences
 
 **Positive:** the SDK becomes a **named, depended-on contract** for DSA5 Phase 3 without pretending to a
@@ -129,11 +142,11 @@ API surface stays `0.x`-flexible; the validated shapes are stable for real plugi
 model** lets the unvalidated surface (five trait kinds, AI tools, themes, …) be shaped by real use instead
 of guessed and regretted; enforcement (SDK-leak check) makes the boundary machine-checkable.
 
-**Negative / costs:** `0.x` is **not** a permanent stability promise — an early third-party author accepts
-possible breaking changes (with migration notes), a real cost mitigated by semver discipline + the
-compatibility range and by keeping the third-party registry closed during `0.x` (O3). True 1.0 stability
-is deliberately some way off (gated on a second plugin, O1). If JSON-Schema validation is deferred (O2),
-fail-fast on malformed plugins is weaker until it lands — acceptable only while plugins are first-party.
+**Negative / costs:** `0.x` is **not** a permanent stability promise — an early third-party author would
+accept possible breaking changes (with migration notes), a real cost that is moot in practice since the
+registry stays first-party-only until 1.0 (R3). True 1.0 stability is deliberately some way off (gated on
+a second rule system, R1). JSON-Schema validation is deferred (R2), so fail-fast on malformed plugins is
+weaker until it lands — acceptable only while plugins are first-party and reviewed in-repo.
 
 ## Alternatives considered
 
@@ -150,24 +163,21 @@ fail-fast on malformed plugins is weaker until it lands — acceptable only whil
 - **Expose host ports/functions directly to plugins for convenience** — rejected: violates the ADR 0006
   §5 / ADR 0010 §3 no-ambient-authority boundary (§3); all host access stays capability-mediated.
 
-## Open questions (for owner review)
+## Resolved questions (owner decisions, 2026-07-09)
 
-- **O1 — The 1.0 stability trigger.** After what milestone do we commit to **1.0** (breaking SDK changes
-  then require a new major)? Recommend: **the full DSA5 plugin (Phase 3) plus at least one second rule
-  system have been built against the SDK** — real, diverse usage is what earns a permanent
-  backward-compatibility promise; committing earlier repeats the "one-sample freeze" mistake this ADR
-  avoids.
-- **O2 — JSON-Schema validation in `0.x` (§5).** Require Definition-API JSON-Schema validation at load
-  as part of `0.x` now (honoring ADR 0006 §3 / ADR 0003 §6.2 — real effort), or defer it to a later
-  `0.x` minor since plugins are first-party for now? Recommend: **defer to before the third-party
-  registry opens** (same trigger as the sandbox, ADR 0010 R1) — TypeScript types suffice while every
-  plugin is first-party and reviewed in-repo; runtime schema validation earns its cost exactly when
-  untrusted plugins arrive.
-- **O3 — Third-party registry gated on 1.0?** Keep the plugin registry **first-party-only during `0.x`**
-  and open it to third parties only at/after **1.0** (when the contract is stable *and* the untrusted
-  sandbox exists, ADR 0010 R1)? Recommend **yes** — it ties SDK stability, JSON-Schema validation (O2),
-  the contract-test kit (§6) and the sandbox into one coherent "third-party-ready" gate, rather than
-  exposing a moving `0.x` contract to outside authors.
+- **R1 — The 1.0 stability trigger.** Decided as recommended (§1): 1.0 is committed to once **the full
+  DSA5 plugin (Phase 3) plus at least one second rule system have been built against the SDK** — real,
+  diverse usage earns the permanent backward-compatibility promise; committing earlier would repeat the
+  "one-sample freeze" mistake this ADR avoids.
+- **R2 — JSON-Schema validation in `0.x` (§5).** Decided as recommended: **deferred** to a later `0.x`
+  minor, landing **before the third-party registry opens** (same trigger as the sandbox, ADR 0010 R1).
+  TypeScript types + in-repo review suffice while every plugin is first-party; runtime schema validation
+  earns its cost exactly when untrusted plugins arrive.
+- **R3 — Third-party registry gated on 1.0 (§8).** Decided as recommended: the plugin registry stays
+  **first-party-only during `0.x`** and opens to third parties only **at/after 1.0** (once the contract
+  is stable, R2 has landed, the contract-test kit exists, and the untrusted sandbox exists, ADR 0010 R1).
+  This ties SDK stability, JSON-Schema validation (R2), the contract-test kit (§6) and the sandbox into
+  one coherent "third-party-ready" gate, rather than exposing a moving `0.x` contract to outside authors.
 
 ## References
 
