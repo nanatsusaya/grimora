@@ -38,10 +38,17 @@ We extend `EventEnvelope` from `@grimora/shared-types` (which already has `id`, 
 
 - `aggregateType: string` — the stream's aggregate type.
 - `schemaVersion: number` — payload schema version of this event **type** (for upcasting, §6).
-- `metadata: { actorId?; correlationId?; causationId?; context? }` — provenance/audit; **no PII**.
-  The optional `context` holds *situational* data for later correlation (not telemetry), e.g.
-  `{ sessionId?; deviceId?; online?: boolean; participantsPresent?: number }` — enough to later tell
-  whether a change happened alone or during a live play session (see §11).
+- `metadata: { actorId?; correlationId?; causationId?; context? }` — provenance/audit. *(Amended
+  2026-07-09: the original "**no PII**" claim here was **incorrect** — `actorId`, and `context.deviceId`/
+  `sessionId`, are **pseudonymous identifiers and therefore personal data** under the DSGVO. They are
+  not free-text content, but they keep a data subject **linkable**, and — unlike encrypted payloads —
+  are **not** covered by the payload crypto-shredding of ADR 0010 §6. Classifying event **metadata**
+  (not only payloads) and deciding its erasure/pseudonymisation is owned by **ADR 0023** (event-payload
+  personal-data classification), which must therefore cover metadata too. The original intent — that
+  metadata carries **no free-text and no special-category content** — stands.)* The optional `context`
+  holds *situational* data for later correlation (not telemetry), e.g. `{ sessionId?; deviceId?;
+  online?: boolean; participantsPresent?: number }` — enough to later tell whether a change happened
+  alone or during a live play session (see §11).
 - `id` is a **globally unique** `EntityId`, generated via `IdGeneratorPort` as a **UUIDv7**
   (time-ordered → helps global ordering and sync).
 
@@ -210,3 +217,12 @@ plus the testing strategy (ADR 0017).
   (persistence & sync), ADR 0006 (plugin language), ADR 0009 (errors), ADR 0016 (i18n of event
   descriptions), ADR 0017 (testing), ADR 0019 (analytics/telemetry boundary).
   `@grimora/shared-types` `EventEnvelope`. Issue #3.
+
+## Amendments
+
+- **2026-07-09** — *Authorized by the project owner.* Corrected §2: the event `metadata` was labelled
+  "no PII", but `actorId`/`deviceId`/`sessionId` are pseudonymous identifiers and therefore **personal
+  data** under the DSGVO — they survive the ADR 0010 §6 payload crypto-shredding and keep an erased
+  subject linkable. Reworded, and metadata classification/erasure explicitly routed to **ADR 0023** (its
+  scope now covers event metadata, not only payloads). No event-sourcing mechanism changed. Prompted by
+  a cross-model ADR review (logged in [`docs/meta/agent-collaboration-log.md`](../meta/agent-collaboration-log.md)).
