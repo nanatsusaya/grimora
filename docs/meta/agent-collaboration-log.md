@@ -464,7 +464,7 @@ visible home (#52) instead of living only as prose in `STATUS.md`.
 ADR — surfaced real drift (orphaned tickets, stale priorities) that no single task would have caught,
 because each individual PR only touches the tickets it's working on, never the backlog as a whole.
 
-
+## 2026-07-07 — Meta-log established: owner names AI-agent learning as the real goal
 
 **Trigger:** After finishing ADR 0021 (Rules Execution), the owner named the project's actual primary
 goal explicitly: learning to work with AI agents, with Grimora as the case study. They asked for (a) a
@@ -629,3 +629,38 @@ checking source rather than by trusting the reviewer. (3) The agent's value-add 
 **verification, not deference** — checking each claim against the code reclassified roughly a third of the
 findings (false, already-done, or over-stated for the project's stage) and kept the response from
 amplifying an authoritative-sounding but wrong P0.
+
+## 2026-07-09 — Owner's provenance question ("when did we decide Next.js?") caught an unjustified inherited decision
+
+**Trigger:** While resolving ADR 0012's open questions (web rendering & frontend state), the owner
+accepted all three recommendations but then asked a question that was not about the current ADR at all:
+*"wann haben wir entschieden, dass wir Next.js verwenden werden?"* — where and when was the web framework
+actually chosen?
+
+**Action / method:** Rather than retroactively justify Next.js, I checked the record and reported what was
+actually there: ADR 0002 listed `Web = Next.js` as a bare Decision bullet with **no rationale and no
+alternatives** — its "Evaluated alternatives" section covered only pnpm and ESLint. So unlike bun and
+biome (which the owner had explicitly made me *verify against primary sources* at kickoff — see the
+2026-07-05 "verify, not assert" entry), the framework had been carried by inertia since the first stack
+ADR, never evidenced. The owner then authorized doing the comparison the original ADR had skipped: an
+objective survey of the major frontend frameworks — *not* just Next vs. Vite, but React Router 7,
+TanStack Start, SvelteKit, Nuxt/Vue, SolidStart, Qwik and Angular — recommend two or three, and amend
+ADR 0002 if the conclusion differed. Grounded in verified July-2026 sources, the analysis showed
+Next.js's headline strength (SSR/RSC) goes **unused** by an offline-first PWA that is client-rendered
+against the local store (ADR 0005/0012), while its weight and static-export/offline friction remain →
+recommended **Vite + React** (keeps React/RN alignment for shared view-model logic, first-class PWA
+tooling, largest ecosystem/AI-assist corpus). The owner chose it and authorized the amendment.
+
+**Impact:** ADR 0002 amended (PR #87) with the rationale + alternatives it had always lacked (Next.js →
+Vite + React); ADR 0012 was written on the corrected stack; ADR 0011 §9 and later `hosting.md` (PR #88)
+were synced off the stale "Next.js". A decision implicit since 2026-07-05 became explicit and
+evidence-backed — and changed in the process.
+
+**Lessons learned:** A *provenance* question ("when did we decide X?") is a distinct, high-yield audit
+tool from a *correctness* question ("is X right?") — it targets decisions inherited by inertia, which a
+correctness review can miss precisely because they look settled. The tell here was an **asymmetry in
+rigor within a single ADR**: in ADR 0002, the choices the owner had pushed to verify (bun/biome) were
+well-evidenced, while the one he had not (the web framework) had no rationale at all — so "which of our
+'decisions' were ever actually *decided*?" is worth asking periodically across the accepted set. And the
+honest answer to the question is to read the record and report the gap plainly ("it was never
+justified"), not to construct a justification after the fact.
