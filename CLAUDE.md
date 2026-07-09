@@ -198,8 +198,8 @@ in the *same* change — stale documentation is a defect.
   **why-coverage, never doc-for-doc's-sake** — a wall of "what" comments dilutes the load-bearing "why"s
   and is worse than a focused header.
 
-- **This discipline will be machine-checked** (a lightweight `scripts/arch` doc-conformance test — the
-  documentation-conformance pass): every **exported** symbol must carry a doc block, and every
+- **This discipline is machine-checked** (a lightweight `scripts/arch` doc-conformance test —
+  `doc-conformance.test.ts`, part of `bun run arch`): every **exported** symbol must carry a doc block, and every
   **exported function** with parameters must have a `@param` for each, so the rule cannot silently erode
   as Phase 2 grows. The check asserts **presence**, not quality — the why-vs-what judgement stays a
   review responsibility.
