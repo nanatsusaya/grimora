@@ -150,6 +150,16 @@ export async function setAttribute(
   },
 ): Promise<Result<void, AppError>> {
   const { state, version } = await loadCharacter(deps, input.characterId);
+  /*
+   * SKELETON SIMPLIFICATION (explicit — Phase-2 authz-matrix requirement, Epic #52). Returning
+   * `NotFound` *before* the resource-scoped policy check leaks **existence** to an unauthorized caller
+   * (an id-enumeration oracle — ADR 0010 §1 information disclosure): "NotFound" vs "Forbidden" tells a
+   * prober whether a character id exists. Tolerated at skeleton scale (owner-only policy); the real
+   * authz model MUST return a **uniform** result for "absent" and "not authorized" so existence is not
+   * revealed pre-authz. The load stays first (a resource-scoped check needs the loaded `ownerId`); only
+   * the *distinguishable error* must be unified. Note `createCharacter` above checks policy first — the
+   * inconsistency is deliberate to flag here. Same pattern in `rollCheck` below.
+   */
   if (!state.exists) return err(appError('character.not_found', 'NotFound'));
   if (!deps.policy.can(input.actor, 'character.setAttribute', { ownerId: state.ownerId })) {
     return err(appError('character.forbidden', 'Forbidden'));
@@ -173,6 +183,8 @@ export async function rollCheck(
   input: { readonly characterId: EntityId; readonly checkId: string; readonly actor: Actor },
 ): Promise<Result<void, AppError>> {
   const { state, version } = await loadCharacter(deps, input.characterId);
+  // Existence-before-authz leaks existence to unauthorized callers — see the note in `setAttribute`;
+  // the Phase-2 authz matrix (Epic #52) unifies the "absent"/"not authorized" error.
   if (!state.exists) return err(appError('character.not_found', 'NotFound'));
   if (!deps.policy.can(input.actor, 'character.rollCheck', { ownerId: state.ownerId })) {
     return err(appError('character.forbidden', 'Forbidden'));

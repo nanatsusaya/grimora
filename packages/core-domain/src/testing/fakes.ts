@@ -80,6 +80,13 @@ export function createInMemoryEventStore(): InMemoryEventStore {
     async replicate(events) {
       for (const event of events) {
         if (seenIds.has(event.id)) continue; // idempotent dedup-by-id (ADR 0005 §3)
+        /*
+         * SKELETON SIMPLIFICATION (explicit): dedups by `id` only — it does NOT enforce per-aggregate
+         * `version` uniqueness, so two concurrent events at the same `(streamId, version)` would both
+         * persist (the C11 collision, ADR 0024 §3 amendment). The real durable store MUST reject the
+         * second (ADR 0004 §1/§2 per-aggregate version invariant); tracked in #76. This is safe here
+         * only because the sync harness drives a conflict-free replication sequence.
+         */
         persist(event);
       }
     },

@@ -146,6 +146,37 @@ numeric, but implementation-blocking ADRs first. All under **Epic #1**; Epic #10
 Extend the harness rules (#9, merged) in parallel as `core-domain`/adapters/plugins actually appear
 (the forward-looking rules then bite automatically).
 
+### Phase-1 close-out & accepted carry-overs into Phase 2 (explicit cut)
+
+**What "Phase 1 done" means here (stated explicitly so it is not ambiguous):** the **architecture-ADR
+run is complete** (21 ADRs Accepted) and the **walking-skeleton gate passed** — the *design* is decided
+and validated on a single-device slice. Phase 1 is **not** claimed to mean "every ADR invariant is
+implemented/enforced." A second, **code-verified** cross-model review (2026-07-09; ChatGPT + Claude
+Fable, findings verified against source — logged in `docs/meta/agent-collaboration-log.md`) confirmed the
+design is strong but surfaced enforcement/doc gaps, now triaged. The following are **deliberately carried
+into Phase 2** as accepted, tracked carry-overs (not silently dropped):
+
+- **#76 — remaining ADR-mandated fitness functions** (default-deny `PolicyPort`, consent gate, no-`Math.random`,
+  SDK re-export, privacy-classification presence, UI-reads-read-models-only, realtime-never-persisted,
+  per-aggregate `version` uniqueness, `/testing` production-import guard). Until these land, "green `arch`"
+  means *import boundaries hold*, not *every ADR invariant is machine-checked*.
+- **#92 — apply ADR 0023 privacy classification to the skeleton event seed** (the first mandatory Phase-2
+  refactor: per-field classification + fail-fast loader + `describe()` redactable degradation).
+- **#71 — RoPA / processor / DPA / TIA / DPIA register**; **#72 — Impressum / ToS** (the *only already-triggered*
+  legal item — the public repo plausibly triggers §5 DDG today, ADR 0015 R2 — highest non-technical priority).
+- **Authz-matrix depth** (Epic #52) — the skeleton policy is owner-only by design; the concrete
+  roles×actions×resources matrix + the existence-before-authz unification (use-cases inline note) are Phase-2.
+- **Offline-session semantics** (cold-start offline: who is the local user? guest/local-only? multi-user
+  per device?) — a real ADR 0012/0009 gap, to be settled (small amendment/ADR) when the web shell is built.
+
+**Fixed immediately in this batch (2026-07-09 review):** conformance-harness scope holes (PR #89:
+plugin→plugin, plugin→node-builtins, deep-import scope, secrets-port layout contract); CI reproducibility
+(PR #90: bun/action pinning); ADR amendments for the roll×visibility seam + the 0014 §2 erratum (PR #91);
+and inline-doc accuracy + explicit skeleton boundaries (this PR). None of the carry-overs above blocks
+starting Phase 2 — but the Phase-2 slice should stay a **real vertical slice** (local store, projections,
+web shell, authz, privacy envelope), not "core engine in general", so the enforcement catches up with the
+ADRs rather than lagging them.
+
 ### External ADR review (2026-07-07) — assessment & consequences
 
 An external review rated the accepted ADRs (0001–0010, 0020) as an **above-average foundation on the
