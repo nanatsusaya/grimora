@@ -8,7 +8,12 @@
  * `shared-types` `EventEnvelope` (adding id/version/position/metadata) before appending.
  */
 
-import type { RollRequest, RollResult } from '@grimora/plugin-sdk';
+import {
+  type PrivacyClassification,
+  privacy,
+  type RollRequest,
+  type RollResult,
+} from '@grimora/plugin-sdk';
 import type { EntityId } from '@grimora/shared-types';
 
 /** A newly-decided domain event: an intent-named type + its structured payload. */
@@ -34,6 +39,17 @@ export type CampaignCreated = NewEvent<
   { readonly name: string; readonly ownerId: EntityId }
 >;
 
+/**
+ * Privacy classification of `campaign.created` (ADR 0023 §2). `name` is a user-authored personal datum
+ * owned by the creator (subject = the `ownerId` field); `ownerId` is a **pseudonymous id** kept plaintext
+ * and erased via the account mapping, not crypto-shredded (ADR 0023 §3), so it is `nonPersonal` here.
+ * Declared with `satisfies` so a missing field is a **compile error** (fail-fast, §2/§8).
+ */
+export const CAMPAIGN_CREATED_PRIVACY = {
+  name: privacy.personal('ownerId'),
+  ownerId: privacy.nonPersonal,
+} satisfies PrivacyClassification<CampaignCreated['payload']>;
+
 /** Every event the campaign aggregate can emit (a union so folding is exhaustive, ADR 0004 §1). */
 export type CampaignEvent = CampaignCreated;
 
@@ -44,7 +60,8 @@ export type CampaignEvent = CampaignCreated;
 export type CharacterCreated = NewEvent<
   'character.created',
   {
-    /** The character's display name (personal data — see the ADR 0023 classification, tracked in #92). */
+    /** The character's display name — a user-authored **personal** datum owned by the creator
+     * (classified `personal('ownerId')` below, ADR 0023 §2). */
     readonly name: string;
     /** The campaign this character belongs to (the sharing/authorization unit, ADR 0009 RBAC). */
     readonly campaignId: EntityId;
@@ -63,11 +80,34 @@ export type CharacterCreated = NewEvent<
   }
 >;
 
+/**
+ * Privacy classification of `character.created` (ADR 0023 §2). Only `name` is personal (owned by the
+ * creator = the `ownerId` field); `campaignId`, the pseudonymous `ownerId` (§3), and the rule-system /
+ * plugin provenance are all structural → `nonPersonal`. `satisfies` enforces completeness at compile time.
+ */
+export const CHARACTER_CREATED_PRIVACY = {
+  name: privacy.personal('ownerId'),
+  campaignId: privacy.nonPersonal,
+  ownerId: privacy.nonPersonal,
+  ruleSystemId: privacy.nonPersonal,
+  pluginId: privacy.nonPersonal,
+  pluginVersion: privacy.nonPersonal,
+} satisfies PrivacyClassification<CharacterCreated['payload']>;
+
 /** An attribute was set to an absolute value during generation (intent: absolute set, ADR 0004 §10). */
 export type CharacterAttributeSet = NewEvent<
   'character.attributeSet',
   { readonly attributeId: string; readonly value: number }
 >;
+
+/**
+ * Privacy classification of `character.attributeSet` (ADR 0023 §2): a trait id + numeric value — pure
+ * mechanical/rules data, entirely `nonPersonal` (stays plaintext + queryable).
+ */
+export const CHARACTER_ATTRIBUTE_SET_PRIVACY = {
+  attributeId: privacy.nonPersonal,
+  value: privacy.nonPersonal,
+} satisfies PrivacyClassification<CharacterAttributeSet['payload']>;
 
 /**
  * A check was rolled and resolved. Carries the full request + result (including the opaque plugin
@@ -92,8 +132,36 @@ export type CharacterCheckRolled = NewEvent<
   }
 >;
 
+/**
+ * Privacy classification of `character.checkRolled` (ADR 0023 §2). The whole event is mechanical: the
+ * check id, the roll request/result, the **`seed`** (explicitly `nonPersonal`, ADR 0021 §3 amendment) and
+ * the plugin provenance are all structural rules data → `nonPersonal`. The nested `request`/`result` are
+ * classified as whole `nonPersonal` sub-objects (they contain no personal fields — seed, pips, targets,
+ * outcome labels); should a future check payload carry personal data, it gains its own classified fields.
+ */
+export const CHARACTER_CHECK_ROLLED_PRIVACY = {
+  checkId: privacy.nonPersonal,
+  request: privacy.nonPersonal,
+  result: privacy.nonPersonal,
+  pluginId: privacy.nonPersonal,
+  pluginVersion: privacy.nonPersonal,
+} satisfies PrivacyClassification<CharacterCheckRolled['payload']>;
+
 /** Every event the character aggregate can emit (a union so folding is exhaustive, ADR 0004 §1). */
 export type CharacterEvent = CharacterCreated | CharacterAttributeSet | CharacterCheckRolled;
 
 /** Any event either aggregate can produce. */
 export type AnyDomainEvent = CampaignEvent | CharacterEvent;
+
+/**
+ * Registry of every core event type's privacy classification (ADR 0023 §2), so a projection / `describe()`
+ * / egress filter can look up a classification by event `type` without a switch. Keyed by the event
+ * `type` string; the values keep their **narrow** literal types (via `typeof`) so a `RedactedView` built
+ * from an entry discriminates personal vs `nonPersonal` fields at the type level.
+ */
+export const CORE_EVENT_PRIVACY = {
+  'campaign.created': CAMPAIGN_CREATED_PRIVACY,
+  'character.created': CHARACTER_CREATED_PRIVACY,
+  'character.attributeSet': CHARACTER_ATTRIBUTE_SET_PRIVACY,
+  'character.checkRolled': CHARACTER_CHECK_ROLLED_PRIVACY,
+} as const;

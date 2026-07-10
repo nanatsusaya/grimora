@@ -38,6 +38,13 @@ export type {
 } from './plugin';
 export { definePlugin } from './plugin';
 export type {
+  PrivacyClass,
+  PrivacyClassification,
+  Redactable,
+  RedactedView,
+} from './privacy';
+export { privacy, redacted, redactView, reveal, validateClassification } from './privacy';
+export type {
   AttributeDefinition,
   DerivedValueDefinition,
   SkillDefinition,
