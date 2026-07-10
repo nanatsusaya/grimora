@@ -17,6 +17,23 @@ describe('formula builder', () => {
     });
   });
 
+  it('builds the rounding/modulo nodes added by the ADR 0021 amendment', () => {
+    expect(f.floor(f.const(2.5))).toEqual({
+      kind: 'floor',
+      operand: { kind: 'const', value: 2.5 },
+    });
+    expect(f.ceil(f.const(2.5))).toEqual({ kind: 'ceil', operand: { kind: 'const', value: 2.5 } });
+    expect(f.round(f.const(2.5))).toEqual({
+      kind: 'round',
+      operand: { kind: 'const', value: 2.5 },
+    });
+    expect(f.mod(f.const(7), f.const(3))).toEqual({
+      kind: 'mod',
+      left: { kind: 'const', value: 7 },
+      right: { kind: 'const', value: 3 },
+    });
+  });
+
   it('builds comparison and conditional nodes', () => {
     expect(f.if(f.cmp('gt', f.trait('x'), f.const(10)), f.const(1), f.const(0))).toEqual({
       kind: 'if',
