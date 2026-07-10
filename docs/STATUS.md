@@ -31,8 +31,11 @@
   (#95–#97: the refined CLAUDE.md doc rule + a machine-checked `scripts/arch/doc-conformance.test.ts`, now
   part of `bun run arch`, plus the source brought up to the standard), a `Closes #NN` PR-hygiene caveat
   (#98), the `/feierabend` and `/moin` session skills (#99/#101), and the Phase-2 planning pass (#100,
-  this section). **Open PR at time of writing:** #102 (ADR 0012 §13 offline-session-identity amendment,
-  pending owner merge) — this section and the ports-catalog doc (below) are ready regardless.
+  this section). The Phase-2 planning-pass artefacts then landed (#102 ADR 0012 §13 offline-session
+  identity + #108 ports-catalog/STATUS sync), and **Phase 2 implementation has begun** — see the
+  "Phase 2 — first slice" section below for the vertical-slice tickets already merged (event store,
+  read models, formula nodes, event-payload privacy). **No open PRs at time of writing** — everything
+  merged/cleaned up.
 
 ### Accepted ADRs
 
@@ -183,46 +186,58 @@ starting Phase 2 — but the Phase-2 slice should stay a **real vertical slice**
 web shell, authz, privacy envelope), not "core engine in general", so the enforcement catches up with the
 ADRs rather than lagging them.
 
-### Phase 2 — first slice: planning pass done (2026-07-10)
+### Phase 2 — first slice: in progress (planning done 2026-07-10; implementation underway)
 
-Epic **#10** (Phase 2 — Core engine) is **unblocked** (Epic #1 closed; its entry criteria — ADRs Accepted
-+ `arch` green in CI — are met). The planning pass that breaks #10 into a small, ordered, *testable*
-ticket set for **one thin vertical slice** — proportionate, **not** a speculative 20-ticket dump — is
-**done**; the tickets below are real, open GitHub issues, not a placeholder list.
+Epic **#10** (Phase 2 — Core engine) is **unblocked** and **implementation has begun**. The planning pass
+broke #10 into a small, ordered, *testable* ticket set for **one thin vertical slice** (proportionate,
+**not** a speculative dump); the first tickets are now **merged**.
 
 **Settled first (it shaped the ticket scoping): offline-session identity.** Who is the local user on a
-cold offline start (guest / local-only / multi-user per device)? Owner decision: the **device is an
-implicit local user** until the first successful online login binds it to a real account — recorded as
-an **amendment to ADR 0012 §13**, PR **#102** (pending owner merge at time of writing). This is why #105
-and #106 below explicitly incorporate it rather than deferring it further.
+cold offline start? Owner decision: the **device is an implicit local user** until the first successful
+online login binds it to a real account — recorded as an **amendment to ADR 0012 §13** (PR #102, merged).
+This is why #105 and #106 below explicitly incorporate it.
 
-**Already ticketed (slot into the slice, do not duplicate):** **#92** privacy classification on the event
-seed (the first mandatory refactor) · **#73** consent subsystem / `ConsentPort` · **#74** DSAR use-cases ·
-**#75** extended formula-AST nodes · carry-over **#76** remaining fitness functions (pull in early so
-enforcement tracks the new code).
+**Merged this slice so far (2026-07-10):**
+- ✅ **#103 — Local event-store adapter** (PR #109) — real `EventStorePort` on `bun:sqlite`
+  (`packages/event-store`): durable append-only log, optimistic concurrency → `Conflict`, exclusive
+  `readStream`/`readAll`, real `UNIQUE(aggregate_id, version)` (closes the #76 version-uniqueness item at
+  the storage layer). **Native-first**; OPFS/WASM web driver **deferred to #105** (needs a browser to
+  verify). Shared `eventStoreContract` runs against the fake *and* the adapter.
+- ✅ **#104 — Persistent read-model projections** (PR #110) — real `ReadModelStorePort` on `bun:sqlite`
+  (`packages/cqrs-read`): checkpointed, `clear()`-rebuildable; the `characterSheet` projection runs
+  end-to-end over the real event store + read-model store (build / idempotent / rebuild-from-0 identical).
+  Shared `readModelStoreContract`. OPFS web driver also deferred to #105.
+- ✅ **#75 — Extended formula-AST nodes** (PR #111) — `floor`/`ceil`/`round`/`mod` added to the SDK AST +
+  builder + interpreter (ADR 0021 §1 amendment); `round` ties away from zero, `mod` is floored
+  (consistent with integer division = `floor(div)`), div/mod-by-zero fail as errors.
+- ✅ **#92 — Event-payload privacy classification** (PR #112) — the first mandatory privacy refactor
+  (ADR 0023 §2/§6/§8): additive SDK privacy surface (`PrivacyClass`/`privacy`/`PrivacyClassification` +
+  `validateClassification` fail-fast + `Redactable`/`redactView`), core payloads classified, and
+  `describe()` degrades ("Character created" when the name is redacted) as a **compile-time** obligation.
+  **Pending on `CryptoPort`** (not built): field-encryption + the §8 "no `personal*` plaintext in store"
+  guard — status cross-linked on #76.
 
-**The core vertical slice (skeleton → product), in order — all now open issues under Epic #10:**
-1. **#103 — Local event-store adapter** — a real `EventStorePort` on SQLite (native) / OPFS (web),
-   replacing the in-memory fake (ADR 0005), incl. real per-aggregate `version` uniqueness (shared with
-   #76).
-2. **#104 — Persistent read-model projections** — rebuildable from the log, using the documented
-   `readStream`/`readAll` *exclusivity* checkpoint contract (ADR 0004/0005). Depends on #103.
-3. **#105 — `apps/web` shell** (epic) — Vite + React PWA, client-rendered against the local read-models,
-   built around the ADR 0012 §13 offline-session identity from the start; a minimal character-sheet view
-   (ADR 0012). Its own small sub-epic — break into sub-issues at pickup time. Notes a likely prerequisite:
-   `apps/api` (still scaffold-only) or a direct Supabase project for `AuthPort` to authenticate against.
-4. **#106 — Real authorization** — `PolicyPort` + the Owner/GM/Player/Spectator role×action×resource
-   matrix, replacing the owner-only skeleton policy; the existence-before-authz unification; and the
-   ADR 0012 §13 unbound-device (full local `Owner`) case (ADR 0009 §3).
-5. **#107 — Sync adapter** — insert-only replication + domain rebase against Supabase, defining the
-   `SyncPort` interface (not yet in code) and building on the existing `sync-harness` test double
-   (ADR 0005/0024). Notes a likely prerequisite: a cloud-reachable `EventStorePort` (Postgres/Supabase),
-   distinct from #103's local adapter.
+**Still open in the slice — all need the owner (merges landed; these need decisions/prereqs):**
+- **#105 — `apps/web` shell** (epic) — Vite + React PWA against the local read-models, built around the
+  ADR 0012 §13 offline identity; minimal character-sheet view (ADR 0012). **Its own sub-epic — the next
+  step is to decompose it into sub-issues with the owner** and settle: `AuthPort` target (`apps/api`,
+  still scaffold-only, vs. a direct Supabase project) and the **OPFS/WASM web driver** for both SQLite
+  stores (re-homed here from #103/#104).
+- **#106 — Real authorization** — `PolicyPort` + the Owner/GM/Player/Spectator role×action×resource
+  matrix, replacing the owner-only skeleton policy; the existence-before-authz unification; the ADR 0012
+  §13 unbound-device (`Owner`) case (ADR 0009 §3). **Owner-domain design decisions** — do not settle
+  silently in code.
+- **#107 — Sync adapter** — insert-only replication + domain rebase vs. Supabase, defining the `SyncPort`
+  interface (not yet in code) on the existing `sync-harness`. Prereq: a cloud-reachable `EventStorePort`
+  (Postgres/Supabase) distinct from #103's local adapter (i.e. `apps/api`).
+- **#73 / #74 — Consent / DSAR** — need `ConsentPort` / `CryptoPort`; partly blocked.
 
-**Produced during the planning pass:** the **ports catalog** doc — [`docs/ports-catalog.md`](ports-catalog.md)
-(the one Epic-#1 DoD item left open) — every port, its owning ADR, current implementation status
-(real / skeleton fake / not yet implemented), and which ticket above builds its first real adapter. Keep
-it in sync with `packages/core-domain/src/application/ports.ts` as adapters land.
+**Ports catalog** — [`docs/ports-catalog.md`](ports-catalog.md) tracks every port's implementation status;
+`EventStorePort` and `ReadModelStorePort` rows now read **Real (native)** after #103/#104. Keep it in sync
+with `packages/core-domain/src/application/ports.ts` as adapters land.
+
+**Clearest next step:** decompose **#105** (`apps/web` shell) into sub-issues *with the owner* and settle
+its two open decisions (auth target, OPFS driver) — a joint planning step, not solo code.
 
 ### External ADR review (2026-07-07) — assessment & consequences
 
