@@ -249,6 +249,11 @@ Repeatable procedures under `.claude/skills/` (checked into the repo, invoked as
 
 - **`grimora-adr-author`** — authoring/reworking an ADR (branch → `Proposed` → PR-with-owner-questions →
   `Accepted`, house style, index/`STATUS` sync).
+- **`moin`** — session bring-up / orientation (the counterpart to `feierabend`): brief the project identity
+  & goal, standing rules & skills, since-when, the last few work units, the current state and the single
+  clearest next step from the living docs, and flag (do not run) any due recurring maintenance, then ask
+  whether coffee is ready and whether we continue as planned. Read-only; **orients, does not start work** —
+  it ends with a question.
 - **`feierabend`** — session wind-down / close-out: tidy git & branch state, finish or safely park
   in-flight work at an honest stopping point, bring the living docs current (this file, the meta-log,
   memory), run any due recurring task, then a hand-off summary + "Schönen Feierabend". Deliberately does
