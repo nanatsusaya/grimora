@@ -29,8 +29,10 @@
   and the web-framework decision (#87: ADR 0002 Next.js → **Vite + React**, ADR 0011 §9; #88 also synced
   the stale `hosting.md` web-frontend line to match). Since then a **documentation-hardening** pass landed
   (#95–#97: the refined CLAUDE.md doc rule + a machine-checked `scripts/arch/doc-conformance.test.ts`, now
-  part of `bun run arch`, plus the source brought up to the standard) and a `Closes #NN` PR-hygiene caveat
-  (#98). No open PRs at time of writing — everything merged/cleaned up.
+  part of `bun run arch`, plus the source brought up to the standard), a `Closes #NN` PR-hygiene caveat
+  (#98), the `/feierabend` and `/moin` session skills (#99/#101), and the Phase-2 planning pass (#100,
+  this section). **Open PR at time of writing:** #102 (ADR 0012 §13 offline-session-identity amendment,
+  pending owner merge) — this section and the ports-catalog doc (below) are ready regardless.
 
 ### Accepted ADRs
 
@@ -181,39 +183,46 @@ starting Phase 2 — but the Phase-2 slice should stay a **real vertical slice**
 web shell, authz, privacy envelope), not "core engine in general", so the enforcement catches up with the
 ADRs rather than lagging them.
 
-### Phase 2 — first slice: tickets still to be written (next-session opener)
+### Phase 2 — first slice: planning pass done (2026-07-10)
 
-**We do not yet have a usable Phase-2 plan — this is the deliberate next step, not a gap that blocks it.**
-Epic **#10** (Phase 2 — Core engine) is now **unblocked** (Epic #1 closed; its entry criteria — ADRs
-Accepted + `arch` green in CI — are met), but it is still a **placeholder**: it explicitly deferred its
-sub-issues until the ADRs landed, and the ADRs have landed. So the first Phase-2 job is a **planning pass**
-that breaks #10 into a small, ordered, *testable* ticket set for **one thin vertical slice** — proportionate,
-**not** a speculative 20-ticket dump. Do this with a fresh head at the start of the next session.
+Epic **#10** (Phase 2 — Core engine) is **unblocked** (Epic #1 closed; its entry criteria — ADRs Accepted
++ `arch` green in CI — are met). The planning pass that breaks #10 into a small, ordered, *testable*
+ticket set for **one thin vertical slice** — proportionate, **not** a speculative 20-ticket dump — is
+**done**; the tickets below are real, open GitHub issues, not a placeholder list.
+
+**Settled first (it shaped the ticket scoping): offline-session identity.** Who is the local user on a
+cold offline start (guest / local-only / multi-user per device)? Owner decision: the **device is an
+implicit local user** until the first successful online login binds it to a real account — recorded as
+an **amendment to ADR 0012 §13**, PR **#102** (pending owner merge at time of writing). This is why #105
+and #106 below explicitly incorporate it rather than deferring it further.
 
 **Already ticketed (slot into the slice, do not duplicate):** **#92** privacy classification on the event
 seed (the first mandatory refactor) · **#73** consent subsystem / `ConsentPort` · **#74** DSAR use-cases ·
 **#75** extended formula-AST nodes · carry-over **#76** remaining fitness functions (pull in early so
 enforcement tracks the new code).
 
-**Still to be written — the actual core vertical slice (skeleton → product), roughly in order:**
-1. **Local event-store adapter** — a real `EventStorePort` on SQLite (native) / OPFS (web), replacing the
-   in-memory fake (ADR 0005).
-2. **Persistent read-model projections** — rebuildable from the log, using the documented
-   `readStream`/`readAll` *exclusivity* checkpoint contract (ADR 0004/0005).
-3. **`apps/web` shell** — Vite + React PWA, client-rendered against the local read-models; a minimal
-   character-sheet view (ADR 0012). Likely its own small sub-epic.
-4. **Real authorization** — `PolicyPort` + the Owner/GM/Player/Spectator role×action×resource matrix,
-   replacing the owner-only skeleton policy, plus the existence-before-authz unification (ADR 0009).
-5. **Sync adapter** — insert-only replication + domain rebase against Supabase, building on the existing
-   `sync-harness` (ADR 0005/0024).
+**The core vertical slice (skeleton → product), in order — all now open issues under Epic #10:**
+1. **#103 — Local event-store adapter** — a real `EventStorePort` on SQLite (native) / OPFS (web),
+   replacing the in-memory fake (ADR 0005), incl. real per-aggregate `version` uniqueness (shared with
+   #76).
+2. **#104 — Persistent read-model projections** — rebuildable from the log, using the documented
+   `readStream`/`readAll` *exclusivity* checkpoint contract (ADR 0004/0005). Depends on #103.
+3. **#105 — `apps/web` shell** (epic) — Vite + React PWA, client-rendered against the local read-models,
+   built around the ADR 0012 §13 offline-session identity from the start; a minimal character-sheet view
+   (ADR 0012). Its own small sub-epic — break into sub-issues at pickup time. Notes a likely prerequisite:
+   `apps/api` (still scaffold-only) or a direct Supabase project for `AuthPort` to authenticate against.
+4. **#106 — Real authorization** — `PolicyPort` + the Owner/GM/Player/Spectator role×action×resource
+   matrix, replacing the owner-only skeleton policy; the existence-before-authz unification; and the
+   ADR 0012 §13 unbound-device (full local `Owner`) case (ADR 0009 §3).
+5. **#107 — Sync adapter** — insert-only replication + domain rebase against Supabase, defining the
+   `SyncPort` interface (not yet in code) and building on the existing `sync-harness` test double
+   (ADR 0005/0024). Notes a likely prerequisite: a cloud-reachable `EventStorePort` (Postgres/Supabase),
+   distinct from #103's local adapter.
 
-**Decision to settle *before* the web-auth work (not to be decided silently in code):** **offline-session
-semantics** — who is the local user on a cold offline start (guest / local-only / multi-user per device)?
-A real ADR 0012/0009 gap → a small amendment or ADR first (CLAUDE.md: do not implement ahead of a decision).
-
-**Also produce during the planning pass:** the **ports catalog** doc (the one Epic-#1 DoD item left open —
-it is exactly the adapter map this slice needs) and keep `docs/roadmap.md` + this file in sync as the slice
-takes shape.
+**Produced during the planning pass:** the **ports catalog** doc — [`docs/ports-catalog.md`](ports-catalog.md)
+(the one Epic-#1 DoD item left open) — every port, its owning ADR, current implementation status
+(real / skeleton fake / not yet implemented), and which ticket above builds its first real adapter. Keep
+it in sync with `packages/core-domain/src/application/ports.ts` as adapters land.
 
 ### External ADR review (2026-07-07) — assessment & consequences
 
