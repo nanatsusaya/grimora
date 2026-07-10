@@ -7,6 +7,8 @@
 - [`hosting.md`](hosting.md) — hosting breakdown, costs, "completely local" setup.
 - [`access-and-accounts.md`](access-and-accounts.md) — required access & accounts.
 - [`naming.md`](naming.md) — name suggestions & the "Grimora" decision.
+- [`ports-catalog.md`](ports-catalog.md) — every port in the hexagon: purpose, owning ADR, current
+  implementation status, and which Phase-2 ticket builds its first real adapter.
 
 ## Decisions & constraints
 
