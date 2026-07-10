@@ -179,12 +179,46 @@ web app **unblocks** it and that critical journeys get E2E coverage as the app i
   access/refresh token in web storage.
 - **No runtime CSS-in-JS; semantic tokens only** (ADR 0002/0007) — checkable against the styling layer.
 
-### 12. No amendment to any accepted ADR
+### 12. No amendment to any other accepted ADR
 
-This ADR **fills gaps** the earlier ADRs left open (rendering posture, local-data reactivity, token
-storage, consent UI) and **reuses** their decisions unchanged; it requires **no owner-authorized
-amendment** to any accepted ADR (unlike ADR 0024 §10). In particular the token-storage cookie case is the
-one ADR 0011 §9 already anticipated, and the theming/i18n sections only *consume* ADR 0007/0009/0016.
+§1–§11 (as originally accepted) **fill gaps** the earlier ADRs left open (rendering posture, local-data
+reactivity, token storage, consent UI) and **reuse** their decisions unchanged; none of it required an
+owner-authorized amendment to any *other* accepted ADR (unlike ADR 0024 §10). In particular the
+token-storage cookie case is the one ADR 0011 §9 already anticipated, and the theming/i18n sections only
+*consume* ADR 0007/0009/0016. (§13 below is a later, dated amendment to *this* ADR itself — see
+Amendments.)
+
+### 13. Offline-session identity (cold-start, no prior login) — 2026-07-10 amendment
+
+STATUS.md flagged a genuine gap left by §5 and by ADR 0009 §3: §5 fixes *where* a session token lives
+once one exists, and ADR 0009 §3 fixes `AuthPort`/`AuthorizationPort` as the *authenticated* identity
+and authorization mechanism — neither says who or what the acting identity **is** on a cold start with
+no network and no prior login, which offline-first (§1/§2) makes a real, reachable state (not an edge
+case).
+
+- **Decision: the device is the implicit local user.** On first launch with no prior login, the app
+  does **not** block on authentication — it creates (or reuses, if already present in the local store,
+  ADR 0005 §1) a single **implicit local identity** scoped to that device/installation, and proceeds to
+  read/write local projections and append events under it immediately. This is consistent with §2's
+  local-first read path and the frontend-first write path (ADR 0008 §2) — neither requires network or a
+  server round-trip, so identity must not either.
+- **Binding to a real account happens once, on first successful online login.** The first time the
+  device successfully authenticates via `AuthPort` (ADR 0009 §3), the implicit local identity is bound
+  to that Supabase account: locally-created event streams are attributed to the now-known account id,
+  and the device continues operating as that account thereafter (online or offline). Until that first
+  bind, the implicit local identity is **not** an `AuthPort` session and carries no token (§5 is
+  unaffected — there is simply nothing to store yet).
+- **Authorization while unbound:** with no `AuthorizationPort` role assigned yet (ADR 0009 §3 requires
+  an authenticated actor to check against), the implicit local identity has **full local authority**
+  over data it created on that device — equivalent to a local, single-player `Owner` — since there is,
+  by construction, no other party who could hold campaign data on an unbound device. This is a
+  **narrow, offline-only** relaxation of ADR 0009 §3's authenticated-actor assumption, not a change to
+  the role set or to authorization once an account is bound; the concrete Owner/GM/Player/Spectator
+  matrix (Epic #52 carry-over) applies unchanged from first bind onward.
+- **One implicit identity per device, not per person.** A device shared by multiple people (e.g. a
+  family tablet) sees a single implicit local identity until someone logs in — there is no offline
+  profile switcher. Anyone needing separate local profiles on one device must log in with distinct
+  accounts; this is a deliberate scope cut (see Alternatives), not an oversight.
 
 ## Consequences
 
@@ -193,7 +227,8 @@ data with **no server on the critical path**, while public pages stay SEO-friend
 (the domain is in `core-domain`, reused across platforms), so the frontend-first invariant holds by
 construction; **token storage is made secure and explicit** (in-memory access + non-JS-readable refresh),
 closing the review's flagged gap; consent UI, conflict UX, theming and i18n consumption all have a defined
-home; E2E finally becomes possible; and **no accepted ADR is disturbed**.
+home; E2E finally becomes possible; and **no *other* accepted ADR is disturbed** (§13's later amendment
+only touches this ADR itself).
 
 **Negative / costs:** a client-rendered offline-first app forgoes SSR benefits for the authenticated
 surface (first-load JS weight, no server-side data render) — mitigated by the PWA shell + local data being
@@ -201,7 +236,10 @@ surface (first-load JS weight, no server-side data render) — mitigated by the 
 real infrastructure to build (subscriptions, invalidation on projection rebuild); the in-memory access
 token means a full page reload must silently refresh from the cookie/secure store (a deliberate
 security/UX trade); and keeping the shared layer DOM-agnostic for a not-yet-built mobile app adds mild
-discipline now for a Phase-5 payoff.
+discipline now for a Phase-5 payoff. **§13 adds:** a shared device (family tablet) has no offline
+multi-profile support — everyone using it unbound shares one local identity — a deliberate scope cut,
+not a defect; the first-bind attribution step is a real migration `core-domain` must implement (re-owning
+already-appended local events to a newly-known account id) rather than a no-op.
 
 ## Alternatives considered
 
@@ -219,6 +257,20 @@ discipline now for a Phase-5 payoff.
   the token SSOT instead.
 - **Adopt a single cross-platform UI framework now** (RN-Web/Tamagui) — deferred, not rejected: premature
   before mobile starts; share core-domain + tokens now, decide the component strategy at Phase 5 (O2).
+- **Block on login before any offline use (§13)** — simplest to reason about (every acting identity is an
+  `AuthPort` session, ADR 0009 §3 never needs a "not yet bound" case) — rejected: contradicts
+  offline-first itself; a brand-new device with no network could not be used at all until it reached a
+  server, which is exactly the failure mode ADR 0005/§1–§2 exist to avoid.
+- **Multi-user-per-device offline (local profile switcher, §13)** — supports a shared family
+  tablet/laptop without requiring separate logins — rejected for the *first* vertical slice: real added
+  scope (a profile-selection UI, per-profile local storage partitioning) for a use case (multiple people,
+  one shared offline device) the project does not yet have evidence it needs; revisit if it becomes a
+  real, not hypothetical, request.
+- **Local guest profile immediately bound to a placeholder cloud identity (§13)** — pre-creates a
+  server-side account row for every device before login, so "first bind" is a rename rather than a new
+  attribution — rejected: creates unauthenticated server-side identities to manage/garbage-collect for no
+  offline benefit (the implicit local identity already works fully offline without one); adds an
+  operational surface (orphaned placeholder accounts) for a problem the chosen design doesn't have.
 
 ## Resolved questions (owner decisions, 2026-07-09)
 
@@ -239,6 +291,20 @@ discipline now for a Phase-5 payoff.
 > **Note (2026-07-09):** the web *framework* was re-evaluated at the owner's request; **the decision is
 > Vite + React** (replacing Next.js), authorized as an **amendment to ADR 0002** carried in this same PR.
 > R1–R3 were framework-independent and are unaffected; §1/§9 now reflect Vite + React.
+
+## Amendments
+
+- **2026-07-10** — *Authorized by the project owner.* **Offline-session identity (§13).** `docs/STATUS.md`
+  had flagged, since the Phase-1 close-out, an explicit gap: "who is the local user on a cold offline
+  start (guest / local-only / multi-user per device)?" — named as a decision to settle *before* the
+  Phase-2 web-auth/authorization tickets (Epic #10), not to be decided silently in code (CLAUDE.md).
+  Raised at the start of the Phase-2 planning session because it directly determines the scope of the
+  `apps/web` shell and real-authorization tickets. **Decision:** the device is the implicit local user
+  until the first successful online login binds it to a real `AuthPort` account (§13); one implicit
+  identity per device, not per person (no offline profile switcher). Rejected alternatives: block on
+  login before offline use; multi-user-per-device offline; a placeholder cloud identity pre-created per
+  device (see Alternatives considered). Unblocks scoping issue tickets for the local event-store adapter,
+  the `apps/web` shell, and real `PolicyPort` authorization (Epic #10).
 
 ## References
 
