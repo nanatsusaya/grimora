@@ -37,6 +37,20 @@
         "typescript": "^6.0.3",
       },
     },
+    "packages/cqrs-read": {
+      "name": "@grimora/cqrs-read",
+      "version": "0.0.0",
+      "dependencies": {
+        "@grimora/core-domain": "workspace:*",
+        "@grimora/shared-types": "workspace:*",
+      },
+      "devDependencies": {
+        "@grimora/event-store": "workspace:*",
+        "@grimora/plugin-dsa5": "workspace:*",
+        "@types/bun": "^1.1.0",
+        "typescript": "^6.0.3",
+      },
+    },
     "packages/event-store": {
       "name": "@grimora/event-store",
       "version": "0.0.0",
@@ -98,6 +112,8 @@
     "@biomejs/cli-win32-x64": ["@biomejs/cli-win32-x64@2.5.2", "", { "os": "win32", "cpu": "x64" }, "sha512-4InchVpdVmdkkkgjQqKpgvyu+VPnoF/7RPSw5YATgEVpt2j72wcCAeV5TwaE9ZGJUZWZn7v2CwSAj6CrMJEx8A=="],
 
     "@grimora/core-domain": ["@grimora/core-domain@workspace:packages/core-domain"],
+
+    "@grimora/cqrs-read": ["@grimora/cqrs-read@workspace:packages/cqrs-read"],
 
     "@grimora/event-store": ["@grimora/event-store@workspace:packages/event-store"],
 

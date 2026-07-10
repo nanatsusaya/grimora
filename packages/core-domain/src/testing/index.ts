@@ -14,4 +14,8 @@ export {
   createSequentialIdGenerator,
   type InMemoryEventStore,
 } from './fakes';
+export {
+  type ReadModelStoreContractCase,
+  readModelStoreContract,
+} from './read-model-store-contract';
 export { createSyncHarness, type HarnessClient, type SyncHarness } from './sync-harness';
