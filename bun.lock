@@ -37,6 +37,18 @@
         "typescript": "^6.0.3",
       },
     },
+    "packages/event-store": {
+      "name": "@grimora/event-store",
+      "version": "0.0.0",
+      "dependencies": {
+        "@grimora/core-domain": "workspace:*",
+        "@grimora/shared-types": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "^1.1.0",
+        "typescript": "^6.0.3",
+      },
+    },
     "packages/plugin-sdk": {
       "name": "@grimora/plugin-sdk",
       "version": "0.0.0",
@@ -86,6 +98,8 @@
     "@biomejs/cli-win32-x64": ["@biomejs/cli-win32-x64@2.5.2", "", { "os": "win32", "cpu": "x64" }, "sha512-4InchVpdVmdkkkgjQqKpgvyu+VPnoF/7RPSw5YATgEVpt2j72wcCAeV5TwaE9ZGJUZWZn7v2CwSAj6CrMJEx8A=="],
 
     "@grimora/core-domain": ["@grimora/core-domain@workspace:packages/core-domain"],
+
+    "@grimora/event-store": ["@grimora/event-store@workspace:packages/event-store"],
 
     "@grimora/plugin-dsa5": ["@grimora/plugin-dsa5@workspace:plugins/dsa5"],
 
