@@ -4,6 +4,7 @@
  * fakes leaking into the main `@grimora/core-domain` entry / production bundles.
  */
 
+export { type EventStoreContractCase, eventStoreContract } from './event-store-contract';
 export {
   createFixedClock,
   createInMemoryEventStore,
