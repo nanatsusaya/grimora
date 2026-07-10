@@ -33,6 +33,17 @@ function binary(
   return combine(l.value, r.value);
 }
 
+/** Evaluate one sub-expression, then transform it — short-circuiting on error (for the rounding ops). */
+function unary(
+  operand: FormulaAst,
+  ctx: FormulaContext,
+  transform: (x: number) => number,
+): Result<number, AppError> {
+  const v = evaluateFormula(operand, ctx);
+  if (!v.ok) return v;
+  return ok(transform(v.value));
+}
+
 /**
  * Evaluate a formula AST to a number. Pure and total: every failure (unknown trait, division by zero,
  * missing dice/table entry) is returned as an {@link AppError}, never thrown.
@@ -65,6 +76,22 @@ export function evaluateFormula(ast: FormulaAst, ctx: FormulaContext): Result<nu
       return binary(ast.left, ast.right, ctx, (a, b) =>
         b === 0 ? err(appError('rules.division_by_zero', 'Validation')) : ok(a / b),
       );
+    case 'mod':
+      // Floored modulo (`a − b·floor(a/b)`), consistent with integer division = `floor(div(a,b))`
+      // (ADR 0021 §1 amendment); result takes the divisor's sign. Modulo by zero is an error, not NaN.
+      return binary(ast.left, ast.right, ctx, (a, b) =>
+        b === 0
+          ? err(appError('rules.modulo_by_zero', 'Validation'))
+          : ok(a - b * Math.floor(a / b)),
+      );
+    case 'floor':
+      return unary(ast.operand, ctx, (x) => Math.floor(x));
+    case 'ceil':
+      return unary(ast.operand, ctx, (x) => Math.ceil(x));
+    case 'round':
+      // Ties away from zero (ADR 0021 amendment): Math.round is ties-toward-+∞, so round |x| and
+      // reattach the sign — round(2.5)=3, round(-2.5)=-3. `Math.sign(0)` is 0, so round(0)=0.
+      return unary(ast.operand, ctx, (x) => Math.sign(x) * Math.round(Math.abs(x)));
     case 'min':
       return binary(ast.left, ast.right, ctx, (a, b) => ok(Math.min(a, b)));
     case 'max':

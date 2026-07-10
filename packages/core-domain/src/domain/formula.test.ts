@@ -28,6 +28,58 @@ describe('evaluateFormula', () => {
     if (!result.ok) expect(result.error.code).toBe('rules.division_by_zero');
   });
 
+  it('floors toward -inf and ceils toward +inf', () => {
+    expect(evaluateFormula(f.floor(f.const(2.9)), { traits: {} })).toEqual({ ok: true, value: 2 });
+    expect(evaluateFormula(f.floor(f.const(-2.1)), { traits: {} })).toEqual({
+      ok: true,
+      value: -3,
+    });
+    expect(evaluateFormula(f.ceil(f.const(2.1)), { traits: {} })).toEqual({ ok: true, value: 3 });
+    expect(evaluateFormula(f.ceil(f.const(-2.9)), { traits: {} })).toEqual({ ok: true, value: -2 });
+  });
+
+  it('rounds half away from zero (round(2.5)=3, round(-2.5)=-3)', () => {
+    expect(evaluateFormula(f.round(f.const(2.5)), { traits: {} })).toEqual({ ok: true, value: 3 });
+    expect(evaluateFormula(f.round(f.const(-2.5)), { traits: {} })).toEqual({
+      ok: true,
+      value: -3,
+    });
+    expect(evaluateFormula(f.round(f.const(2.4)), { traits: {} })).toEqual({ ok: true, value: 2 });
+    expect(evaluateFormula(f.round(f.const(-2.4)), { traits: {} })).toEqual({
+      ok: true,
+      value: -2,
+    });
+  });
+
+  it('computes floored modulo (sign of the divisor) and integer division consistently', () => {
+    expect(evaluateFormula(f.mod(f.const(7), f.const(3)), { traits: {} })).toEqual({
+      ok: true,
+      value: 1,
+    });
+    // Floored: -7 - 3*floor(-7/3) = -7 - 3*(-3) = 2 — same sign as the divisor.
+    expect(evaluateFormula(f.mod(f.const(-7), f.const(3)), { traits: {} })).toEqual({
+      ok: true,
+      value: 2,
+    });
+    // Integer division = floor(div(a,b)) (ADR 0021 §1): floor(7/2) = 3.
+    expect(evaluateFormula(f.floor(f.div(f.const(7), f.const(2))), { traits: {} })).toEqual({
+      ok: true,
+      value: 3,
+    });
+  });
+
+  it('expresses the D&D-5e ability modifier floor((score-10)/2)', () => {
+    const modifier = f.floor(f.div(f.sub(f.trait('score'), f.const(10)), f.const(2)));
+    expect(evaluateFormula(modifier, { traits: { score: 15 } })).toEqual({ ok: true, value: 2 });
+    expect(evaluateFormula(modifier, { traits: { score: 8 } })).toEqual({ ok: true, value: -1 });
+  });
+
+  it('rejects modulo by zero (never NaN)', () => {
+    const result = evaluateFormula(f.mod(f.const(5), f.const(0)), { traits: {} });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.code).toBe('rules.modulo_by_zero');
+  });
+
   it('evaluates cmp to 1/0 and if to the chosen branch', () => {
     const ast = f.if(f.cmp('gt', f.trait('COU'), f.const(10)), f.const(1), f.const(0));
     expect(evaluateFormula(ast, { traits: { COU: 12 } })).toEqual({ ok: true, value: 1 });
