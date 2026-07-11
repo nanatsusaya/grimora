@@ -12,13 +12,15 @@
  * (`scripts/arch/__fixtures__/…/packages/…`), without duplicating rules. See
  * `scripts/arch/boundaries.test.ts`, which proves a deliberate violation is caught.
  *
- * **Scope of these rules is *import boundaries* only.** The ADRs also mandate *call-graph* /
- * *content* fitness functions the dependency-cruiser cannot express — default-deny `PolicyPort`
- * (ADR 0010 §7.4), the external-AI consent gate (ADR 0015 §10), per-field privacy classification
- * (ADR 0023 §8), UI-reads-read-models-only (ADR 0012 §11) and a `@grimora/core-domain/testing`
- * production-import guard (ADR 0017 R1). Those are **not yet enforced here** — tracked in **#76** —
- * so "green `arch`" means "import boundaries hold", not "every ADR invariant is machine-checked".
- * This is stated explicitly so no reader mistakes the harness's current reach for the full set.
+ * **Scope of these rules is *import boundaries* only.** *Call-graph* / *content* fitness functions
+ * dependency-cruiser cannot express (default-deny `PolicyPort`, determinism, the SDK re-export/privacy
+ * completeness checks) live as separate ts-morph-based `*.test.ts` files in `scripts/arch/` instead
+ * (#76 closed most of the ADR-mandated set — see `scripts/arch/README.md`'s table for the current full
+ * inventory). `ui-reads-read-models-only` (ADR 0012 §11) and `testing-subpath-production-guard`
+ * (ADR 0017 R1) *are* import-expressible and live below as ordinary forbidden rules. Two items remain
+ * genuinely unassertable — the external-AI consent gate (ADR 0015 §10) needs `ConsentPort` to exist,
+ * and realtime-never-persisted (ADR 0024 §9) needs a realtime adapter to exist — both are documented
+ * `test.skip` placeholders in `scripts/arch/pending-fitness-functions.test.ts`, not silently missing.
  *
  * Run via `bun run arch`. Referenced ADR sections are cited per rule.
  */
@@ -64,6 +66,23 @@ module.exports = {
         'ADR 0003 §2.2–2.3 + Enforcement — the hexagon core (Domain/Application/Ports in ' +
         'core-domain) must not import any adapter, app, or plugin package.',
       from: { path: '(?:^|/)packages/core-domain/' },
+      to: {
+        path: `(?:^|/)(?:packages/(?:${ADAPTER_PKGS})|apps|plugins)/`,
+      },
+    },
+    {
+      name: 'sdk-no-plugin-leak',
+      severity: 'error',
+      comment:
+        'ADR 0003 §9 (boundary/language-leak) + ADR 0025 §7 — `plugin-sdk` is the *published* ' +
+        "language between the host and plugins; it must not import a *concrete* plugin's package, " +
+        'an adapter, or an app, or plugin-specific vocabulary would leak back into the one contract ' +
+        'every plugin (and core-domain) depends on. (The identifier/vocabulary half of the "language ' +
+        'leak" this ADR section names is structurally implied by this import rule — TS code cannot ' +
+        'reference a symbol it never imported; a rule system named in a doc comment as an *example* ' +
+        '(e.g. "DSA5" in a JSDoc `@example`) is documentation, not a leak, and is intentionally out of ' +
+        'scope — #76.)',
+      from: { path: '(?:^|/)packages/plugin-sdk/' },
       to: {
         path: `(?:^|/)(?:packages/(?:${ADAPTER_PKGS})|apps|plugins)/`,
       },
@@ -148,6 +167,35 @@ module.exports = {
         'security-critical) rule silently dead. Enforced when SecretsPort is introduced (Phase 2).',
       from: { pathNot: '(?:^|/)apps/' },
       to: { path: '(?:^|/)packages/core-domain/src/application/ports/secrets' },
+    },
+    {
+      name: 'ui-reads-read-models-only',
+      severity: 'error',
+      comment:
+        'ADR 0012 §11 — UI/presentation code reads only through the read-model/query layer; it must ' +
+        'not import the event-store adapter directly (the deep-import rule above already covers ' +
+        '"or core internals" via a package\'s public entry). A composition root ' +
+        '(`apps/*/src/composition/`) and its store-wiring layer (`apps/*/src/store/`) are exempt — ' +
+        'they are the one place allowed to wire adapters (ADR 0003 §8); a projection-running view ' +
+        '(`apps/web/src/state/`) is *not* exempt — it receives an already-wired port instance from ' +
+        'the composition root rather than importing the adapter package itself, so this import rule ' +
+        "correctly doesn't (and shouldn't) flag it. #76.",
+      from: {
+        path: '(?:^|/)(?:apps/[^/]+/src|packages/ui/src)/',
+        pathNot: '(?:^|/)apps/[^/]+/src/(?:composition|store)/',
+      },
+      to: { path: `(?:^|/)packages/(?:${ADAPTER_PKGS})/` },
+    },
+    {
+      name: 'testing-subpath-production-guard',
+      severity: 'error',
+      comment:
+        'ADR 0017 R1 — `@grimora/core-domain/testing` (in-memory fakes + contract suites) is dev/test ' +
+        'infrastructure and must never be imported by a production composition root. ' +
+        '`apps/skeleton-walk` is exempt: it *is* the ADR 0022 walking-skeleton validation harness, ' +
+        'whose entire purpose is running the golden path over in-memory fakes, never a deployed app. #76.',
+      from: { path: '(?:^|/)apps/(?!skeleton-walk/)[^/]+/src/' },
+      to: { path: '(?:^|/)packages/core-domain/src/testing/' },
     },
   ],
   options: {

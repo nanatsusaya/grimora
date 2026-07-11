@@ -47,12 +47,15 @@ export function createInMemoryEventStore(): InMemoryEventStore {
   const all: PersistedEvent[] = [];
   let position = 0;
 
+  const seenVersions = new Set<string>();
+
   const persist = (event: EventEnvelope): PersistedEvent => {
     const persisted: PersistedEvent = { ...event, position: ++position };
     const stream = byStream.get(event.aggregateId) ?? [];
     byStream.set(event.aggregateId, [...stream, persisted]);
     all.push(persisted);
     seenIds.add(event.id);
+    seenVersions.add(`${event.aggregateId}:${event.version}`);
     return persisted;
   };
 
@@ -80,13 +83,16 @@ export function createInMemoryEventStore(): InMemoryEventStore {
     async replicate(events) {
       for (const event of events) {
         if (seenIds.has(event.id)) continue; // idempotent dedup-by-id (ADR 0005 §3)
-        /*
-         * SKELETON SIMPLIFICATION (explicit): dedups by `id` only — it does NOT enforce per-aggregate
-         * `version` uniqueness, so two concurrent events at the same `(streamId, version)` would both
-         * persist (the C11 collision, ADR 0024 §3 amendment). The real durable store MUST reject the
-         * second (ADR 0004 §1/§2 per-aggregate version invariant); tracked in #76. This is safe here
-         * only because the sync harness drives a conflict-free replication sequence.
-         */
+        const versionKey = `${event.aggregateId}:${event.version}`;
+        if (seenVersions.has(versionKey)) {
+          // Per-aggregate version uniqueness (ADR 0004 §1/§2; the C11 collision bound, ADR 0024 §3
+          // amendment) — the real durable store enforces this with a UNIQUE(aggregate_id, version)
+          // constraint (packages/event-store); the fake now matches that fidelity (#76), so a bug that
+          // would violate it in production fails loudly in tests too, instead of silently double-persisting.
+          throw new Error(
+            `InMemoryEventStore.replicate: duplicate event at (aggregateId, version) = (${event.aggregateId}, ${event.version})`,
+          );
+        }
         persist(event);
       }
     },
@@ -96,6 +102,7 @@ export function createInMemoryEventStore(): InMemoryEventStore {
     reset() {
       byStream.clear();
       seenIds.clear();
+      seenVersions.clear();
       all.length = 0;
       position = 0;
     },
