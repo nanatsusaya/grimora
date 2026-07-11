@@ -14,8 +14,8 @@
   0015 + 0017 + 0020–0025) in the Phase-1 run; a 22nd, **ADR 0027** (`apps/api` framework/structure), was
   added later in Phase 2. The first implementation ticket (conformance harness, #9) is done and merged
   (`scripts/arch/` + `.dependency-cruiser.cjs`, wired as the CI `arch` step). "Done" here = the
-  *architecture-ADR run + the walking-skeleton gate*; the operational carry-overs (#71/#72/#76) continue as
-  tracked tickets outside the closed epic (see the close-out cut below).
+  *architecture-ADR run + the walking-skeleton gate*; the operational carry-overs (#71/#72, #76 done
+  2026-07-11) continue as tracked tickets outside the closed epic (see the close-out cut below).
 - **Walking skeleton built (gate passed):** ✅ #61 / PR #64 — the **first real code beyond
   `shared-types`**: provisional-v0 `packages/plugin-sdk` + `packages/core-domain` (with a
   `/testing` fakes subpath) + minimal `plugins/dsa5` + an `apps/skeleton-walk` composition root and
@@ -46,8 +46,11 @@
   owner's own manual test of the app: the Playwright e2e now runs **in CI** (#130), a stale-service-worker
   bug (dev showed an old shell) + a missing `turbo serve` task were fixed (#131), and a **dev-only "Reset
   all"** button that wipes all local state was added (#135, ticket #133; removal-before-launch tracked in
-  #134). The `apps/api` framework/structure decision then landed (ADR 0027, #137/PR #139), and **real
-  authorization** landed (#106/PR #141). **No open PRs at time of writing** — everything merged/cleaned up.
+  #134). The `apps/api` framework/structure decision then landed (ADR 0027, #137/PR #139), **real
+  authorization** landed (#106/PR #141), and the remaining ADR-mandated **conformance fitness functions**
+  landed (#76 — default-deny, determinism, SDK re-export, privacy-classification completeness,
+  UI-reads-read-models-only, `/testing` production-import guard, the `plugin-sdk` boundary/language-leak
+  rule, and the per-aggregate version-uniqueness skeleton-fidelity fix).
 
 ### Accepted ADRs
 
@@ -178,10 +181,20 @@ Fable, findings verified against source — logged in `docs/meta/agent-collabora
 design is strong but surfaced enforcement/doc gaps, now triaged. The following are **deliberately carried
 into Phase 2** as accepted, tracked carry-overs (not silently dropped):
 
-- **#76 — remaining ADR-mandated fitness functions** (default-deny `PolicyPort`, consent gate, no-`Math.random`,
-  SDK re-export, privacy-classification presence, UI-reads-read-models-only, realtime-never-persisted,
-  per-aggregate `version` uniqueness, `/testing` production-import guard). Until these land, "green `arch`"
-  means *import boundaries hold*, not *every ADR invariant is machine-checked*.
+- ✅ **#76 — remaining ADR-mandated fitness functions — done** (2026-07-11): default-deny `PolicyPort`
+  (`default-deny.test.ts`), no-`Math.random`/`Date.now`/wall-clock in the formula interpreter, seeded RNG
+  *and* plugin Behaviour code (`determinism.test.ts`), the SDK re-export boundary (`sdk-reexport.test.ts`,
+  derived live from `ports.ts`, never hardcoded), privacy-classification completeness
+  (`privacy-classification.test.ts`), UI-reads-read-models-only and the `/testing` production-import
+  guard (both now `.dependency-cruiser.cjs` rules), plus the `sdk-no-plugin-leak` import rule closing the
+  ADR 0003 §9 boundary/language-leak gap for `plugin-sdk`. The **per-aggregate `version` uniqueness**
+  skeleton-fidelity gap (ADR 0024 §3 amendment) is also closed: `InMemoryEventStore.replicate` now
+  rejects a duplicate `(aggregateId, version)` exactly like the real SQLite adapter already did, so a
+  version-collision bug fails in tests too, not only in production. Two items remain genuinely
+  unassertable and are explicit `test.skip` placeholders, not silently missing: the **consent gate**
+  (ADR 0015 §10, needs `ConsentPort` — #73) and **realtime-never-persisted** (ADR 0024 §9, needs a
+  realtime adapter — after #107). So "green `arch`" now means every *assertable* ADR-mandated fitness
+  function holds, with the two port-gated exceptions named above.
 - **#92 — apply ADR 0023 privacy classification to the skeleton event seed** (the first mandatory Phase-2
   refactor: per-field classification + fail-fast loader + `describe()` redactable degradation).
 - **#71 — RoPA / processor / DPA / TIA / DPIA register**; **#72 — Impressum / ToS** (the *only already-triggered*

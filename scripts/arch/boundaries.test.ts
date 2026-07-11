@@ -33,5 +33,13 @@ describe('architecture boundaries (ADR 0003 §2)', () => {
     // internal imports (the imports-adapter fixture also deep-imports another package's src).
     expect(firedRules.has('plugins-no-node-builtins')).toBe(true);
     expect(firedRules.has('no-deep-import')).toBe(true);
+    // #76: plugin-sdk is the published host/plugin language and must not import a concrete plugin
+    // package either (ADR 0003 §9 boundary/language-leak).
+    expect(firedRules.has('sdk-no-plugin-leak')).toBe(true);
+    // #76: UI code outside a composition root must not import the event-store adapter directly
+    // (ADR 0012 §11), and a production app must not import core-domain's dev-only /testing subpath
+    // (ADR 0017 R1).
+    expect(firedRules.has('ui-reads-read-models-only')).toBe(true);
+    expect(firedRules.has('testing-subpath-production-guard')).toBe(true);
   });
 });
