@@ -6,11 +6,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Grimora is an **engine-agnostic tabletop RPG platform**: the core is independent of any rule system;
 concrete rule systems (first *Das Schwarze Auge 5* / DSA5) are **plugins**. See `docs/vision.md` for
-the full product vision. The project is in **Phase 1 (architecture-as-ADRs)**, at the Phase-1→Phase-2
-boundary: the ADR run is complete and the **walking skeleton** has been built, so beyond
-`packages/shared-types` there is now real (still skeleton-grade) code in `packages/core-domain`,
-`packages/plugin-sdk`, `plugins/dsa5` and `apps/skeleton-walk`; the remaining `apps/`/`packages/` are
-still scaffold-only. Check `docs/STATUS.md` for the current phase/next-step snapshot before starting work.
+the full product vision. **Phase 1 (architecture-as-ADRs) is closed** and the walking-skeleton gate has
+passed; the project is now in **Phase 2 (core engine / first vertical slice)**, with real (non-skeleton)
+code beyond `packages/shared-types` — `packages/core-domain`, `packages/plugin-sdk`, `plugins/dsa5`,
+`packages/event-store`/`cqrs-read`, and both `apps/web` (a real offline-first PWA running in a browser)
+and `apps/api` (a composition-root scaffold) — alongside the original `apps/skeleton-walk` validation
+harness; the remaining `apps/`/`packages/` are still scaffold-only. Check `docs/STATUS.md` for the
+current phase/next-step snapshot before starting work.
 
 ## Commands
 
