@@ -1,0 +1,34 @@
+/*
+ * Grimora semantic design tokens — HAND-AUTHORED PLACEHOLDER (#105-A).
+ *
+ * ADR 0007 makes `packages/design-tokens` the theming single-source-of-truth: primitives + semantic
+ * tokens live in JSON and are *generated* into per-platform artefacts (CSS custom properties for web),
+ * with the UI consuming ONLY semantic tokens, never primitives. That generation pipeline is not built
+ * yet. To unblock the `apps/web` scaffold this file hand-authors a *minimal semantic layer* so the app
+ * can style itself token-only from day one — it is deliberately the semantic tier (`--gr-color-surface`,
+ * not a raw hex primitive) so consumers already follow the ADR 0007 discipline. When the JSON→CSS
+ * pipeline lands, this file is replaced by generated output; consumers do not change.
+ *
+ * Both light and dark are provided so the shell is theme-aware from the start (ADR 0007 cascade).
+ */
+:root {
+  --gr-color-surface: #f7f7f5;
+  --gr-color-text: #1a1a1a;
+  --gr-color-accent: #7b3f00;
+  --gr-color-border: #d8d6d0;
+
+  --gr-space-sm: 0.5rem;
+  --gr-space-md: 1rem;
+  --gr-space-lg: 2rem;
+
+  --gr-font-sans: system-ui, -apple-system, "Segoe UI", roboto, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --gr-color-surface: #151515;
+    --gr-color-text: #ececec;
+    --gr-color-accent: #d99a4e;
+    --gr-color-border: #2e2e2e;
+  }
+}
