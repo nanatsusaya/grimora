@@ -11,6 +11,7 @@ import { createRoot } from 'react-dom/client';
 import '@grimora/design-tokens/tokens.css';
 import { App } from './App';
 import { getComposition } from './composition/bootstrap';
+import { resetAllAndReload } from './reset-all';
 import { createCharacterView } from './state/character-view';
 
 const rootElement = document.getElementById('root');
@@ -29,7 +30,7 @@ void view.init();
 
 createRoot(rootElement).render(
   <StrictMode>
-    <App view={view} />
+    <App view={view} onResetAll={() => resetAllAndReload(composition)} />
   </StrictMode>,
 );
 
