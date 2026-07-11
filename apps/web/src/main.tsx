@@ -33,12 +33,22 @@ createRoot(rootElement).render(
   </StrictMode>,
 );
 
-// Register the minimal app-shell service worker (public/sw.js) so the installed PWA opens offline.
-// Registration failures are non-fatal — the app still works online without it (ADR 0012 §1 shell).
+// Register the minimal app-shell service worker (public/sw.js) **only in production builds** so the
+// installed PWA opens offline. In dev it must NOT be registered: a caching service worker shadows the
+// Vite dev server and serves a stale app shell across reloads (it did — an old build kept showing after
+// the code changed). Registration failures are non-fatal — the app still works online (ADR 0012 §1 shell).
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => undefined);
-  });
+  if (import.meta.env.PROD) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js').catch(() => undefined);
+    });
+  } else {
+    // Dev: proactively unregister any service worker left over from an earlier `vite preview`/prod visit,
+    // so a previously-cached shell can never keep shadowing the dev server on this origin.
+    void navigator.serviceWorker.getRegistrations().then((registrations) => {
+      for (const registration of registrations) void registration.unregister();
+    });
+  }
 }
 
 // Dev-only: expose the OPFS smoke surface for the Playwright browser test (#105-C). The dynamic import
