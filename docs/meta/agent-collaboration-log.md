@@ -849,3 +849,45 @@ manufactured a decision the normative ADRs never left open. Living-doc wording i
 is the owner's roadmap call — surface it, recommend (I leaned defer for purity), and let the owner override
 (they chose to validate now). Recording both the recommendation and the override is the honest outcome (see
 [[owner-goal-agent-learning]]).
+
+## 2026-07-11 — Fourth cross-model round: *three* reviews of differing vintage, verified into a ticket batch
+
+**Trigger:** The owner pasted **three** external whole-repo reviews at once and asked me to verify them
+against the *current* state and, where legitimate, derive tasks: two from ChatGPT (one explicitly against
+the stale commit `df4e732` of 2026-07-09, one current) and one from Claude Fable that had **run the full
+check chain locally against `main`** and cited `file:line`. He flagged upfront that the first ChatGPT review
+likely judged a wrong state — turning the reliability question into part of the task.
+
+**Action / method:** Applied the established verify-not-defer discipline, now with an explicit **reliability
+triage** across reviewers of different vintage: Fable (code-verified, current) = highest weight; ChatGPT #1
+(static, pre-#106/#76 snapshot) = architectural findings still checkable but "not implemented" claims
+suspect; ChatGPT #2 = mostly *strategic opinion*. I re-read ~15 source files and confirmed the load-bearing
+claims against `main`: **Domain imports `@grimora/plugin-sdk`** (`character.ts`/`events.ts`/`rng.ts`),
+contradicting ADR 0003 §2.1 and unenforced by the harness — the sharpest finding, because `RollRequest`/
+`RollResult` sit in persisted payloads while ADR 0025 lets the SDK `0.x` break; the character-sheet
+projection is **neither atomic nor idempotent** (double history append on redelivery); the event store maps
+a duplicate event-`id` to `Conflict` instead of an idempotent no-op; `deriveSeed` **collides** on concurrent
+offline rolls (a seam the 2026-07-09 amendment did not cover); and a batch of real doc/quickstart/lint
+drift. I **separated the defect layer from the opinion layer**: declined "Event Sourcing is the wrong
+default / over-architected / SDK-freeze premature" as owner-roadmap questions that collide with deliberately
+Accepted ADRs (0004/0022/0025), and set aside RNG-predictability, plugin sandboxing and DoS-limits as either
+documented-accepted (ADR 0024 R3) or trigger-gated to third-party plugins.
+
+**Impact:** Eight issues (#147–#154), grouped and provenance-stamped: three doc/hygiene (README+quickstart
+#147, hygiene batch #148, maturity-labeling #149), three core-correctness on the path to #107 (projection
+#150, event-store id-idempotency #151, non-finite guards #152), and two **owner-decision tickets** kept out
+of code — D1 Domain→SDK reconciliation as the DoR for an ADR 0003/0025 amendment (#153), D2 a sync-protocol
+design ADR before #107 (#154). Started implementation with #147.
+
+**Lessons learned:** (1) When reviewers are of **different vintage**, the reliability triage *is* the work —
+half of ChatGPT #1's "not implemented" claims were outdated by #106/#76, yet its architectural findings
+converged with the code-verified Fable review and held; convergence across independent reviewers of
+*different* snapshots still filtered signal, but only after checking each against current source (cf. the
+2026-07-07 stale-snapshot entry — a plausible critique on stale context confidently flags the already-done).
+(2) A review's **strategic-opinion layer must be separated from its defect layer**: "over-architected / wrong
+default" is a roadmap judgement for the owner, not an agent task — converting it to tickets would over-serve
+the reviewer's cover-everything incentive (same over-fit as the 2026-07-07 "ten new ADRs"). (3) New wrinkle
+vs. the prior three rounds: this one's fix surface was **code/doc drift verified from source**, so it
+produced an *implementation/doc ticket batch* rather than ADR amendments — but the two findings that touch
+decisions (Domain→SDK, sync protocol) were deliberately filed as **decision tickets, not code**, honouring
+the stop-and-ask line ([[feedback-adr-amendment-needs-explicit-ask]], [[cross-model-review-pattern]]).
