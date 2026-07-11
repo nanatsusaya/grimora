@@ -41,6 +41,12 @@ listed here with a status.
 
 Status values: `Proposed` · `Accepted` · `Superseded` · `Planned` (ticketed, not yet written).
 
+> **`Accepted` means the *decision* is recorded and binding — NOT that it is *implemented*.** Reading an
+> Accepted ADR as "already built" is the single most common misreading (flagged by the 2026-07-11
+> cross-model review). Implementation **maturity** is tracked separately: [`docs/STATUS.md`](../STATUS.md)
+> for phase/feature progress (see its *Maturity legend*) and [`docs/ports-catalog.md`](../ports-catalog.md)
+> for each port's Real/Fake adapter status.
+
 ADRs 0021–0024 were added on 2026-07-07 from an external ADR review (see `docs/STATUS.md`): the
 existing ADRs cover the static architecture boundaries well, but the rules-execution model,
 a validation walking skeleton, the crypto-shredding data-classification detail, and the realtime
