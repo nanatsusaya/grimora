@@ -1,0 +1,193 @@
+/**
+ * The engine-neutral event-store logic (issue #105-B): the `events` table shape, the SQL, the
+ * optimistic-concurrency append transaction, and the row↔envelope mapping — written once against
+ * {@link SqlDriver} so the native (`bun:sqlite`) and browser (SQLite-WASM/OPFS) drivers share one
+ * implementation instead of duplicating the invariants.
+ *
+ * This module imports **no** SQLite engine (only the {@link SqlDriver} abstraction), so it is safe to
+ * pull into either runtime. It preserves the exact behaviour the shared `eventStoreContract` already
+ * pins for the native driver (ADR 0004 §4, ADR 0005 §1).
+ */
+
+import type { AppError, EventStorePort } from '@grimora/core-domain';
+import { appError } from '@grimora/core-domain';
+import type { EntityId, EventEnvelope, PersistedEvent, Result } from '@grimora/shared-types';
+import { err, ok } from '@grimora/shared-types';
+import type { SqlDriver, SqlValue } from './sql-driver';
+
+/**
+ * A SQLite-backed event store. Extends `EventStorePort` with `close()` because a durable adapter owns an
+ * OS/handle resource the composition root must release — the pure port has no such lifecycle, so it stays
+ * off the port and on the concrete adapter. Shared by the native and OPFS drivers.
+ */
+export interface SqliteEventStore extends EventStorePort {
+  /** Release the underlying database handle. After this the store must not be used again. */
+  close(): void;
+}
+
+/** The stable, namespaced conflict code the fake also returns — kept identical so callers/tests can't
+ * tell the fake and this adapter apart on the concurrency path (ADR 0004 §4 optimistic concurrency). */
+const CONFLICT_CODE = 'store.version_conflict';
+
+/**
+ * Sentinel thrown inside the append transaction when the optimistic-concurrency check fails, so the
+ * transaction rolls back and the outer handler can translate it to a `Conflict` `Result` (expected
+ * failures cross the boundary as `Result`, never as a thrown error — ADR 0009 §1).
+ */
+class VersionConflictError extends Error {}
+
+/** The row shape the `events` table returns — snake_case columns mapped to the envelope on read. */
+interface EventRow {
+  readonly position: number;
+  readonly id: string;
+  readonly aggregate_id: string;
+  readonly aggregate_type: string;
+  readonly type: string;
+  readonly version: number;
+  readonly schema_version: number;
+  readonly occurred_at: string;
+  readonly metadata: string | null;
+  readonly payload: string;
+}
+
+/**
+ * True if a thrown error is a SQLite UNIQUE-constraint violation — the storage-level backstop for the
+ * per-aggregate `version` invariant (and event-`id` idempotency). It fires when two writers pass the
+ * in-transaction version check concurrently and both try to insert the same `(aggregate_id, version)`;
+ * the second insert is rejected by the DB, which we surface as a `Conflict` exactly like a stale
+ * `expectedVersion` (ADR 0024 §3 amendment / issue #76). Matches on both the `bun:sqlite` error `code`
+ * and SQLite's own message text, so it works across engines (the WASM build throws the same message).
+ * @param error  the value caught from a failed transaction
+ * @returns      whether it is a UNIQUE-constraint violation
+ */
+function isUniqueViolation(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) return false;
+  const code = (error as { code?: unknown }).code;
+  const message = (error as { message?: unknown }).message;
+  return (
+    (typeof code === 'string' && code.startsWith('SQLITE_CONSTRAINT')) ||
+    (typeof message === 'string' && message.includes('UNIQUE constraint failed'))
+  );
+}
+
+/**
+ * Map a persisted `events` row back to a {@link PersistedEvent}, reversing the column mapping and
+ * re-parsing the JSON `payload`/`metadata`. `metadata` is `undefined` (not `null`) when absent, matching
+ * the optional-metadata envelope shape (ADR 0004 §2).
+ * @param row  a raw row from the `events` table
+ * @returns    the reconstructed persisted event
+ */
+function rowToEvent(row: EventRow): PersistedEvent {
+  return {
+    id: row.id as EntityId,
+    aggregateId: row.aggregate_id as EntityId,
+    aggregateType: row.aggregate_type,
+    type: row.type,
+    version: row.version,
+    schemaVersion: row.schema_version,
+    occurredAt: row.occurred_at as PersistedEvent['occurredAt'],
+    metadata: row.metadata === null ? undefined : JSON.parse(row.metadata),
+    payload: JSON.parse(row.payload),
+    position: row.position,
+  };
+}
+
+/**
+ * Build a durable {@link SqliteEventStore} over an already-open {@link SqlDriver}. Creates the `events`
+ * table on first use (idempotent `IF NOT EXISTS`, ADR 0005 §6 startup migration) with the invariants the
+ * port relies on: a store-local monotonic `position` (`INTEGER PRIMARY KEY AUTOINCREMENT`), a
+ * globally-unique event `id`, and a **`UNIQUE(aggregate_id, version)`** constraint enforcing
+ * per-aggregate version uniqueness at the storage layer (ADR 0004 §1/§2), not merely in application code.
+ * @param driver  an open SQLite driver (native `bun:sqlite` or browser SQLite-WASM/OPFS)
+ * @returns       a ready-to-use event store bound to that driver
+ */
+export function createEventStoreOverDriver(driver: SqlDriver): SqliteEventStore {
+  driver.exec(`
+    CREATE TABLE IF NOT EXISTS events (
+      position       INTEGER PRIMARY KEY AUTOINCREMENT,
+      id             TEXT    NOT NULL UNIQUE,
+      aggregate_id   TEXT    NOT NULL,
+      aggregate_type TEXT    NOT NULL,
+      type           TEXT    NOT NULL,
+      version        INTEGER NOT NULL,
+      schema_version INTEGER NOT NULL,
+      occurred_at    TEXT    NOT NULL,
+      metadata       TEXT,
+      payload        TEXT    NOT NULL,
+      UNIQUE (aggregate_id, version)
+    )
+  `);
+
+  const selectMaxVersion = driver.prepare(
+    'SELECT MAX(version) AS v FROM events WHERE aggregate_id = ?',
+  );
+  const insertEvent = driver.prepare(
+    `INSERT INTO events
+       (id, aggregate_id, aggregate_type, type, version, schema_version, occurred_at, metadata, payload)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  );
+  const selectStream = driver.prepare(
+    'SELECT * FROM events WHERE aggregate_id = ? AND version > ? ORDER BY version ASC',
+  );
+  const selectAll = driver.prepare('SELECT * FROM events WHERE position > ? ORDER BY position ASC');
+
+  return {
+    async append(
+      streamId: EntityId,
+      expectedVersion: number,
+      events: readonly EventEnvelope[],
+    ): Promise<Result<void, AppError>> {
+      if (events.length === 0) return ok(undefined);
+      try {
+        // The version check and the inserts are one atomic unit, so a concurrent writer cannot interleave
+        // between "read current version" and "insert". A stale expectedVersion throws to roll the batch back.
+        driver.transaction(() => {
+          const row = selectMaxVersion.get(streamId) as { v: number | null } | undefined;
+          const current = row?.v ?? 0;
+          if (current !== expectedVersion) throw new VersionConflictError();
+          for (const event of events) {
+            insertEvent.run(
+              event.id,
+              event.aggregateId,
+              event.aggregateType,
+              event.type,
+              event.version,
+              event.schemaVersion,
+              event.occurredAt,
+              event.metadata === undefined ? null : JSON.stringify(event.metadata),
+              JSON.stringify(event.payload),
+            );
+          }
+        });
+        return ok(undefined);
+      } catch (error) {
+        // Both a stale expectedVersion (app-level check) and a UNIQUE(aggregate_id, version) violation
+        // (storage-level backstop for concurrent writers) are the same optimistic-concurrency conflict —
+        // the caller rebases (ADR 0005 §4). Anything else is unexpected and rethrows to the composition
+        // root (ADR 0009 §1: programmer/infrastructure errors are not modelled as Result errors).
+        if (error instanceof VersionConflictError || isUniqueViolation(error)) {
+          return err(appError(CONFLICT_CODE, 'Conflict'));
+        }
+        throw error;
+      }
+    },
+
+    async readStream(streamId: EntityId, fromVersion = 0): Promise<readonly PersistedEvent[]> {
+      // `version > fromVersion` — the EXCLUSIVE lower bound the port mandates: an incremental reader
+      // passes its last-seen version, so an inclusive `>=` would re-fold the boundary event (ADR 0004 §4).
+      return (selectStream.all(streamId, fromVersion) as unknown as EventRow[]).map(rowToEvent);
+    },
+
+    async readAll(fromPosition = 0): Promise<readonly PersistedEvent[]> {
+      // `position > fromPosition` — EXCLUSIVE, for the same reason on the projection/sync checkpoint side.
+      return (selectAll.all(fromPosition) as unknown as EventRow[]).map(rowToEvent);
+    },
+
+    close(): void {
+      driver.close();
+    },
+  };
+}
+
+/** Re-exported so drivers can pass values through with the same value type the interface uses. */
+export type { SqlValue };
