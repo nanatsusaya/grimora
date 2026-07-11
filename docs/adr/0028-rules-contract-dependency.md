@@ -1,7 +1,7 @@
 # ADR 0028 — Rules-execution contract dependency & event-payload type stability
 
-- **Status:** Proposed
-- **Date:** 2026-07-12
+- **Status:** Accepted
+- **Date:** 2026-07-12 (accepted via PR #162, issue #153)
 - **Deciders:** project owner + AI agents
 - **Depends on:** [ADR 0003](0003-overall-architecture.md) (§2.1 dependency rule "Domain depends on
   nothing except `shared-types`", §3 module map), [ADR 0021](0021-rules-execution.md) (the rules-execution
