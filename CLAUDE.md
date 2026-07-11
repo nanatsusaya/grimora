@@ -14,24 +14,38 @@ still scaffold-only. Check `docs/STATUS.md` for the current phase/next-step snap
 
 ## Commands
 
+Scripts follow a **curated set of primary verbs**; everything else is a derived/detail command. Prefer
+the primary verb; reach for a detail command only when you need it.
+
 ```bash
-bun install                 # install workspace deps
-docker compose up -d        # Postgres + MinIO (add --profile ai for local Ollama)
-bun run dev                 # turbo dev (all workspaces)
+# Primary verbs
+bun install                 # install workspace deps (bun workspaces)
+bun run dev                 # turbo dev server(s) with HMR (Vite for apps/web)
+bun run serve               # turbo serve — serve the *built* app (vite preview); no-op until an app defines `serve`
+bun run build               # turbo build (all workspaces)
+bun run test                # turbo test (all workspaces)
 bun run lint                # biome check (lint + format check)
-bun run lint:fix            # biome auto-fix
+bun run format              # biome format --write
 bun run typecheck           # turbo typecheck (all workspaces)
 bun run arch                # architecture conformance harness (dependency-cruiser + fitness tests)
-bun run test                # turbo test (all workspaces)
-bun run build                # turbo build (all workspaces)
+bun run check               # the full local DoD chain, in CI order: lint → typecheck → arch → test → build
+bun run refresh             # clean slate: remove node_modules + build/cache, then reinstall
+bun run clear               # remove node_modules + build outputs + .turbo cache (then `bun install`/`refresh`)
+
+# Derived / detail
+bun run lint:fix            # biome auto-fix
+bun run test:coverage       # bun test --coverage across workspaces (report-only, ADR 0017 R2)
+docker compose up -d        # Postgres + MinIO (add --profile ai for local Ollama)
 ```
 
 Scope to one workspace with turbo's `--filter=@grimora/<pkg>`. Run a single colocated `*.test.ts`
 directly from inside its package: `bun test src/index.test.ts` (add `-t "name"` to filter by test name).
 
 CI (`.github/workflows/ci.yml`) runs, in order: install (frozen lockfile) → lint → typecheck → arch →
-test → build — keep all green before work is done. `arch` is the conformance harness (`scripts/arch/`,
-issue #9) enforcing the ADR 0003 §2 dependency rule + security boundaries (`scripts/arch/README.md`).
+test → build — keep all green before work is done. **`bun run check` runs exactly this chain locally**
+(same order), so it is the one command to confirm the Definition of Done before handing work back. `arch`
+is the conformance harness (`scripts/arch/`, issue #9) enforcing the ADR 0003 §2 dependency rule +
+security boundaries (`scripts/arch/README.md`).
 
 ## Architecture (read the ADRs before changing structure)
 
