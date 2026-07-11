@@ -891,3 +891,43 @@ vs. the prior three rounds: this one's fix surface was **code/doc drift verified
 produced an *implementation/doc ticket batch* rather than ADR amendments — but the two findings that touch
 decisions (Domain→SDK, sync protocol) were deliberately filed as **decision tickets, not code**, honouring
 the stop-and-ask line ([[feedback-adr-amendment-needs-explicit-ask]], [[cross-model-review-pattern]]).
+
+## 2026-07-12 — The ADR skill's "read the ground truth first" caught a redundant ADR — in a ticket I wrote myself
+
+**Trigger:** The owner said *"machen jetzt #153/#154"* — draft the two owner-decision ADRs from the
+2026-07-11 review. I invoked the `grimora-adr-author` skill, whose step-0 mandates reading the accepted
+ADRs a new one would touch **before** drafting.
+
+**Action / method:** For **#153** (Domain→`plugin-sdk` vs. ADR 0003 §2.1 + SDK-`0.x` payload stability),
+reading ADR 0003/0025 confirmed a **genuine gap** — no accepted ADR reconciles the contradiction, and
+ADR 0025 §1's "`0.x` may break" latitude really does threaten the `RollRequest`/`RollResult` types that
+sit in the persisted `character.checkRolled` payload. Drafted **ADR 0028 (Proposed, PR #162)** deciding
+the principles and leaving the mechanism as owner questions O1–O4. For **#154** (a "sync-protocol design
+ADR before #107"), reading **ADR 0005 + ADR 0024 in full** (not paraphrasing) showed the protocol is
+**already decided**: server-bound identity / no `actorId` impersonation (0024 §2/R1), idempotent
+dedup-by-`id` replication + git-like domain rebase (0005 §3/§4), late-join backfill (0024 §5),
+server-side push-enforcement fitness functions (0024 §9) — and, most tellingly, the **roll-seed collision
+I had flagged as an open seam is explicitly resolved and labelled "not a bug"** in ADR 0024 §3 + its
+2026-07-09 amendment (the late writer rebases to the next free version keeping its result; the store
+enforces per-aggregate `version` uniqueness, closed by #76). So a new ADR 0029 would **re-decide accepted
+0005/0024 turf** (forbidden) and be a "shadow-implementation" ADR the skill warns against. **Crucially,
+the mischaracterisation was in my own issue #154** — it claimed the rebase policy was "undefined" and the
+09-07 amendment "only closed the stream-routing case"; both are false against ADR 0024 §3. I stopped
+before writing anything, reported the redundancy, and (owner-approved) **closed #154**, recording the two
+genuinely-optional minor clarifications (an "unpushed local events survive a pull" sentence in ADR 0005
+§3; sync-endpoint protocol versioning in ADR 0011) so nothing is lost.
+
+**Impact:** One real ADR written (0028, PR #162 with O1–O4), one redundant ADR **not** written, #154
+closed with the finding documented, no accepted turf re-decided. The owner confirmed the disposition
+("wir folgen deiner Empfehlung").
+
+**Lessons learned:** (1) This is the **third** time the "read the accepted ADRs before drafting"
+step has changed the outcome (cf. 2026-07-11 apps/api-vs-Supabase, and the 2026-07-09 whole-corpus
+review) — the discipline is load-bearing, not ceremony. (2) The new wrinkle: the wrong framing was in a
+ticket **I authored last session**, propagated from external reviewers who **treated the in-memory
+`sync-harness` (a fake) as the real protocol**. A cross-model review of a snapshot that contains a fake
+cannot distinguish harness-fidelity bugs from protocol-design gaps — so "the sync is broken" findings
+need re-checking against the *ADRs and the real contract*, not the fake. Verify-not-defer applies to my
+own recent output as much as to an external review ([[cross-model-review-pattern]]). (3) The honest move
+when the ground truth contradicts the task is to **not do the task and say why**, even when the owner just
+asked for it — surfacing the redundancy served the project better than dutifully producing a shadow ADR.
