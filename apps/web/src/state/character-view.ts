@@ -1,0 +1,222 @@
+/**
+ * The **reactive character-sheet view store** for `apps/web` (#105-D) — the hand-rolled, dependency-free
+ * one-way-reactivity layer the owner chose for ADR 0012 §3.
+ *
+ * The loop is: a UI action calls a **core use case** (never domain logic in the view, ADR 0008 §2) → the
+ * use case appends events to the local OPFS event store → we run the `characterSheet` **projection** to
+ * update the read model → we re-query the read model and **notify** subscribers → React re-renders. The
+ * view reads state **exclusively** through the `ReadModelStorePort` (ADR 0012 §2/§11), never the event
+ * store or core internals.
+ *
+ * It exposes the `subscribe` / `getSnapshot` pair React's `useSyncExternalStore` needs. `getSnapshot`
+ * returns a **referentially stable** view-model — a fresh object is built only when state actually changes
+ * — so React neither misses an update nor loops.
+ *
+ * The only persisted view state is *which* character/campaign is currently open (`localStorage`), so a
+ * reload re-opens the same sheet from the durable read model (the #105-B persistence proof); the sheet
+ * data itself is never duplicated here.
+ */
+
+import {
+  CHARACTER_SHEET,
+  type CharacterSheet,
+  createCampaign as createCampaignCommand,
+  createCharacter as createCharacterCommand,
+  rollCheck as rollCheckCommand,
+  runCharacterSheetProjection,
+  setAttribute as setAttributeCommand,
+} from '@grimora/core-domain';
+import type { EntityId } from '@grimora/shared-types';
+import type { AppComposition } from '../composition/composition-root';
+
+/** `localStorage` key for the currently-open campaign (created once, reused across reloads). */
+const CAMPAIGN_KEY = 'grimora.current-campaign';
+/** `localStorage` key for the currently-open character, so a reload re-opens the same sheet. */
+const CHARACTER_KEY = 'grimora.current-character';
+
+/** The rule system this milestone binds characters to (loaded at the composition root, #105-D). */
+const RULE_SYSTEM_ID = 'dsa5';
+
+/**
+ * Starting trait values stamped on a freshly-created character so the sheet immediately shows attributes
+ * and a computed derived value (DSA5 LP = 5 + COU + AGI). Within the DSA5 bounds (attributes 8–20, the
+ * PER skill 0–25); a real character-creation flow is out of scope for this minimal milestone.
+ */
+const STARTING_TRAITS: readonly (readonly [string, number])[] = [
+  ['COU', 12],
+  ['AGI', 12],
+  ['INT', 12],
+  ['PER', 6],
+];
+
+/** The immutable snapshot the UI renders. A new object is built only on an actual state change. */
+export interface CharacterViewModel {
+  /** why: false until the stores are open and the initial projection/query ran — lets the UI show boot state */
+  readonly ready: boolean;
+  /** the currently-open character's sheet, or undefined if none has been created yet */
+  readonly sheet?: CharacterSheet;
+  /** the last command's error code (e.g. an out-of-bounds attribute), shown inline; cleared on success */
+  readonly error?: string;
+}
+
+/** The reactive store surface consumed by `useSyncExternalStore` plus the UI's command actions. */
+export interface CharacterView {
+  /**
+   * Subscribe to state changes.
+   * @param listener  called (with no args) whenever {@link getSnapshot} would return a new value
+   * @returns         an unsubscribe function
+   */
+  subscribe(listener: () => void): () => void;
+  /**
+   * The current view model — referentially stable between changes (safe for `useSyncExternalStore`).
+   * @returns the current {@link CharacterViewModel}
+   */
+  getSnapshot(): CharacterViewModel;
+  /**
+   * Open the stores, catch the projection up, and load the persisted character (if any). Call once on boot.
+   * @returns resolves when the initial state is loaded and `ready` is true
+   */
+  init(): Promise<void>;
+  /**
+   * Create a campaign (once) + a DSA5 character with starting traits, and open its sheet.
+   * @param name  the new character's name
+   * @returns     resolves when the sheet is created and shown
+   */
+  createCharacter(name: string): Promise<void>;
+  /**
+   * Set one trait value on the open character (a `character.setAttribute` command).
+   * @param attributeId  the trait id (e.g. `COU`, `PER`)
+   * @param value        the new value; a rule-bounds violation surfaces as `error`, not a throw
+   * @returns            resolves when the projection + sheet have updated
+   */
+  setTrait(attributeId: string, value: number): Promise<void>;
+  /**
+   * Roll the DSA5 perception check on the open character (appends a `character.checkRolled` event).
+   * @returns resolves when the roll is stored and the history has updated
+   */
+  rollPerception(): Promise<void>;
+}
+
+/**
+ * Create the reactive character-sheet view over a wired composition.
+ * @param composition  the offline composition (command ports + read store + device identity)
+ * @returns            the {@link CharacterView} store
+ */
+export function createCharacterView(composition: AppComposition): CharacterView {
+  const { deps, reads, actor } = composition;
+  const projectionDeps = { events: deps.events, reads, rules: deps.rules };
+
+  const listeners = new Set<() => void>();
+  let model: CharacterViewModel = { ready: false };
+
+  /** Replace the model with a patched copy and notify subscribers (the single write path). */
+  function setModel(patch: Partial<CharacterViewModel>): void {
+    model = { ...model, ...patch };
+    for (const listener of listeners) listener();
+  }
+
+  /** Run the projection so the read model reflects all events appended so far (idempotent, checkpointed). */
+  async function project(): Promise<void> {
+    await runCharacterSheetProjection(projectionDeps);
+  }
+
+  /** Re-query the open character's sheet from the read model **only** and publish it. */
+  async function refresh(characterId: EntityId): Promise<void> {
+    const sheet = await reads.get<CharacterSheet>(CHARACTER_SHEET, characterId);
+    setModel({ sheet, error: undefined });
+  }
+
+  /** The currently-open character id from local view state, or undefined. */
+  function currentCharacterId(): EntityId | undefined {
+    return (localStorage.getItem(CHARACTER_KEY) as EntityId | null) ?? undefined;
+  }
+
+  return {
+    subscribe(listener) {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+
+    getSnapshot() {
+      return model;
+    },
+
+    async init() {
+      await composition.ready;
+      // Catch the read model up to the durable event log, then re-open the persisted character (if any) —
+      // this is what makes a reloaded character reappear from OPFS.
+      await project();
+      const characterId = currentCharacterId();
+      if (characterId) await refresh(characterId);
+      setModel({ ready: true });
+    },
+
+    async createCharacter(name) {
+      await composition.ready;
+      let campaignId = localStorage.getItem(CAMPAIGN_KEY) as EntityId | null;
+      if (!campaignId) {
+        campaignId = deps.ids.newId();
+        const created = await createCampaignCommand(deps, {
+          campaignId,
+          name: 'Local campaign',
+          actor,
+        });
+        if (!created.ok) {
+          setModel({ error: `campaign: ${created.error.code}` });
+          return;
+        }
+        localStorage.setItem(CAMPAIGN_KEY, campaignId);
+      }
+
+      const characterId = deps.ids.newId();
+      const created = await createCharacterCommand(deps, {
+        characterId,
+        name,
+        campaignId,
+        ruleSystemId: RULE_SYSTEM_ID,
+        actor,
+      });
+      if (!created.ok) {
+        setModel({ error: `character: ${created.error.code}` });
+        return;
+      }
+
+      for (const [attributeId, value] of STARTING_TRAITS) {
+        const set = await setAttributeCommand(deps, { characterId, attributeId, value, actor });
+        if (!set.ok) {
+          setModel({ error: `${attributeId}: ${set.error.code}` });
+          return;
+        }
+      }
+
+      localStorage.setItem(CHARACTER_KEY, characterId);
+      await project();
+      await refresh(characterId);
+    },
+
+    async setTrait(attributeId, value) {
+      const characterId = currentCharacterId();
+      if (!characterId) return;
+      const set = await setAttributeCommand(deps, { characterId, attributeId, value, actor });
+      if (!set.ok) {
+        // A bounds violation is expected user error, not a crash — surface it inline and keep the sheet.
+        setModel({ error: `${attributeId}: ${set.error.code}` });
+        return;
+      }
+      await project();
+      await refresh(characterId);
+    },
+
+    async rollPerception() {
+      const characterId = currentCharacterId();
+      if (!characterId) return;
+      const rolled = await rollCheckCommand(deps, { characterId, checkId: 'perception', actor });
+      if (!rolled.ok) {
+        setModel({ error: `roll: ${rolled.error.code}` });
+        return;
+      }
+      await project();
+      await refresh(characterId);
+    },
+  };
+}
