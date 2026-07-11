@@ -47,7 +47,7 @@
   bug (dev showed an old shell) + a missing `turbo serve` task were fixed (#131), and a **dev-only "Reset
   all"** button that wipes all local state was added (#135, ticket #133; removal-before-launch tracked in
   #134). The `apps/api` framework/structure decision then landed (ADR 0027, #137/PR #139), and **real
-  authorization** (#106) is implemented, **PR #141 open and awaiting owner merge** at time of writing.
+  authorization** landed (#106/PR #141). **No open PRs at time of writing** — everything merged/cleaned up.
 
 ### Accepted ADRs
 
@@ -302,9 +302,9 @@ to `apps/api`, and to Supabase only for the auth JWT). **ADR 0027** then fixed t
 (Hono, code-first OpenAPI, `apps/api` as a composition root, Bun/node-compatible), and a **minimal
 walking-skeleton scaffold** landed (#137/PR #139) validating it with running code.
 
-**#106 (real authorization) is done** (2026-07-11, PR #141 pending owner merge) — the only Phase-2 core
-piece that could move without the owner's cloud setup did, per two owner decisions recorded above. What remains — the **cloud half** — is **trigger-gated to Phase 3+**
-(ADR 0014 §3) and owner-gated:
+**#106 (real authorization) is done and merged** (2026-07-11, PR #141) — the only Phase-2 core piece
+that could move without the owner's cloud setup did, per two owner decisions recorded above. What
+remains — the **cloud half** — is **trigger-gated to Phase 3+** (ADR 0014 §3) and owner-gated:
 
 - **#107 — sync adapter** + the `apps/api` sync endpoints (a cloud Postgres `EventStorePort`), and **#120
   (#105-E) — auth binding** (client → Supabase Auth directly, ADR 0011 §9): both need a **provisioned
@@ -312,7 +312,7 @@ piece that could move without the owner's cloud setup did, per two owner decisio
   #106's deferred `gm`/`player`/`spectator` `actorRole` resolution (needs campaign membership).
 
 ✅ **Done / not open:** `apps/web` e2e in CI (#130); the `apps/api` framework/structure decision + scaffold
-(ADR 0027 / #139); real authorization (#106, pending merge). Outstanding trigger-gated follow-up:
+(ADR 0027 / #139); real authorization (#106 / PR #141). Outstanding trigger-gated follow-up:
 **#134** — remove/hide the dev-only "Reset all" button before the first real deployment (acted on at
 ADR 0014 hosting), not now. **Housekeeping:** issue **#116** (#105-A) is implemented and merged (PR
 #121) but the issue itself is still open — close it.
