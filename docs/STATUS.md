@@ -1,6 +1,6 @@
 # Grimora — Project status & next steps
 
-> Living handoff note between working sessions. Last updated: **2026-07-10**.
+> Living handoff note between working sessions. Last updated: **2026-07-11**.
 > The binding architecture lives in the ADRs (`docs/adr/`); this file is only the progress/handoff overview.
 > Stable working rules (not the current state) live in `CLAUDE.md`.
 
@@ -282,6 +282,12 @@ Repeatable procedures under `.claude/skills/` (checked into the repo, invoked as
   in-flight work at an honest stopping point, bring the living docs current (this file, the meta-log,
   memory), run any due recurring task, then a hand-off summary + "Schönen Feierabend". Deliberately does
   **not** start new work or merge PRs (the owner merges).
+- **`weiterimtext`** — mid-session task transition (the seam between two units of work, warm counterpart
+  to `moin`/`feierabend`): after the owner merges a PR, verify it actually landed, tidy git/branch state,
+  bring the living docs current (re-checking external state first so a parallel session's changes are not
+  duplicated), then re-validate the next task against current reality and start it on a fresh branch
+  **only if agent-ready and decision-free** — otherwise surface the decision and stop (gated autonomy).
+  Keeps the session context; re-verifies the external world. Does not merge PRs.
 
 ## Per-ADR workflow
 
