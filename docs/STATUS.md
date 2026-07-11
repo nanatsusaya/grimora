@@ -338,8 +338,8 @@ trigger-gated/housekeeping items below in the meantime.
 ✅ **Done / not open:** `apps/web` e2e in CI (#130); the `apps/api` framework/structure decision + scaffold
 (ADR 0027 / #139); real authorization (#106 / PR #141); the remaining conformance fitness functions
 (#76 / PR #143). Outstanding trigger-gated follow-up: **#134** — remove/hide the dev-only "Reset all"
-button before the first real deployment (acted on at ADR 0014 hosting), not now. **Housekeeping:** issue
-**#116** (#105-A) is implemented and merged (PR #121) but the issue itself is still open — close it.
+button before the first real deployment (acted on at ADR 0014 hosting), not now. Housekeeping: issue
+**#116** (#105-A) was closed 2026-07-11 — implemented and merged (PR #121), just left open until now.
 
 ### External ADR review (2026-07-07) — assessment & consequences
 
