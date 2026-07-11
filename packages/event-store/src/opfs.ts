@@ -31,7 +31,9 @@ export interface OpfsEventStoreOptions {
   /** why: the DB file *within* the SAHPool — SAHPool requires an absolute path, so it must start with `/` */
   readonly filename?: string;
   /** why: names (and, by default, the OPFS directory of) this app's VFS pool, isolating its storage from
-   * any other SQLite-WASM engine on the same origin */
+   * any other SQLite-WASM engine on the same origin. MUST be **distinct** from the read-model store's pool
+   * name: opening two SAHPool VFSes of the *same* name in one worker collides on OPFS access handles, so
+   * the two stores use separate pools (see the distinct defaults here vs. `cqrs-read`). */
   readonly vfsName?: string;
 }
 
@@ -106,7 +108,8 @@ export async function createOpfsEventStore(
 ): Promise<SqliteEventStore> {
   const driver = await createOpfsSqlDriver(
     options.filename ?? '/grimora-events.sqlite3',
-    options.vfsName ?? 'grimora-opfs',
+    // Distinct from the read-model store's pool (see the `vfsName` doc) — same-named pools collide.
+    options.vfsName ?? 'grimora-events-opfs',
   );
   return createEventStoreOverDriver(driver);
 }
