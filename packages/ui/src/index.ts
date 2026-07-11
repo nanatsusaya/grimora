@@ -6,3 +6,5 @@
  * character-sheet and later surfaces are built.
  */
 export { AppShell, type AppShellProps } from './app-shell';
+export { Button, type ButtonProps } from './button';
+export { Field, type FieldProps } from './field';

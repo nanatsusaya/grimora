@@ -18,7 +18,9 @@
     "@grimora/cqrs-read": "workspace:*",
     "@grimora/design-tokens": "workspace:*",
     "@grimora/event-store": "workspace:*",
+    "@grimora/plugin-dsa5": "workspace:*",
     "@grimora/shared-types": "workspace:*",
+    "@grimora/ui": "workspace:*",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },

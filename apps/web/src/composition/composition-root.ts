@@ -11,8 +11,8 @@
  *   - **id generator:** production UUIDv7 (`./id-generator.ts`).
  *   - **policy:** the skeleton owner-only `createOwnerPolicy` (ADR 0022 §7) — correct for an unbound device
  *     whose implicit identity owns everything it creates (ADR 0012 §13); #106 swaps in the real matrix.
- *   - **rules:** an (empty) plugin host satisfying `RuleSystemRegistryPort`; the DSA5 plugin and the
- *     character path are loaded in #105-D, keeping this ticket to the store/identity wiring.
+ *   - **rules:** a plugin host with the **DSA5 plugin loaded** (#105-D) — the one place a composition root
+ *     is allowed to import a plugin alongside core + adapters; the character path binds to `dsa5`.
  *
  * No `AuthPort`, Supabase, or network is on this path (deferred to #105-E) — the app boots and writes from
  * purely local data.
@@ -21,6 +21,7 @@
 import type { Actor, ClockPort, ReadModelStorePort } from '@grimora/core-domain';
 import { type CommandDeps, createPluginHost } from '@grimora/core-domain';
 import { createOwnerPolicy } from '@grimora/core-domain/testing';
+import dsa5 from '@grimora/plugin-dsa5';
 import type { IsoTimestamp } from '@grimora/shared-types';
 import { createWorkerBackedStores } from '../store/worker-backed-stores';
 import { createUuidV7IdGenerator } from './id-generator';
@@ -60,12 +61,18 @@ export function createAppComposition(): AppComposition {
   const { events, reads, ready, terminate } = createWorkerBackedStores();
   const ids = createUuidV7IdGenerator();
 
+  // Load the DSA5 rule system into the in-process plugin host so character commands + the sheet
+  // projection can resolve its traits/checks (ADR 0006 §5). This composition root is the only place
+  // allowed to import a plugin together with core + adapters (ADR 0003 §2).
+  const rules = createPluginHost();
+  rules.load(dsa5);
+
   const deps: CommandDeps = {
     events,
     ids,
     clock: systemClock,
     policy: createOwnerPolicy(),
-    rules: createPluginHost(),
+    rules,
   };
 
   // Identity is resolved synchronously from local config (ADR 0012 §13) — no store round-trip needed, so

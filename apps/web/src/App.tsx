@@ -1,71 +1,125 @@
 /**
- * Top-level component of the `apps/web` PWA shell.
+ * Top-level component of the `apps/web` PWA shell — at #105-D the **first user-visible Grimora app**.
  *
- * At #105-C it becomes the first surface wired to the offline composition root: it renders the device's
- * implicit local identity (ADR 0012 §13) and reflects OPFS store readiness — a minimal, human-observable
- * proof that the app **boots and works fully offline, with no login and no network** (there is deliberately
- * nothing to click yet; the character-sheet view and its interactions are #105-D). The token-only styling
- * discipline from #105-A stays.
- *
- * Presentation is intentionally as **plain** as possible (owner request, 2026-07-11): a neutral surface,
- * default text flow, no accent colour or decorative layout. How it should actually *look* is decided later.
+ * It renders a minimal but real character-sheet flow (create character → view/edit traits → roll a check)
+ * driven entirely through the reactive read-model view store (`state/character-view.ts`): the component
+ * holds only thin ephemeral state (the new-character name field) and otherwise reads via
+ * `useSyncExternalStore` (ADR 0012 §3/§4). All writes go through core use cases; nothing here touches the
+ * event store or domain logic (ADR 0008 §2). Composed from `@grimora/ui` components + semantic design
+ * tokens only (ADR 0007) — deliberately plain pending a later visual-design decision (owner, 2026-07-11).
  */
 
-import { useEffect, useState } from 'react';
-import type { AppComposition } from './composition/composition-root';
+import { AppShell, Button, Field } from '@grimora/ui';
+import { useState, useSyncExternalStore } from 'react';
+import type { CharacterView } from './state/character-view';
 
-/** Boot phase of the OPFS stores, surfaced so the shell shows honest state instead of a blank flash. */
-type StoreStatus = 'starting' | 'ready' | 'error';
+/** The DSA5 traits this minimal sheet lets the user edit (attributes 8–20, the PER skill 0–25). */
+const EDITABLE_TRAITS: readonly {
+  readonly id: string;
+  readonly min: number;
+  readonly max: number;
+}[] = [
+  { id: 'COU', min: 8, max: 20 },
+  { id: 'AGI', min: 8, max: 20 },
+  { id: 'INT', min: 8, max: 20 },
+  { id: 'PER', min: 0, max: 25 },
+];
 
 /**
- * The application shell.
- * @param props              the component props
- * @param props.composition  the wired offline composition (identity + stores) from the composition root
- * @returns                  the shell view rendered from semantic tokens
+ * The application shell + character-sheet flow.
+ * @param props       the component props
+ * @param props.view  the reactive character-sheet view store (from the composition root)
+ * @returns           the current screen, rendered from the view model
  */
-export function App({ composition }: { readonly composition: AppComposition }) {
-  const [status, setStatus] = useState<StoreStatus>('starting');
+export function App({ view }: { readonly view: CharacterView }) {
+  const model = useSyncExternalStore(view.subscribe, view.getSnapshot);
+  const [name, setName] = useState('Alrik');
 
-  useEffect(() => {
-    let cancelled = false;
-    composition.ready.then(
-      () => {
-        if (!cancelled) setStatus('ready');
-      },
-      () => {
-        if (!cancelled) setStatus('error');
-      },
+  if (!model.ready) {
+    return (
+      <AppShell title="Grimora">
+        <p>opening local storage…</p>
+      </AppShell>
     );
-    // Guard against a resolve after unmount (StrictMode double-invoke in dev), avoiding a stray setState.
-    return () => {
-      cancelled = true;
-    };
-  }, [composition]);
+  }
+
+  const sheet = model.sheet;
 
   return (
-    <main
-      style={{
-        minHeight: '100vh',
-        padding: 'var(--gr-space-md)',
-        background: 'var(--gr-color-surface)',
-        color: 'var(--gr-color-text)',
-        fontFamily: 'var(--gr-font-sans)',
-      }}
-    >
-      <h1>Grimora</h1>
-      <p>Offline-first PWA shell — composition root (#105-C).</p>
-      <dl>
-        <dt>Local device identity</dt>
-        <dd>
-          <code>{composition.actor.userId}</code>
-        </dd>
-        <dt>Local storage</dt>
-        <dd>
-          {status === 'starting' && 'opening OPFS stores…'}
-          {status === 'ready' && 'ready (offline)'}
-          {status === 'error' && 'unavailable — this browser blocks OPFS'}
-        </dd>
-      </dl>
-    </main>
+    <AppShell title="Grimora">
+      {model.error && (
+        <p data-testid="error" style={{ color: 'var(--gr-color-text)' }}>
+          ⚠ {model.error}
+        </p>
+      )}
+
+      {!sheet ? (
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            void view.createCharacter(name.trim() || 'Alrik');
+          }}
+        >
+          <Field label="Name">
+            <input
+              aria-label="Name"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              style={{ fontFamily: 'var(--gr-font-sans)' }}
+            />
+          </Field>
+          <Button type="submit" onClick={() => undefined}>
+            Create character
+          </Button>
+        </form>
+      ) : (
+        <section data-testid="character-sheet">
+          <h2 data-testid="character-name" style={{ marginTop: 0 }}>
+            {sheet.name}
+          </h2>
+
+          <h3>Traits</h3>
+          {EDITABLE_TRAITS.map((trait) => (
+            <Field key={trait.id} label={trait.id}>
+              <input
+                type="number"
+                aria-label={trait.id}
+                min={trait.min}
+                max={trait.max}
+                value={sheet.attributes[trait.id] ?? ''}
+                onChange={(event) => {
+                  // Only commit values already within the trait's rule bounds: a partly-typed number (e.g.
+                  // "1" on the way to "14") would otherwise fire a command that fails the use-case bounds
+                  // check and flash a transient error. The use-case remains the real gate (defense in depth).
+                  const next = Number.parseInt(event.target.value, 10);
+                  if (!Number.isNaN(next) && next >= trait.min && next <= trait.max) {
+                    void view.setTrait(trait.id, next);
+                  }
+                }}
+                style={{ fontFamily: 'var(--gr-font-sans)', width: '5rem' }}
+              />
+            </Field>
+          ))}
+
+          <h3>Derived</h3>
+          {Object.entries(sheet.derived).map(([id, value]) => (
+            <Field key={id} label={id}>
+              <span data-testid={`derived-${id}`}>{value}</span>
+            </Field>
+          ))}
+
+          <h3>History</h3>
+          <ul data-testid="history">
+            {sheet.history.map((line, index) => (
+              // The history is an append-only, ordered list of pre-rendered lines; index is a stable key here.
+              // biome-ignore lint/suspicious/noArrayIndexKey: ordered append-only log, index is stable
+              <li key={index}>{line}</li>
+            ))}
+          </ul>
+
+          <Button onClick={() => void view.rollPerception()}>Roll perception</Button>
+        </section>
+      )}
+    </AppShell>
   );
 }

@@ -11,6 +11,7 @@ import { createRoot } from 'react-dom/client';
 import '@grimora/design-tokens/tokens.css';
 import { App } from './App';
 import { getComposition } from './composition/bootstrap';
+import { createCharacterView } from './state/character-view';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -18,13 +19,17 @@ if (!rootElement) {
   throw new Error('Grimora: #root element not found in index.html');
 }
 
-// Wire the offline composition once (opens the OPFS store worker + resolves the device identity) and hand
-// it to the shell. This is the composition root's single invocation for the running app (#105-C).
+// Wire the offline composition once (opens the OPFS store worker + resolves the device identity) and build
+// the reactive character-sheet view over it (#105-C composition root → #105-D view). `init()` opens the
+// stores, catches the projection up, and re-opens any persisted character; it is fire-and-forget because
+// the view notifies the mounted app when its state becomes ready.
 const composition = getComposition();
+const view = createCharacterView(composition);
+void view.init();
 
 createRoot(rootElement).render(
   <StrictMode>
-    <App composition={composition} />
+    <App view={view} />
   </StrictMode>,
 );
 
