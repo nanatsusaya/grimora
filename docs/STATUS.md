@@ -36,8 +36,10 @@
   "Phase 2 — first slice" section below for the vertical-slice tickets already merged (event store,
   read models, formula nodes, event-payload privacy, the **first browser app shell** —
   `apps/web` scaffold #105-A/PR #121, the **OPFS/WASM SQLite drivers** for both stores, #105-B/PR #124,
-  and the **offline composition root** — the app now boots and persists **fully offline in a real browser**,
-  #105-C/PR #126). A small tooling change also landed: a **curated primary-verb
+  the **offline composition root** #105-C/PR #126, and the **minimal character-sheet view** #105-D/PR #128 —
+  **Grimora now runs as a real app in a browser**: create a DSA5 character, edit traits with the derived
+  value recomputing live, roll a check, and it all persists across a reload, fully offline). A small tooling
+  change also landed: a **curated primary-verb
   script convention** (`check`/`clear`/`refresh`/`serve`/`test:coverage`, documented in CLAUDE.md,
   #122 — `bun run check` runs the full local DoD chain). **No open PRs at time of writing** — everything
   merged/cleaned up.
@@ -248,7 +250,13 @@ This is why #105 and #106 below explicitly incorporate it.
     persistence *and* §13 identity reuse across a reload in headless Chromium; the prod `vite build` bundles
     the sqlite-wasm module + worker as assets. Also fixed a latent #105-B bug (both OPFS adapters shared one
     SAHPool VFS name → access-handle collision when opened together; now distinct default pools).
-  - **#119 (D)** — minimal character-sheet view (the visible milestone). **← next.**
+  - ✅ **#119 (D) — minimal character-sheet view** (PR #128): **the milestone — Grimora runs as a real app
+    in a browser.** Create character → view/edit DSA5 traits with the derived LP recomputing live → roll the
+    perception check → **reload and everything persists** (the OPFS proof through the real UI). Built on a
+    hand-rolled, dependency-free reactive read-model layer (`useSyncExternalStore`, owner decision) — command
+    → projection → notify → re-render (ADR 0012 §3); the view reads **only** through `ReadModelStorePort`
+    (ADR 0012 §2/§11). DSA5 plugin now loaded at the composition root; new plain `Button`/`Field` primitives
+    in `packages/ui`; a golden-journey Playwright test (create → edit → roll → reload) is green.
   - **#120 (E, deferred)** — auth binding (AuthPort + login + §13 first-bind); the `apps/api`-vs-direct-Supabase
     owner decision lives here.
 - **#106 — Real authorization** — `PolicyPort` + the Owner/GM/Player/Spectator role×action×resource
@@ -265,13 +273,21 @@ This is why #105 and #106 below explicitly incorporate it.
 OPFS/WASM (#105-B), now wired and exercised **in a real browser** at the `apps/web` composition root
 (#105-C). Keep it in sync with `packages/core-domain/src/application/ports.ts` as adapters land.
 
-**Clearest next step:** **#119 (#105-D)** — the minimal **character-sheet view**, the first user-visible
-milestone. It loads the DSA5 plugin at the composition root (wired with an empty plugin host in #105-C),
-creates/reads a character through the core use-cases + the OPFS-worker stores under the §13 device identity,
-and renders the `characterSheet` read-model projection. Agent-ready; no owner decision open (the real
-authorization matrix stays #106 — the owner-only policy suffices for the unbound device). One known
-follow-up from #105-C: the Playwright e2e is a **local gate only**, not yet in the CI `check` chain (needs
-a chromium install step) — worth wiring in around the #105-D view work.
+**Clearest next step:** the **offline vertical slice's visible milestone is complete** (#105-A→D merged) —
+Grimora boots, persists, and is usable in a browser with no login/network. What remains in the slice is
+**owner-gated**, so the next move is a decision, not agent-ready implementation:
+
+- **#120 (#105-E) — auth binding** and **#107 — sync adapter** both hinge on the **`apps/api`-vs-direct-Supabase**
+  decision (a public boundary + external-network/secrets question — ADR 0011/0009/0005): does the client
+  talk to Supabase directly, or through an `apps/api` backend composition root? This is the pivot for the
+  cloud half of the slice.
+- **#106 — real authorization** (Owner/GM/Player/Spectator matrix replacing the owner-only skeleton policy)
+  is **owner-domain design** (ADR 0009 §3) — do not settle in code first.
+
+**Agent-ready follow-up (decision-light):** wire the two `apps/web` Playwright e2e specs (the golden journey
++ the OPFS smoke) into CI — they are a **local gate only** today. This needs a chromium-install step and a
+small `.github/workflows/ci.yml` addition (operationalizing ADR 0014/0017's E2E layer, no new decision);
+the one judgement call is the CI-time cost, worth a quick owner nod.
 
 ### External ADR review (2026-07-07) — assessment & consequences
 
