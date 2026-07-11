@@ -60,6 +60,9 @@ update the row here if research reveals a change, rather than re-deriving it ins
 
 ## Related
 
+- [`docs/legal/records-of-processing.md`](records-of-processing.md) — the **Art. 30 RoPA + Art. 28
+  processor/DPA register + Chapter V transfer register + Art. 35 DPIA screening** (ADR 0015 §6/§7 living
+  doc; a working compliance checklist, not legal advice).
 - [`docs/legal/dsa5-content-boundary.md`](dsa5-content-boundary.md) — copyright boundary (separate
   concern: IP, not regulatory compliance).
 - [`docs/vision.md`](../vision.md) — the compliance mandate this matrix operationalizes.
