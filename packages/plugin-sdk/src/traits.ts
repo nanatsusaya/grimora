@@ -10,7 +10,7 @@
  * **Provisional v0** (ADR 0022 §3) — frozen later in ADR 0025.
  */
 
-import type { FormulaAst } from './formula';
+import type { FormulaAst } from '@grimora/rules-contract';
 
 /** Which meta-model slot a trait definition populates. */
 export type TraitKind = 'attribute' | 'derivedValue' | 'skill';

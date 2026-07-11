@@ -16,7 +16,7 @@
  * resolves `labelKey`s through i18n at the presentation layer, never here.
  */
 
-import { redactView } from '@grimora/plugin-sdk';
+import { redactView } from '@grimora/rules-contract';
 import {
   CAMPAIGN_CREATED_PRIVACY,
   type CampaignCreated,

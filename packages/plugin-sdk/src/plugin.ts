@@ -8,7 +8,7 @@
  * capability (rule system); themes/content-packs/AI-tools/UI-slots (ADR 0006 §2) are not built here.
  */
 
-import type { CheckDefinition } from './behaviour';
+import type { CheckDefinition } from '@grimora/rules-contract';
 import type { TraitDefinition } from './traits';
 
 /**

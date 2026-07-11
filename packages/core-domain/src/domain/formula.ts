@@ -5,7 +5,7 @@
  * identically (ADR 0021 §3). This is **core** code operating on plugin-supplied **data**.
  */
 
-import type { FormulaAst } from '@grimora/plugin-sdk';
+import type { FormulaAst } from '@grimora/rules-contract';
 import { err, ok, type Result } from '@grimora/shared-types';
 import { type AppError, appError } from './errors';
 

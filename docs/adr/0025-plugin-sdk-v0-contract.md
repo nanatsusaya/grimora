@@ -71,6 +71,14 @@ breaking change — because the skeleton exercised them end-to-end:
   (namespaced code + i18n `messageKey` + closed category) crossing the boundary as a value, never a
   thrown exception (ADR 0006 §3, ADR 0009 §1).
 
+> **Source-of-truth note (2026-07-12 amendment, ADR 0028).** The rules-runtime + behaviour shapes above
+> (formula AST + `f`, the `DiceTerm`/`RollRequest`/`RollResult` roll model, `SeededRng`/`BehaviourContext`/
+> `ResolveCheck`/`CheckDefinition`, and the privacy classification helpers) are now **defined in the
+> stable leaf `@grimora/rules-contract`** and **re-exported** by `@grimora/plugin-sdk`. The **plugin-author
+> surface is unchanged** — `import { RollRequest, f, … } from '@grimora/plugin-sdk'` still resolves — but
+> the payload-embedded roll types no longer sit on this package's `0.x` "may break" surface (§1), which is
+> what closes the ADR 0028 event-payload durability hazard. See the Amendments section.
+
 ### 3. The security boundary is frozen hard (least privilege)
 
 Independently of the `0.x`/1.0 question, the **capability boundary is a permanent invariant** (ADR 0006
@@ -202,3 +210,12 @@ weaker until it lands — acceptable only while plugins are first-party and revi
   documentation is a defect" rule this was a defect in a freshly-accepted ADR. Prompted by a cross-model
   ADR review (logged in [`docs/meta/agent-collaboration-log.md`](../meta/agent-collaboration-log.md)).
   No decision changed — only the false implementation-status claim.
+- **2026-07-12** — *Authorized by the project owner ([ADR 0028](0028-rules-contract-dependency.md) R4).*
+  §2 gains a source-of-truth note: the frozen rules-runtime/behaviour shapes (formula AST + `f`,
+  `DiceTerm`/`RollRequest`/`RollResult`, `SeededRng`/`BehaviourContext`/`ResolveCheck`/`CheckDefinition`,
+  privacy helpers) are now **defined in the new leaf `@grimora/rules-contract`** and **re-exported** by
+  `@grimora/plugin-sdk`. This keeps the plugin-author surface (§2) and the hard security boundary (§3)
+  **unchanged** — the SDK still exports only contract types + pure helpers — while removing the
+  payload-embedded roll types from this package's `0.x` "may break" latitude (§1), which is what closes
+  the event-payload durability hazard ADR 0028 identified. **No `0.x` freeze policy changed** — only where
+  the types are defined.

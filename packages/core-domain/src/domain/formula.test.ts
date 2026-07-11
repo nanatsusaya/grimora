@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it } from 'bun:test';
-import { f } from '@grimora/plugin-sdk';
+import { f } from '@grimora/rules-contract';
 import fc from 'fast-check';
 import { evaluateFormula } from './formula';
 

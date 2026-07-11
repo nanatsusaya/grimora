@@ -69,6 +69,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@grimora/plugin-sdk": "workspace:*",
+        "@grimora/rules-contract": "workspace:*",
         "@grimora/shared-types": "workspace:*",
       },
       "devDependencies": {
@@ -113,6 +114,17 @@
     },
     "packages/plugin-sdk": {
       "name": "@grimora/plugin-sdk",
+      "version": "0.0.0",
+      "dependencies": {
+        "@grimora/rules-contract": "workspace:*",
+        "@grimora/shared-types": "workspace:*",
+      },
+      "devDependencies": {
+        "typescript": "^6.0.3",
+      },
+    },
+    "packages/rules-contract": {
+      "name": "@grimora/rules-contract",
       "version": "0.0.0",
       "dependencies": {
         "@grimora/shared-types": "workspace:*",
@@ -238,6 +250,8 @@
     "@grimora/plugin-dsa5": ["@grimora/plugin-dsa5@workspace:plugins/dsa5"],
 
     "@grimora/plugin-sdk": ["@grimora/plugin-sdk@workspace:packages/plugin-sdk"],
+
+    "@grimora/rules-contract": ["@grimora/rules-contract@workspace:packages/rules-contract"],
 
     "@grimora/shared-types": ["@grimora/shared-types@workspace:packages/shared-types"],
 

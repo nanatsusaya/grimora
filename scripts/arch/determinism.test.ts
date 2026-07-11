@@ -7,8 +7,9 @@
  *
  *  - `packages/core-domain/src/domain/` — the formula interpreter (`formula.ts`) and the seeded RNG
  *    (`rng.ts`) it and `character.ts`'s `rollCheck` decide-function depend on.
- *  - `packages/plugin-sdk/src/` — the published contract (`formula.ts`/`dice.ts`/`behaviour.ts`) a
- *    plugin's Behaviour API implementations are typed against.
+ *  - `packages/rules-contract/src/` — the shared rules-execution contract (`formula.ts`/`dice.ts`/
+ *    `behaviour.ts`, moved here from the SDK by ADR 0028) a plugin's Behaviour API is typed against.
+ *  - `packages/plugin-sdk/src/` — the remaining published surface (plugin registration + trait defs).
  *  - `plugins/*\/src/` — a plugin's own `resolve` functions and other Behaviour API code (arbitrary
  *    plugin-authored JS the host executes, e.g. a check's `resolve` callback), which is exactly the
  *    "reachable from plugin Behaviour API calls" surface ADR 0021 §3 names.
@@ -22,6 +23,7 @@ import { Node, Project, SyntaxKind } from 'ts-morph';
 /** Source roots the determinism rule governs (see the file header for why each is in scope). */
 const SRC_GLOBS = [
   'packages/core-domain/src/domain/**/*.ts',
+  'packages/rules-contract/src/**/*.ts',
   'packages/plugin-sdk/src/**/*.ts',
   'plugins/*/src/**/*.ts',
 ];

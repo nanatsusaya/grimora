@@ -15,7 +15,7 @@ import type {
   RollRequest,
   RollResult,
   SeededRng,
-} from '@grimora/plugin-sdk';
+} from '@grimora/rules-contract';
 import type { EntityId } from '@grimora/shared-types';
 import { err, ok, type Result } from '@grimora/shared-types';
 import { type AppError, appError } from './errors';

@@ -11,7 +11,7 @@
  * server nonce / commit-reveal would be added then, ADR 0024 §3).
  */
 
-import type { SeededRng } from '@grimora/plugin-sdk';
+import type { SeededRng } from '@grimora/rules-contract';
 import type { EntityId } from '@grimora/shared-types';
 
 /** FNV-1a 32-bit hash of a string — a small, dependency-free way to fold a stream id into a seed. */

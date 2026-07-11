@@ -20,6 +20,7 @@
     "test": "bun test ./src"
   },
   "dependencies": {
+    "@grimora/rules-contract": "workspace:*",
     "@grimora/shared-types": "workspace:*"
   },
   "devDependencies": {
