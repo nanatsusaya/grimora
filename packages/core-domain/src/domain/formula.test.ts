@@ -80,6 +80,31 @@ describe('evaluateFormula', () => {
     if (!result.ok) expect(result.error.code).toBe('rules.modulo_by_zero');
   });
 
+  it('rejects a non-finite constant (NaN / ±Infinity) at the leaf (#152)', () => {
+    for (const bad of [Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY]) {
+      const result = evaluateFormula(f.const(bad), { traits: {} });
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.error.code).toBe('rules.non_finite_result');
+    }
+  });
+
+  it('rejects a non-finite trait input rather than propagating it (#152)', () => {
+    const result = evaluateFormula(f.trait('x'), { traits: { x: Number.NaN } });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.code).toBe('rules.non_finite_result');
+  });
+
+  it('rejects arithmetic that overflows to Infinity (#152)', () => {
+    // Two finite leaves whose product exceeds the float range → Infinity, which must not be stored.
+    const result = evaluateFormula(f.mul(f.const(1e308), f.const(1e308)), { traits: {} });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.code).toBe('rules.non_finite_result');
+    // Division overflow (finite / tiny) is caught too, distinct from division-by-zero.
+    const div = evaluateFormula(f.div(f.const(1e300), f.const(1e-300)), { traits: {} });
+    expect(div.ok).toBe(false);
+    if (!div.ok) expect(div.error.code).toBe('rules.non_finite_result');
+  });
+
   it('evaluates cmp to 1/0 and if to the chosen branch', () => {
     const ast = f.if(f.cmp('gt', f.trait('COU'), f.const(10)), f.const(1), f.const(0));
     expect(evaluateFormula(ast, { traits: { COU: 12 } })).toEqual({ ok: true, value: 1 });

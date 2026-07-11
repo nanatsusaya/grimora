@@ -166,6 +166,14 @@ export function setAttribute(
   if (!state.exists) {
     return err(appError('character.not_found', 'NotFound'));
   }
+  // Reject non-finite values *before* the bounds check: `NaN < min` and `NaN > max` are both false in
+  // JS, so a NaN would silently pass an ordinary range test and then poison formulas/projections/JSON.
+  // `Number.isFinite` also rejects `±Infinity`. Integrality is deliberately NOT enforced here — the core
+  // trait meta-model (ADR 0020) is generic (a rule system may have non-integer traits); an integer
+  // constraint, if a system needs one, belongs to that plugin's bounds, not the core.
+  if (!Number.isFinite(value)) {
+    return err(appError('character.attribute_not_finite', 'Validation'));
+  }
   if (value < bounds.min || value > bounds.max) {
     return err(appError('character.attribute_out_of_range', 'Validation'));
   }
