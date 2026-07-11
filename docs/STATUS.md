@@ -1,8 +1,15 @@
 # Grimora — Project status & next steps
 
-> Living handoff note between working sessions. Last updated: **2026-07-11**.
+> Living handoff note between working sessions. Last updated: **2026-07-12**.
 > The binding architecture lives in the ADRs (`docs/adr/`); this file is only the progress/handoff overview.
 > Stable working rules (not the current state) live in `CLAUDE.md`.
+>
+> **Maturity legend** (so "decided" is never read as "built"): each capability sits at one of —
+> **planned** (ticketed, not yet designed) · **designed** (an Accepted ADR, no code) · **prototype**
+> (walking-skeleton / in-memory fake only) · **tested-against-fakes** (real domain/application logic
+> exercised over in-memory adapters) · **real-adapter** (a production adapter, exercised end-to-end).
+> **An Accepted ADR is `designed`, not `built`.** Per-port adapter status (Real/Fake) is tracked in
+> [`ports-catalog.md`](ports-catalog.md); the ✅ / phase markers below are feature-level progress.
 
 ## Where we stand
 

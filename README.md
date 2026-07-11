@@ -34,7 +34,7 @@ the reference example — but Grimora aims to support any pen-&-paper rule syste
 apps/        web   — Vite + React offline-first PWA (the app you can run today)
              api   — Hono backend composition root (scaffold, ADR 0027)
              skeleton-walk — walking-skeleton validation harness (ADR 0022)
-packages/    shared-types · core-domain · plugin-sdk · event-store · cqrs-read
+packages/    shared-types · rules-contract · core-domain · plugin-sdk · event-store · cqrs-read
              design-tokens · ui
 plugins/     dsa5 (mechanics/structure only — no copyrighted content)
 docs/        adr/ (architecture decision records) · legal/ · meta/
