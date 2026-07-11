@@ -23,7 +23,7 @@ the primary verb; reach for a detail command only when you need it.
 # Primary verbs
 bun install                 # install workspace deps (bun workspaces)
 bun run dev                 # turbo dev server(s) with HMR (Vite for apps/web)
-bun run serve               # turbo serve — serve the *built* app (vite preview); no-op until an app defines `serve`
+bun run serve               # turbo serve — serve the *built* app (vite preview; apps/web)
 bun run build               # turbo build (all workspaces)
 bun run test                # turbo test (all workspaces)
 bun run lint                # biome check (lint + format check)
@@ -44,8 +44,9 @@ Scope to one workspace with turbo's `--filter=@grimora/<pkg>`. Run a single colo
 directly from inside its package: `bun test src/index.test.ts` (add `-t "name"` to filter by test name).
 
 CI (`.github/workflows/ci.yml`) runs, in order: install (frozen lockfile) → lint → typecheck → arch →
-test → build — keep all green before work is done. **`bun run check` runs exactly this chain locally**
-(same order), so it is the one command to confirm the Definition of Done before handing work back. `arch`
+test → build → **Playwright E2E** (`apps/web`, #130) — keep all green before work is done. **`bun run
+check` runs the lint→build chain locally** (same order, minus the browser E2E), so it is the one command
+to confirm the local Definition of Done; also run `bun run e2e` when a change touches the web app. `arch`
 is the conformance harness (`scripts/arch/`, issue #9) enforcing the ADR 0003 §2 dependency rule +
 security boundaries (`scripts/arch/README.md`).
 
