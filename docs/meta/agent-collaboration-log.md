@@ -816,3 +816,36 @@ everything — the correct response is a *sharper filter* (the CLAUDE.md list), 
 run decision-free tickets without interruption while stopping on the two that genuinely defined contracts.
 (3) Concede a real miss plainly; it is worth more to a learning owner than a defence (cf. the prior day's
 "getue" retraction, [[owner-goal-agent-learning]]).
+
+## 2026-07-11 — "Read the ground truth first" caught a redundant + premature ADR (and a framing I'd propagated)
+
+**Trigger:** Post-milestone, the owner (via `/weiterimtext`) chose *"draft an ADR for the
+apps/api-vs-Supabase backend-boundary decision"* — a framing my **own** STATUS doc-syncs had introduced
+("the `apps/api`-vs-direct-Supabase owner decision lives here"). I launched the `grimora-adr-author` skill,
+whose step 0 mandates reading the ground-truth ADRs **before** drafting.
+
+**Action / method:** Reading ADR 0003 §8 + 0011 (not paraphrasing from memory) showed the "decision" was
+**already made** — `apps/api` is a decided modular-monolith boundary and 0011 fixes its full contract; the
+client talks to Supabase only for the auth JWT. A new "vs" ADR would have **re-decided Accepted turf**
+(forbidden without a superseding ADR). Reading ADR 0014 §3 + 0011 R5 further showed the `apps/api`
+**build is trigger-gated to Phase 3+** and the framework was deferred "to when built" — so even the
+genuinely-open piece was ahead-of-gate. I **stopped**, surfaced both findings, and redirected to the one
+non-redundant ADR (0027 — the deferred *framework/structure*), which the owner re-confirmed. I also
+**corrected the mischaracterization I had propagated into STATUS**. On the scaffold-now sub-question I
+recommended "decision-only" (trigger-gating purity); the owner **overrode** with "scaffold now" to validate
+the choice with running code (recorded as R3) — a minimal Hono `apps/api` walking-skeleton followed.
+
+**Impact:** No redundant/contradictory ADR was written; ADR 0027 was scoped to only the genuinely-open
+decision; a fake "open decision" was removed from STATUS; and the framework choice (Hono) got validated by a
+running scaffold rather than remaining a paper claim.
+
+**Lessons learned:** (1) The skill's *"read the accepted ADRs first, don't paraphrase from memory"* step is
+load-bearing, not ceremony — the task named a decision that was already fixed, and drafting it anew would
+have violated ADR immutability; the discipline caught it before any writing. (2) A convenient framing can be
+wrong **at the source — including one I authored**: repeating "apps/api-vs-Supabase" across doc-syncs had
+manufactured a decision the normative ADRs never left open. Living-doc wording is not evidence; the ADRs are
+(the `/weiterimtext` "re-verify the world" principle, turned on my *own* past writing). (3) "Decide" and
+"build" are separable under trigger-gating: an ADR can record a decision **ahead** of a gated build, but that
+is the owner's roadmap call — surface it, recommend (I leaned defer for purity), and let the owner override
+(they chose to validate now). Recording both the recommendation and the override is the honest outcome (see
+[[owner-goal-agent-learning]]).
