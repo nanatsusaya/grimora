@@ -318,9 +318,10 @@ walking-skeleton scaffold** landed (#137/PR #139) validating it with running cod
 **#106 (real authorization) and #76 (remaining conformance fitness functions) are both done and merged**
 (2026-07-11, PR #141 / PR #143) — the two Phase-2/Phase-1-carry-over pieces that could move without the
 owner's cloud setup did, per the two owner decisions recorded above (#106) and the ticket's own
-implement-what's-assertable-now scope (#76). **With this, everything currently agent-ready and
-decision-free in this vertical slice is done.** What remains is either **trigger-gated to Phase 3+**
-(ADR 0014 §3) or genuinely **owner-gated**:
+implement-what's-assertable-now scope (#76). **With this, the *original* Phase-2 slice work that could
+move without cloud setup was done** — a 2026-07-11 cross-model review has since reopened an agent-ready
+correctness/doc backlog (see *Cross-model review* below). What remains from the *original* slice is
+either **trigger-gated to Phase 3+** (ADR 0014 §3) or genuinely **owner-gated**:
 
 - **#107 — sync adapter** + the `apps/api` sync endpoints (a cloud Postgres `EventStorePort`), and **#120
   (#105-E) — auth binding** (client → Supabase Auth directly, ADR 0011 §9): both need a **provisioned
@@ -330,16 +331,37 @@ decision-free in this vertical slice is done.** What remains is either **trigger
   never-persisted needs a realtime adapter, after #107).
 - **#73 / #74 — Consent / DSAR**: blocked on `ConsentPort`/`CryptoPort`, not yet built.
 
-So the **clearest next step for the next session is an owner decision**, not more agent-ready
-implementation: whether/when to provision the Supabase project that unblocks #107/#120 (first external
-network integration — a "stop and ask" item per CLAUDE.md regardless), or to pick up one of the smaller
-trigger-gated/housekeeping items below in the meantime.
+So the next step is now **two-track** (see *Cross-model review* below): an **agent-ready** correctness/doc
+backlog from the review (#148–#152, bugs before features — #147 already merged), **and** the still
+**owner-gated** Supabase decision — whether/when to provision the Supabase project that unblocks #107/#120
+(first external network integration — a "stop and ask" item per CLAUDE.md regardless).
 
 ✅ **Done / not open:** `apps/web` e2e in CI (#130); the `apps/api` framework/structure decision + scaffold
 (ADR 0027 / #139); real authorization (#106 / PR #141); the remaining conformance fitness functions
 (#76 / PR #143). Outstanding trigger-gated follow-up: **#134** — remove/hide the dev-only "Reset all"
 button before the first real deployment (acted on at ADR 0014 hosting), not now. Housekeeping: issue
 **#116** (#105-A) was closed 2026-07-11 — implemented and merged (PR #121), just left open until now.
+
+### Cross-model review (2026-07-11) — derived backlog
+
+The owner ran three external whole-repo reviews (2× ChatGPT of differing vintage + Claude Fable,
+code-verified against `main`); each checkable claim was verified against source before triage (method
+logged in `docs/meta/agent-collaboration-log.md`). It produced **8 issues (#147–#154)**:
+
+- **Docs/hygiene (agent-ready):** #147 README refresh + `bun run dev` quickstart fix (**merged**, PR #155)
+  · #148 doc/config hygiene batch (`clear` glob, `.env`/comment drift, lint warnings) · #149
+  maturity-labeling pass (planned/designed/…/real) across README/STATUS/ADR index.
+- **Core-correctness (agent-ready, on the path to #107):** #150 character-sheet projection is neither
+  atomic nor idempotent (ADR 0004 §5) · #151 event store maps a duplicate event-`id` to `Conflict`
+  instead of an idempotent no-op · #152 guard non-finite (NaN/Infinity) numeric inputs.
+- **Owner-decision tickets (not code):** #153 reconcile the verified **Domain→`plugin-sdk`** import vs
+  ADR 0003 §2.1 + SDK-`0.x` payload stability (DoR for an ADR 0003/0025 amendment) · #154 a
+  **sync-protocol design ADR before #107** (idempotency, server-bound identity, roll-seed collision).
+
+The reviews' **strategic** layer (Event-Sourcing-as-default, over-architecture, SDK-freeze timing) was
+assessed as owner-roadmap opinion colliding with Accepted ADRs and deliberately **not** converted to
+tickets; RNG-predictability, plugin sandboxing and DoS-limits are documented-accepted (ADR 0024 R3) or
+trigger-gated to third-party plugins.
 
 ### External ADR review (2026-07-07) — assessment & consequences
 
