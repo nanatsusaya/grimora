@@ -80,6 +80,12 @@ export interface Actor {
   readonly userId: EntityId;
 }
 
+/**
+ * The minimum role set ADR 0009 §3 names (extensible by later amendment/ADR): `spectator` is
+ * enforced as strictly read-only by every {@link PolicyPort} action below (never granted a write).
+ */
+export type Role = 'owner' | 'gm' | 'player' | 'spectator';
+
 /** The actions the skeleton authorizes. */
 export type PolicyAction =
   | 'campaign.create'
@@ -87,16 +93,35 @@ export type PolicyAction =
   | 'character.setAttribute'
   | 'character.rollCheck';
 
-/** The resource an action targets, carrying the ownership needed for a resource-scoped check. */
+/**
+ * The resource an action targets, carrying what a resource-scoped check needs. Both fields are
+ * resolved by the **caller** (the use case, which has already rehydrated the aggregate) before
+ * `PolicyPort.can` is invoked — the port itself stays a pure function, never a store lookup.
+ */
 export interface PolicyResource {
   /** The resource owner, when the action targets an existing resource. */
   readonly ownerId?: EntityId;
+  /**
+   * The actor's role *relative to this specific resource* (e.g. "GM of this campaign"), already
+   * resolved from campaign-membership data — not a global role claim. Undefined until a membership
+   * read model exists (#107/#120): today only the `ownerId` branch (and, transitively, the ADR 0012
+   * §13 unbound-device identity, which simply *is* the owner of what it created) is reachable in
+   * production; `gm`/`player`/`spectator` are exercised by `policy.test.ts` ahead of that wiring so
+   * the matrix is correct and tested the moment membership resolution lands.
+   */
+  readonly actorRole?: Role;
 }
 
 /**
  * Authorization policy (ADR 0009 §3, ADR 0010 §2): a **pure** function of (actor, action, resource).
  * Enforced in the Application layer for every use case (default-deny, ADR 0010 §2) — and reused
  * unchanged by the AI tool path (ADR 0008 §2), which is what the skeleton's authz-parity check proves.
+ *
+ * **Existence-before-authz (resolved):** a use case that loads a resource before checking policy on it
+ * must return a **uniform** result — the same `NotFound` error — whether the resource is genuinely
+ * absent or exists but this actor is not authorized on it. Returning a distinguishable `Forbidden` in
+ * the latter case would leak existence to an unauthorized caller (an id-enumeration oracle, ADR 0010
+ * §1). See `application/use-cases.ts` for the applied pattern.
  */
 export interface PolicyPort {
   can(actor: Actor, action: PolicyAction, resource: PolicyResource): boolean;

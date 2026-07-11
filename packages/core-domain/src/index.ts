@@ -13,6 +13,7 @@ export {
   runAiToolTurn,
 } from './application/ai-tools';
 export { createPluginHost, type PluginHost } from './application/plugin-host';
+export { createRoleMatrixPolicy } from './application/policy';
 // --- Application: ports, use cases, projection, AI tools, plugin host ---
 export type {
   Actor,
@@ -25,6 +26,7 @@ export type {
   PolicyResource,
   ProposedToolCall,
   ReadModelStorePort,
+  Role,
   RuleSystemRegistryPort,
 } from './application/ports';
 export {

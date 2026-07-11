@@ -46,7 +46,9 @@
   owner's own manual test of the app: the Playwright e2e now runs **in CI** (#130), a stale-service-worker
   bug (dev showed an old shell) + a missing `turbo serve` task were fixed (#131), and a **dev-only "Reset
   all"** button that wipes all local state was added (#135, ticket #133; removal-before-launch tracked in
-  #134). **No open PRs at time of writing** — everything merged/cleaned up.
+  #134). The `apps/api` framework/structure decision then landed (ADR 0027, #137/PR #139), and **real
+  authorization** (#106) is implemented on `feat/106-real-authorization`, **open PR awaiting owner
+  merge** at time of writing.
 
 ### Accepted ADRs
 
@@ -264,13 +266,28 @@ This is why #105 and #106 below explicitly incorporate it.
     in `packages/ui`; a golden-journey Playwright test (create → edit → roll → reload) is green.
   - **#120 (E, deferred)** — auth binding (AuthPort + login + §13 first-bind); the `apps/api`-vs-direct-Supabase
     owner decision lives here.
-- **#106 — Real authorization** — `PolicyPort` + the Owner/GM/Player/Spectator role×action×resource
-  matrix, replacing the owner-only skeleton policy; the existence-before-authz unification; the ADR 0012
-  §13 unbound-device (`Owner`) case (ADR 0009 §3). **Owner-domain design decisions** — do not settle
-  silently in code.
+
+**✅ Merged this slice, since (2026-07-11):**
+- ✅ **#106 — Real authorization** (branch `feat/106-real-authorization`) — `createRoleMatrixPolicy`
+  (`packages/core-domain/src/application/policy.ts`) replaces the owner-only `createOwnerPolicy` fake at
+  the `apps/web` composition root (the fake stays for tests, ADR 0017 R1). Two owner decisions settled
+  first (2026-07-11): **only the character owner may write** — a GM does *not* get write access to a
+  player's character through this port, not even for a campaign they run (a future GM table-assist tool
+  would be its own named `PolicyAction`, not a blanket grant folded into these two); and
+  **existence-before-authz is NotFound-uniform** — an unauthorized actor on an *existing* character now
+  gets the identical `character.not_found` error a genuinely absent one would (never a distinguishable
+  `Forbidden`), closing the id-enumeration oracle ADR 0010 §1 names. The full `Role` vocabulary
+  (owner/gm/player/spectator) is part of the `PolicyResource.actorRole` port surface and unit-tested
+  across all four roles (`policy.test.ts`), but only the `owner` branch is reachable in production until a
+  campaign-membership read model exists (#107/#120) — spectator read-scoping is deliberately left to the
+  query/sync layer, not this command port. The ADR 0012 §13 unbound-device identity needed no special
+  case: it already satisfies the ordinary owner check for everything it creates locally.
+
+**Still open in the slice:**
 - **#107 — Sync adapter** — insert-only replication + domain rebase vs. Supabase, defining the `SyncPort`
   interface (not yet in code) on the existing `sync-harness`. Prereq: a cloud-reachable `EventStorePort`
-  (Postgres/Supabase) distinct from #103's local adapter (i.e. `apps/api`).
+  (Postgres/Supabase) distinct from #103's local adapter (i.e. `apps/api`). Also the prerequisite for
+  resolving #106's deferred `gm`/`player`/`spectator` `actorRole` resolution (needs campaign membership).
 - **#73 / #74 — Consent / DSAR** — need `ConsentPort` / `CryptoPort`; partly blocked.
 
 **Ports catalog** — [`docs/ports-catalog.md`](ports-catalog.md) tracks every port's implementation status;
@@ -286,17 +303,21 @@ to `apps/api`, and to Supabase only for the auth JWT). **ADR 0027** then fixed t
 (Hono, code-first OpenAPI, `apps/api` as a composition root, Bun/node-compatible), and a **minimal
 walking-skeleton scaffold** landed (#137/PR #139) validating it with running code.
 
-What remains — the **cloud half** — is **trigger-gated to Phase 3+** (ADR 0014 §3) and owner-gated:
+**#106 (real authorization) is done** (2026-07-11, branch `feat/106-real-authorization`, pending owner
+merge) — the only Phase-2 core piece that could move without the owner's cloud setup did, per two
+owner decisions recorded above. What remains — the **cloud half** — is **trigger-gated to Phase 3+**
+(ADR 0014 §3) and owner-gated:
 
 - **#107 — sync adapter** + the `apps/api` sync endpoints (a cloud Postgres `EventStorePort`), and **#120
   (#105-E) — auth binding** (client → Supabase Auth directly, ADR 0011 §9): both need a **provisioned
-  Supabase project + secrets** (owner setup; first external-network integration).
-- **#106 — real authorization** (Owner/GM/Player/Spectator matrix replacing the owner-only skeleton policy)
-  is **owner-domain design** (ADR 0009 §3) — do not settle in code first.
+  Supabase project + secrets** (owner setup; first external-network integration). #107 also unblocks
+  #106's deferred `gm`/`player`/`spectator` `actorRole` resolution (needs campaign membership).
 
 ✅ **Done / not open:** `apps/web` e2e in CI (#130); the `apps/api` framework/structure decision + scaffold
-(ADR 0027 / #139). Outstanding trigger-gated follow-up: **#134** — remove/hide the dev-only "Reset all"
-button before the first real deployment (acted on at ADR 0014 hosting), not now.
+(ADR 0027 / #139); real authorization (#106, pending merge). Outstanding trigger-gated follow-up:
+**#134** — remove/hide the dev-only "Reset all" button before the first real deployment (acted on at
+ADR 0014 hosting), not now. **Housekeeping:** issue **#116** (#105-A) is implemented and merged (PR
+#121) but the issue itself is still open — close it.
 
 ### External ADR review (2026-07-07) — assessment & consequences
 
