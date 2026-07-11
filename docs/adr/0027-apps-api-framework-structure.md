@@ -29,13 +29,15 @@ Two things were deliberately **left open** by those ADRs: ADR 0011 **R5 deferred
 `apps/api` is actually built"), and no ADR yet fixes the **internal structure** of `apps/api` as a composition
 root or its **local dev runtime**. This ADR closes those, and only those.
 
-**Scope discipline — decision-only, no code now.** Because ADR 0014 §3 keeps the `apps/api` build trigger-gated
-to Phase 3+, this ADR writes **no `apps/api` code and scaffolds no package**. It is a *decision record ahead of
-build*: it fixes the framework + structure + local-runtime choices so that when the cloud-sync trigger fires
-(#107), the build is unblocked and consistent, and the deferred concern is not lost. The project's local
-infrastructure already exists for that eventual build — `docker-compose.yml` runs Postgres 16 + GoTrue
-(auth) + MinIO — so no infra decision is pending. Repo state: `apps/api` does not exist; `apps/skeleton-walk`
-and `apps/web` are the existing composition-root patterns this one will follow.
+**Scope — a minimal scaffold now, the full build stays trigger-gated.** ADR 0014 §3 keeps the *full* `apps/api`
+build/deploy trigger-gated to Phase 3+ (cloud sync). Per the owner's decision (R3), this ADR is validated by a
+**minimal walking-skeleton scaffold built now**: a runnable `apps/api` (Hono + the OpenAPI-generation pipeline +
+composition-root wiring + a health/example endpoint) that proves the framework and structure choices with
+*running code*, addressing the "unvalidated paper decision" risk in the spirit of ADR 0022. What stays
+**deferred to the Phase-3+ trigger** is the *real* backend: the Postgres sync `EventStorePort` adapter (#107),
+the `AuthPort` adapter, deployment, and the full endpoint surface. The project's local infrastructure already
+exists for that eventual build — `docker-compose.yml` runs Postgres 16 + GoTrue (auth) + MinIO. Repo state:
+`apps/skeleton-walk` and `apps/web` are the existing composition-root patterns this one follows.
 
 ## Decision
 
@@ -44,8 +46,9 @@ and `apps/web` are the existing composition-root patterns this one will follow.
 It decides **framework** (§2), **OpenAPI authoring workflow** (§3), **internal structure as a composition
 root** (§4), and **local dev runtime** (§5). It **reuses, and does not re-decide**: the boundary/monolith style
 (ADR 0003 §8), the wire contract (ADR 0011), the deploy target + Phase-3+ trigger gate (ADR 0014 §3), auth
-mechanics (ADR 0009 §3), RLS (ADR 0005 §7/0009 §3), and secrets handling (ADR 0010 §4). No `apps/api` code is
-produced by this ADR (ADR 0014 §3 gate).
+mechanics (ADR 0009 §3), RLS (ADR 0005 §7/0009 §3), and secrets handling (ADR 0010 §4). A **minimal scaffold**
+is built now to validate these choices with running code (R3); the *full* build — the Postgres sync adapter
+(#107), the auth adapter, and deployment — stays **trigger-gated to Phase 3+** (ADR 0014 §3).
 
 ### 2. Framework — Hono (OpenAPI-first, runtime-portable)
 
@@ -140,22 +143,28 @@ authoritative; choosing Hono over the more battle-tested Fastify trades some mat
   rejected as the default, kept as the O2 alternative.
 - **Deferring this ADR entirely to build time** (ADR 0011 R5's literal wording) — legitimate under the project's
   trigger-gating discipline, but the owner chose to fix the framework/structure now so the eventual build is
-  unblocked and the deferred concern is recorded rather than rediscovered. Recorded here; O3 confirms the
-  decision-only, no-scaffold scope.
+  unblocked and the deferred concern is recorded rather than rediscovered.
+- **Decision-only, no scaffold** (the recommended option under O3) — purest trigger-gating, but leaves the
+  framework/structure choice unvalidated by running code. Rejected by the owner (R3) in favour of a minimal
+  walking-skeleton scaffold now, precisely to validate the choice (ADR 0022 spirit).
 
-## Open questions (for owner review)
+## Resolved questions (owner decisions, 2026-07-11)
 
-- **O1 — Framework.** Adopt **Hono** (recommended, §2: runtime-portable + OpenAPI-first + thin), or **Fastify**
-  (more mature, node-first)? *Recommendation: Hono.*
-- **O2 — OpenAPI authoring.** **Code-first** with the spec generated + CI-checked (recommended, §3), or
-  **spec-first** (hand-written OpenAPI as SSOT, types generated)? *Recommendation: code-first.*
-- **O3 — Scope confirmation.** Confirm this ADR is **decision-only now** — **no `apps/api` scaffold/package is
-  created**, and the build stays trigger-gated to Phase 3+ (ADR 0014 §3)? Or should a **minimal `apps/api`
-  scaffold** (health endpoint + wiring) be stood up now as a walking-skeleton-style validation of the choice?
-  *Recommendation: decision-only now; scaffold when the cloud-sync trigger (#107) fires.*
-- **O4 — Canonical runtime.** **Bun** as the canonical dev + prod runtime, with node-compatibility enforced in
-  code (recommended, §5), or **Node** canonical with Bun only for local dev? *Recommendation: Bun canonical,
-  node-compatible.*
+All four review questions were answered by the owner; the Decision sections above reflect them.
+
+- **R1 — Framework.** **Hono** (§2) — runtime-portable (Bun/Node/edge), OpenAPI-first, thin. The considered
+  alternatives (Fastify as the mature node-first fallback; Elysia rejected for being bun-only; NestJS rejected
+  as over-engineered) are kept in *Alternatives* so the choice **and** the option space stay documented (owner
+  ask: document both).
+- **R2 — OpenAPI authoring.** **Code-first** (§3): routes authored with typed Zod schemas; the OpenAPI 3.1
+  document is generated, committed, and CI-checked as the published SSOT.
+- **R3 — Scope.** **A minimal scaffold is built now** (Option B): a runnable, well-documented `apps/api`
+  walking-skeleton (Hono app + OpenAPI generation + composition-root wiring + health/example endpoint) validates
+  the framework/structure choices with running code. The *full* backend — the Postgres sync `EventStorePort`
+  (#107), the auth adapter, deployment, and the full endpoint surface — stays **trigger-gated to Phase 3+**
+  (ADR 0014 §3).
+- **R4 — Canonical runtime.** **Bun** as the canonical dev + prod runtime, with **node-compatibility enforced**
+  in code (no bun-only APIs), so the same source runs in the ADR 0014 §3 container (§5).
 
 ## References
 
