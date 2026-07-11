@@ -16,14 +16,19 @@
     "plugins/*"
   ],
   "scripts": {
-    "build": "turbo run build",
     "dev": "turbo run dev",
-    "typecheck": "turbo run typecheck",
+    "serve": "turbo run serve",
+    "build": "turbo run build",
     "test": "turbo run test",
-    "arch": "bun test scripts/arch",
+    "test:coverage": "turbo run test -- --coverage",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
-    "format": "biome format --write ."
+    "format": "biome format --write .",
+    "typecheck": "turbo run typecheck",
+    "arch": "bun test scripts/arch",
+    "check": "bun run lint && bun run typecheck && bun run arch && bun run test && bun run build",
+    "clear": "bunx rimraf --glob node_modules .turbo \"apps/*/dist\" \"packages/*/dist\" \"apps/*/node_modules\" \"packages/*/node_modules\" \"plugins/*/node_modules\"",
+    "refresh": "bun run clear && bun install"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.0.0",
