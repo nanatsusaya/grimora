@@ -32,11 +32,9 @@ describe('default-deny (ADR 0010 §2/§7)', () => {
       if (!fn.isExported()) continue;
       const name = fn.getName() ?? '(anonymous)';
       const body = fn.getBody();
-      const hasCheck =
-        body !== undefined &&
-        body
-          .getDescendantsOfKind(SyntaxKind.CallExpression)
-          .some((call) => POLICY_CHECK_PATTERN.test(call.getExpression().getText()));
+      const hasCheck = body
+        ?.getDescendantsOfKind(SyntaxKind.CallExpression)
+        .some((call) => POLICY_CHECK_PATTERN.test(call.getExpression().getText()));
       if (!hasCheck) uncheckedUseCases.push(name);
     }
 
@@ -69,11 +67,9 @@ describe('default-deny (ADR 0010 §2/§7)', () => {
     const flagged: string[] = [];
     for (const fn of sourceFile.getFunctions()) {
       const body = fn.getBody();
-      const hasCheck =
-        body !== undefined &&
-        body
-          .getDescendantsOfKind(SyntaxKind.CallExpression)
-          .some((call) => POLICY_CHECK_PATTERN.test(call.getExpression().getText()));
+      const hasCheck = body
+        ?.getDescendantsOfKind(SyntaxKind.CallExpression)
+        .some((call) => POLICY_CHECK_PATTERN.test(call.getExpression().getText()));
       if (!hasCheck) flagged.push(fn.getName() ?? '(anonymous)');
     }
     expect(flagged).toEqual(['unchecked']);

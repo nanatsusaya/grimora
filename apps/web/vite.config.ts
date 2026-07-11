@@ -8,7 +8,7 @@
  *
  * Deliberately minimal for the scaffold (#105-A):
  *  - **PWA is hand-rolled**, not via `vite-plugin-pwa`/workbox: a static `public/manifest.webmanifest`
- *    plus a small `public/sw.js` (cache-first app-shell). The full workbox-based precaching setup is a
+ *    plus a small `public/sw.js` (network-first app-shell, #131). The full workbox-based precaching setup is a
  *    follow-up — it pulls a deep `@babel/preset-env` tree that a scaffold does not need (and cannot link
  *    on Windows' MAX_PATH locally). A manifest + shell-caching SW already makes the shell installable and
  *    offline-loadable; robust asset precaching lands with the real offline data path (#105-B).

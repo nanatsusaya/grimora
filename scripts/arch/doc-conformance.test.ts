@@ -99,7 +99,7 @@ describe('documentation conformance (CLAUDE.md doc rule)', () => {
         if (!fn.isExported()) continue;
         const name = `function ${fn.getName() ?? '(anonymous)'}`;
         needsDoc(fn, name);
-        checkParams(fn, fn.getJsDocs(), at(fn.getStartLineNumber()) + ` ${name}`, (m) =>
+        checkParams(fn, fn.getJsDocs(), `${at(fn.getStartLineNumber())} ${name}`, (m) =>
           violations.push(m),
         );
       }
