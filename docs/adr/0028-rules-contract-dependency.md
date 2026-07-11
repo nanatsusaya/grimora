@@ -9,8 +9,11 @@
   "may break" latitude, §2 the frozen surface — which lists `DiceTerm`/`RollRequest`/`RollResult` — §3 the
   hard security boundary), [ADR 0004](0004-event-sourcing-cqrs.md) (§1/§2 event payloads, §6 upcasting),
   [ADR 0023](0023-event-payload-privacy.md) (§2 privacy classification helpers).
-- **Proposes amendments to** ADR 0003 §2.1 and/or ADR 0025 §1–§2 — **owner-authorized** (ADR 0001); the
-  exact amendment depends on O1 below and is recorded only after the owner decides.
+- **Amends** (owner-authorized 2026-07-12, ADR 0001 — see R4): **ADR 0003 §2.1 + §3** (Domain may also
+  depend on the new `@grimora/rules-contract` leaf; the module map gains it) and **ADR 0025 §2** (the
+  roll/formula contract types are *defined* in `@grimora/rules-contract` and *re-exported* by the SDK — the
+  plugin surface is unchanged). Recorded in each amended ADR's *Amendments* section as this ADR is accepted
+  and its implementation follow-up lands.
 
 ## Context
 
@@ -54,12 +57,15 @@ least as strong as the event log's durability**. A type that ADR 0025 §1 permit
 must therefore **not** be the source-of-truth for stored-payload typing. This is the invariant the
 current `RollRequest`/`RollResult`-in-`checkRolled` arrangement violates.
 
-### 2. The rules-execution contract is shared and must live in a shared home
+### 2. The rules-execution contract lives in a new shared leaf package
 
 The formula AST, the dice/roll model, the seeded-RNG interface and the privacy classification helpers are
-used by **both** `core-domain` and `plugin-sdk` (ADR 0021, ADR 0023). A contract both sides depend on
-must live where **neither depends "upward" into the other** — a stable home both can import — rather than
-inside the plugin-facing SDK with core reaching up into it. (The *mechanism* for this is O1.)
+used by **both** `core-domain` and `plugin-sdk` (ADR 0021, ADR 0023). They move into a **new leaf package
+`@grimora/rules-contract`** (R1/R2) that both sides import — so **neither depends "upward" into the
+other** — instead of living inside the plugin-facing SDK with core reaching up into it. `@grimora/shared-types`
+stays a **pure-types** leaf: the contract carries **runtime** helpers (the `f` builder, `privacy.*`,
+`redactView`), which do not belong in a types-only leaf, so they get their own package rather than bloating
+`shared-types`.
 
 ### 3. The plugin-facing surface stays source-compatible
 
@@ -81,11 +87,10 @@ it cannot silently erode again.
 are typed from a **stable** home, immune to `0.x` SDK churn (closes the durability hazard at its root);
 the plugin author surface is unchanged (re-export); the fix is structural, not a fragile exception.
 
-**Negative / costs:** a package/re-export **restructuring** (move the shared contract, re-export from the
-SDK, repoint `core-domain` imports, add the fitness rule, update the ADR 0003 §3 module map); an
-**owner-authorized amendment** to ADR 0003 §3 (module map) and ADR 0025 §2 (the type *source-of-truth*
-moves, its plugin surface preserved as a re-export); and — if O2 chooses a new package — one more
-workspace package to maintain. All one-time.
+**Negative / costs:** a package/re-export **restructuring** (create `@grimora/rules-contract`, move the
+shared contract, re-export from the SDK, repoint `core-domain` imports, add the fitness rule, update the
+ADR 0003 §3 module map); the **owner-authorized amendments** to ADR 0003 §2.1/§3 and ADR 0025 §2 (R4);
+and **one more workspace package** to maintain. All one-time.
 
 ## Alternatives considered
 
@@ -98,34 +103,32 @@ workspace package to maintain. All one-time.
 - **Duplicate the contract types inside `core-domain`** — rejected: two sources of truth for one shared
   contract inevitably drift; the whole point is a single shared definition.
 
-## Open questions (for owner review)
+## Resolved questions (owner decisions, 2026-07-12)
 
-- **O1 — Mechanism (the crux).**
-  - **(A, recommended)** Re-home the shared rules-execution contract (+ privacy helpers) into a **stable
-    home** that both `core-domain` and `plugin-sdk` depend on; the SDK re-exports it (§3). ADR 0003 §2.1
-    then holds as written (or with a one-line clarification naming the contract home); ADR 0025 §2 gets a
-    "defined-in-X, re-exported here" note. Fixes the hazard at the root.
-  - **(B)** Keep the types in the SDK; amend ADR 0003 §2.1 to *allow* `Domain → plugin-sdk`, and amend
-    ADR 0025 §1 to **hard-freeze** the payload-embedded subset within `0.x` (a carve-out like the §3
-    security boundary). Less churn now, but a weaker, exception-based guarantee.
-  - *Recommendation: A* — it removes the contradiction and the durability risk structurally rather than by
-    exception.
-- **O2 — If A: where is the stable home?**
-  - **(a)** Extend `@grimora/shared-types` — but it is documented as a **pure-types** leaf, and the
-    contract includes **runtime** helpers (the `f` formula builder, the `privacy.*` functions,
-    `redactView`), which strains "pure types".
-  - **(b, recommended)** A new leaf package `@grimora/rules-contract` (name TBD) holding the
-    rules-execution model + privacy helpers, importable by `shared-types`-level consumers, depended on by
-    both `core-domain` and `plugin-sdk`.
-  - *Recommendation: (b)* to keep `shared-types` a pure-types leaf.
-- **O3 — The exact "must-be-stable, payload-embedded" set.** Proposed: `RollRequest`, `RollResult`,
-  `RollOutcome`, `DiceTerm` (all persisted in `character.checkRolled`). Include `FormulaAst` in the shared
-  home for coherence, noting its persistence coupling is only via plugin catalogs (master data). Exclude
-  `SeededRng`/`CheckDefinition` from the *stability* obligation (transient) though they move with the
-  contract for consistency. Confirm the set.
-- **O4 — Amendment authorization.** Whichever of A/B is chosen, it **amends at least one Accepted ADR**
-  (0003 and/or 0025). Per ADR 0001 that needs your explicit authorization, recorded in the amended ADR's
-  *Amendments* section. Confirm you authorize the amendment consequent to your O1 choice.
+- **R1 — Mechanism (was O1).** **(A) re-home the shared contract**, decided as recommended: the
+  rules-execution contract + privacy helpers move **out** of `@grimora/plugin-sdk` into a stable package
+  both `core-domain` and `plugin-sdk` depend on, the SDK **re-exporting** it (§3). This removes the
+  ADR 0003 §2.1 contradiction **and** the `0.x` payload-typing hazard at the **root**, rather than
+  blessing the import and bolting a fragile break-carve-out onto ADR 0025 §1 (option B).
+- **R2 — Stable home (was O2).** **(b) a new leaf package `@grimora/rules-contract`** (name provisional),
+  decided as recommended, so `@grimora/shared-types` stays a **pure-types** leaf while the contract's
+  runtime helpers (the `f` builder, `privacy.*`, `redactView`) get a proper home.
+- **R3 — The stable set (was O3).** Confirmed as recommended, with the owner's explicit
+  **weaker-persistence-coupling** treatment of `FormulaAst`:
+  - **`RollRequest`, `RollResult`, `RollOutcome`, `DiceTerm`** — payload-embedded (`character.checkRolled`);
+    carry the **hard** stability obligation of §1.
+  - **`FormulaAst`** — moves into the package for coherence but with **weaker persistence coupling**: it is
+    embedded only in plugin **catalogs** (master data versioned *with* the plugin, ADR 0004), never in user
+    event payloads, so its stability requirement is softer (it rides the plugin's own versioning, not the
+    event log's durability).
+  - **`SeededRng`, `CheckDefinition`** — move for coherence but are **transient** (never persisted); no
+    stability obligation.
+- **R4 — Amendment authorization (was O4).** **Authorized by the project owner (2026-07-12)** (ADR 0001).
+  The consequent amendments — **ADR 0003 §2.1** (Domain may also depend on `@grimora/rules-contract`) and
+  **§3** (the module map gains the package), and **ADR 0025 §2** (the frozen roll/formula types are
+  *defined* in `@grimora/rules-contract`, *re-exported* by the SDK; the plugin surface is unchanged) — are
+  recorded in each amended ADR's *Amendments* section as this ADR is accepted and its implementation
+  follow-up lands.
 
 ## References
 
