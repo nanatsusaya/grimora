@@ -156,4 +156,27 @@ describe('character-sheet projection over the real SQLite adapters (#104)', () =
       close();
     }
   });
+
+  test('re-delivery after a checkpoint lag is a no-op — no duplicate history (#150)', async () => {
+    const { projection, close } = await seedRealEventStore();
+    try {
+      await runCharacterSheetProjection(projection);
+      const before = await projection.reads.get<CharacterSheet>(CHARACTER_SHEET, characterId);
+      const head = await projection.reads.getCheckpoint(CHARACTER_SHEET);
+
+      // Simulate a crash between the read-model write and the checkpoint advance (two non-atomic steps
+      // in the projection): the read models are already persisted but the checkpoint lags behind, so a
+      // restart re-delivers every event. Rewinding the checkpoint to 0 reproduces exactly that state.
+      await projection.reads.setCheckpoint(CHARACTER_SHEET, 0);
+      await runCharacterSheetProjection(projection);
+
+      const after = await projection.reads.get<CharacterSheet>(CHARACTER_SHEET, characterId);
+      // Without the per-sheet `lastPosition` watermark this re-appended every history line (6 → 12).
+      expect(after?.history.length).toBe(6);
+      expect(after).toEqual(before);
+      expect(await projection.reads.getCheckpoint(CHARACTER_SHEET)).toBe(head);
+    } finally {
+      close();
+    }
+  });
 });

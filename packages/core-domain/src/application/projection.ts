@@ -1,9 +1,12 @@
 /**
  * The character-sheet projection (ADR 0004 §5): a denormalized read model the UI reads instead of the
- * event store. Deterministic and idempotent (keyed by store `position` + checkpointed), so it can be
- * **rebuilt** from `position 0` to byte-identical state — one of the skeleton's pass criteria (ADR
- * 0022 §9). Derived values are (re)computed by the core formula interpreter over the plugin's
- * `derivedValue` formulas (ADR 0020/0021).
+ * event store. Deterministic and **idempotent under re-delivery**: each sheet records the highest event
+ * `position` folded into it (`lastPosition`), so re-processing an already-applied event is a no-op even
+ * when the projection checkpoint lags behind the read-model write — the two are separate awaits, not one
+ * transaction (see `runCharacterSheetProjection`), so a crash between them re-delivers events on restart,
+ * and future sync re-delivers them too. Checkpointed and `clear()`-**rebuildable** from `position 0` to
+ * byte-identical state — one of the skeleton's pass criteria (ADR 0022 §9). Derived values are
+ * (re)computed by the core formula interpreter over the plugin's `derivedValue` formulas (ADR 0020/0021).
  */
 
 import type { EntityId, PersistedEvent } from '@grimora/shared-types';
@@ -30,6 +33,11 @@ export interface CharacterSheet {
    * stored fact; kept here for cheap display. Note: this holds *resolved* text today, so when the
    * ADR 0023 classification lands (#92) personal values must be redacted at render, not baked in here. */
   readonly history: readonly string[];
+  /** The highest event `position` folded into this sheet — the projection's **idempotency watermark**
+   * (ADR 0004 §5): re-delivering an event at or below it is skipped, so a crash between the read-model
+   * `put` and the checkpoint advance (two non-atomic steps) cannot double-append to `history`. A
+   * projection artifact, not domain state — reset by a rebuild-from-0, never read by the UI. */
+  readonly lastPosition: number;
 }
 
 /** The ports the projection reads from / writes to. */
@@ -72,6 +80,13 @@ function computeDerived(
 async function applyToSheet(deps: ProjectionDeps, event: PersistedEvent): Promise<void> {
   const existing = await deps.reads.get<CharacterSheet>(CHARACTER_SHEET, event.aggregateId);
 
+  // Idempotency (ADR 0004 §5): if this position was already folded into the sheet, re-delivery is a
+  // no-op. `runCharacterSheetProjection` writes the read model and advances the checkpoint as two
+  // separate awaits (not one transaction), so a crash between them re-delivers this event on restart;
+  // without this guard the `history` append below would run twice and duplicate lines. Future sync
+  // re-delivers events too — the same guard covers it.
+  if (existing && event.position <= existing.lastPosition) return;
+
   if (event.type === 'character.created') {
     const p = event.payload as CharacterCreated['payload'];
     const sheet: CharacterSheet = {
@@ -82,6 +97,7 @@ async function applyToSheet(deps: ProjectionDeps, event: PersistedEvent): Promis
       attributes: {},
       derived: {},
       history: [describeEvent(event)],
+      lastPosition: event.position,
     };
     await deps.reads.put(CHARACTER_SHEET, event.aggregateId, sheet);
     return;
@@ -97,6 +113,7 @@ async function applyToSheet(deps: ProjectionDeps, event: PersistedEvent): Promis
       attributes,
       derived: computeDerived(deps, existing.ruleSystemId, attributes),
       history: [...existing.history, describeEvent(event)],
+      lastPosition: event.position,
     };
     await deps.reads.put(CHARACTER_SHEET, event.aggregateId, updated);
     return;
@@ -106,6 +123,7 @@ async function applyToSheet(deps: ProjectionDeps, event: PersistedEvent): Promis
     const updated: CharacterSheet = {
       ...existing,
       history: [...existing.history, describeEvent(event)],
+      lastPosition: event.position,
     };
     await deps.reads.put(CHARACTER_SHEET, event.aggregateId, updated);
   }
