@@ -35,8 +35,9 @@
   identity + #108 ports-catalog/STATUS sync), and **Phase 2 implementation has begun** — see the
   "Phase 2 — first slice" section below for the vertical-slice tickets already merged (event store,
   read models, formula nodes, event-payload privacy, the **first browser app shell** —
-  `apps/web` scaffold #105-A/PR #121 — and the **OPFS/WASM SQLite drivers** for both stores, #105-B/PR #124).
-  A small tooling change also landed: a **curated primary-verb
+  `apps/web` scaffold #105-A/PR #121, the **OPFS/WASM SQLite drivers** for both stores, #105-B/PR #124,
+  and the **offline composition root** — the app now boots and persists **fully offline in a real browser**,
+  #105-C/PR #126). A small tooling change also landed: a **curated primary-verb
   script convention** (`check`/`clear`/`refresh`/`serve`/`test:coverage`, documented in CLAUDE.md,
   #122 — `bun run check` runs the full local DoD chain). **No open PRs at time of writing** — everything
   merged/cleaned up.
@@ -234,11 +235,20 @@ This is why #105 and #106 below explicitly incorporate it.
     `SqlDriver` layer (native `bun:sqlite` + browser `./opfs`), reusing one shared SQL implementation.
     VFS = OPFS **SAHPool** → **no COOP/COEP / no SharedArrayBuffer** (verified at sqlite.org) — simplifies
     the deploy vs. the ticket's original assumption. Native contract tests still green (behaviour preserved);
-    OPFS drivers typecheck+build. The **runtime browser smoke + Vite WASM wiring were handed to #105-C**
-    (they need a real browser), so #117's remaining open item is that in-browser confirmation.
-  - **#118 (C)** — composition root + ADR 0012 §13 offline-session identity (owner-only `PolicyPort` fake);
-    also **wires the OPFS stores in Vite + runs the browser smoke** carried over from #117. **← next.**
-  - **#119 (D)** — minimal character-sheet view (the visible milestone).
+    OPFS drivers typecheck+build; the **runtime browser smoke + Vite WASM wiring** (handed to #105-C, both
+    needing a real browser) **landed in PR #126** — #117's in-browser confirmation is now done.
+  - ✅ **#118 (C) — composition root + §13 offline identity** (PR #126): the `apps/web` composition root
+    wires the OPFS event/read stores + system `ClockPort` + production **UUIDv7** `IdGeneratorPort` +
+    owner-only `PolicyPort` fake + plugin host, around the ADR 0012 §13 implicit device identity (device =
+    implicit local user, persisted in `localStorage` as installation config — a documented, reversible
+    choice, superseded by #120's account bind). The **OPFS-is-worker-only** constraint surfaced here:
+    SAHPool needs a Web Worker, so the stores run in a worker (`apps/web/src/store/`) behind main-thread
+    proxies over a typed `postMessage` RPC, with the constraint absorbed at the composition edge (the
+    hexagon sees only the ports). **Closes #117's in-browser IOU:** a green Playwright smoke proves event
+    persistence *and* §13 identity reuse across a reload in headless Chromium; the prod `vite build` bundles
+    the sqlite-wasm module + worker as assets. Also fixed a latent #105-B bug (both OPFS adapters shared one
+    SAHPool VFS name → access-handle collision when opened together; now distinct default pools).
+  - **#119 (D)** — minimal character-sheet view (the visible milestone). **← next.**
   - **#120 (E, deferred)** — auth binding (AuthPort + login + §13 first-bind); the `apps/api`-vs-direct-Supabase
     owner decision lives here.
 - **#106 — Real authorization** — `PolicyPort` + the Owner/GM/Player/Spectator role×action×resource
@@ -251,15 +261,17 @@ This is why #105 and #106 below explicitly incorporate it.
 - **#73 / #74 — Consent / DSAR** — need `ConsentPort` / `CryptoPort`; partly blocked.
 
 **Ports catalog** — [`docs/ports-catalog.md`](ports-catalog.md) tracks every port's implementation status;
-`EventStorePort` and `ReadModelStorePort` rows now read **Real (native)** after #103/#104. Keep it in sync
-with `packages/core-domain/src/application/ports.ts` as adapters land.
+`EventStorePort` and `ReadModelStorePort` are **Real** — native `bun:sqlite` (#103/#104) *and* browser
+OPFS/WASM (#105-B), now wired and exercised **in a real browser** at the `apps/web` composition root
+(#105-C). Keep it in sync with `packages/core-domain/src/application/ports.ts` as adapters land.
 
-**Clearest next step:** **#118 (#105-C)** — the `apps/web` composition root: wire the OPFS event-store +
-read-model store (from #124) + real Clock/IdGenerator + owner-only `PolicyPort` fake, around the ADR 0012
-§13 offline-session identity (device = implicit local user until first login). This is also where the
-**Vite WASM-asset wiring + the browser smoke** carried over from #117 land (first real in-browser proof
-the OPFS stores persist). Agent-ready (decisions settled); the one technical piece to get right is the
-Vite/`@sqlite.org/sqlite-wasm` bundling (worker + `.wasm` asset).
+**Clearest next step:** **#119 (#105-D)** — the minimal **character-sheet view**, the first user-visible
+milestone. It loads the DSA5 plugin at the composition root (wired with an empty plugin host in #105-C),
+creates/reads a character through the core use-cases + the OPFS-worker stores under the §13 device identity,
+and renders the `characterSheet` read-model projection. Agent-ready; no owner decision open (the real
+authorization matrix stays #106 — the owner-only policy suffices for the unbound device). One known
+follow-up from #105-C: the Playwright e2e is a **local gate only**, not yet in the CI `check` chain (needs
+a chromium install step) — worth wiring in around the #105-D view work.
 
 ### External ADR review (2026-07-07) — assessment & consequences
 
