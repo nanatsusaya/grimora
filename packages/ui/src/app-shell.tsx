@@ -39,7 +39,7 @@ export function AppShell({ title, children }: AppShellProps) {
           borderBottom: '1px solid var(--gr-color-border)',
         }}
       >
-        <h1 style={{ margin: 0, color: 'var(--gr-color-accent)' }}>{title}</h1>
+        <h1 style={{ margin: 0 }}>{title}</h1>
       </header>
       <main style={{ padding: 'var(--gr-space-md)' }}>{children}</main>
     </div>
