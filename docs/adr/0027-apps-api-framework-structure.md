@@ -1,7 +1,7 @@
 # ADR 0027 — apps/api backend: framework, structure & local runtime
 
-- **Status:** Proposed
-- **Date:** 2026-07-11
+- **Status:** Accepted
+- **Date:** 2026-07-11 (accepted via PR #138, issue #137)
 - **Deciders:** project owner + AI agents
 - **Depends on:** [ADR 0003](0003-overall-architecture.md) (§8 modular-monolith `apps/api` as the primary
   integration boundary + composition root; §1/§2 dependency rule), [ADR 0011](0011-api-design.md) (the full

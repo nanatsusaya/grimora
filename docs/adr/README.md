@@ -36,7 +36,7 @@ listed here with a status.
 | [0024](0024-realtime-presence-sync-trust.md) | Realtime session, presence & sync-trust | Accepted |
 | [0025](0025-plugin-sdk-v0-contract.md) | Plugin-SDK v0 contract freeze | Accepted |
 | 0026 | User documentation & docs-site architecture (Diátaxis, i18n) | Planned (issue #82) |
-| [0027](0027-apps-api-framework-structure.md) | apps/api backend: framework, structure & local runtime | Proposed |
+| [0027](0027-apps-api-framework-structure.md) | apps/api backend: framework, structure & local runtime | Accepted |
 
 Status values: `Proposed` · `Accepted` · `Superseded` · `Planned` (ticketed, not yet written).
 
