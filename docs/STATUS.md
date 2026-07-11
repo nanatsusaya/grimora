@@ -47,8 +47,7 @@
   bug (dev showed an old shell) + a missing `turbo serve` task were fixed (#131), and a **dev-only "Reset
   all"** button that wipes all local state was added (#135, ticket #133; removal-before-launch tracked in
   #134). The `apps/api` framework/structure decision then landed (ADR 0027, #137/PR #139), and **real
-  authorization** (#106) is implemented on `feat/106-real-authorization`, **open PR awaiting owner
-  merge** at time of writing.
+  authorization** (#106) is implemented, **PR #141 open and awaiting owner merge** at time of writing.
 
 ### Accepted ADRs
 
@@ -268,7 +267,7 @@ This is why #105 and #106 below explicitly incorporate it.
     owner decision lives here.
 
 **✅ Merged this slice, since (2026-07-11):**
-- ✅ **#106 — Real authorization** (branch `feat/106-real-authorization`) — `createRoleMatrixPolicy`
+- ✅ **#106 — Real authorization** (PR #141) — `createRoleMatrixPolicy`
   (`packages/core-domain/src/application/policy.ts`) replaces the owner-only `createOwnerPolicy` fake at
   the `apps/web` composition root (the fake stays for tests, ADR 0017 R1). Two owner decisions settled
   first (2026-07-11): **only the character owner may write** — a GM does *not* get write access to a
@@ -303,9 +302,8 @@ to `apps/api`, and to Supabase only for the auth JWT). **ADR 0027** then fixed t
 (Hono, code-first OpenAPI, `apps/api` as a composition root, Bun/node-compatible), and a **minimal
 walking-skeleton scaffold** landed (#137/PR #139) validating it with running code.
 
-**#106 (real authorization) is done** (2026-07-11, branch `feat/106-real-authorization`, pending owner
-merge) — the only Phase-2 core piece that could move without the owner's cloud setup did, per two
-owner decisions recorded above. What remains — the **cloud half** — is **trigger-gated to Phase 3+**
+**#106 (real authorization) is done** (2026-07-11, PR #141 pending owner merge) — the only Phase-2 core
+piece that could move without the owner's cloud setup did, per two owner decisions recorded above. What remains — the **cloud half** — is **trigger-gated to Phase 3+**
 (ADR 0014 §3) and owner-gated:
 
 - **#107 — sync adapter** + the `apps/api` sync endpoints (a cloud Postgres `EventStorePort`), and **#120
