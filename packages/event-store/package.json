@@ -9,6 +9,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./opfs": {
+      "types": "./dist/opfs.d.ts",
+      "default": "./dist/opfs.js"
     }
   },
   "files": [
@@ -21,7 +25,8 @@
   },
   "dependencies": {
     "@grimora/core-domain": "workspace:*",
-    "@grimora/shared-types": "workspace:*"
+    "@grimora/shared-types": "workspace:*",
+    "@sqlite.org/sqlite-wasm": "3.53.0-build1"
   },
   "devDependencies": {
     "@types/bun": "^1.1.0",

@@ -13,7 +13,7 @@ import type { AppError, EventStorePort } from '@grimora/core-domain';
 import { appError } from '@grimora/core-domain';
 import type { EntityId, EventEnvelope, PersistedEvent, Result } from '@grimora/shared-types';
 import { err, ok } from '@grimora/shared-types';
-import type { SqlDriver, SqlValue } from './sql-driver';
+import type { SqlDriver } from './sql-driver';
 
 /**
  * A SQLite-backed event store. Extends `EventStorePort` with `close()` because a durable adapter owns an
@@ -188,6 +188,3 @@ export function createEventStoreOverDriver(driver: SqlDriver): SqliteEventStore 
     },
   };
 }
-
-/** Re-exported so drivers can pass values through with the same value type the interface uses. */
-export type { SqlValue };
