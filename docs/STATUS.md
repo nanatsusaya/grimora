@@ -34,7 +34,10 @@
   this section). The Phase-2 planning-pass artefacts then landed (#102 ADR 0012 §13 offline-session
   identity + #108 ports-catalog/STATUS sync), and **Phase 2 implementation has begun** — see the
   "Phase 2 — first slice" section below for the vertical-slice tickets already merged (event store,
-  read models, formula nodes, event-payload privacy). **No open PRs at time of writing** — everything
+  read models, formula nodes, event-payload privacy, and now the **first browser app shell** —
+  `apps/web` scaffold #105-A/PR #121). A small tooling change also landed: a **curated primary-verb
+  script convention** (`check`/`clear`/`refresh`/`serve`/`test:coverage`, documented in CLAUDE.md,
+  #122 — `bun run check` runs the full local DoD chain). **No open PRs at time of writing** — everything
   merged/cleaned up.
 
 ### Accepted ADRs
@@ -217,12 +220,21 @@ This is why #105 and #106 below explicitly incorporate it.
   **Pending on `CryptoPort`** (not built): field-encryption + the §8 "no `personal*` plaintext in store"
   guard — status cross-linked on #76.
 
-**Still open in the slice — all need the owner (merges landed; these need decisions/prereqs):**
-- **#105 — `apps/web` shell** (epic) — Vite + React PWA against the local read-models, built around the
-  ADR 0012 §13 offline identity; minimal character-sheet view (ADR 0012). **Its own sub-epic — the next
-  step is to decompose it into sub-issues with the owner** and settle: `AuthPort` target (`apps/api`,
-  still scaffold-only, vs. a direct Supabase project) and the **OPFS/WASM web driver** for both SQLite
-  stores (re-homed here from #103/#104).
+**Still open in the slice:**
+- **#105 — `apps/web` shell** (epic) — **decomposed with the owner (2026-07-11)** into sub-issues
+  #116–#120, with two decisions settled: **Milestone-1 is offline-only** (no auth/Supabase — the device
+  is the implicit local user per ADR 0012 §13; auth is split out into #120), and the browser store is the
+  **real OPFS SQLite adapter** (not an interim store). Progress:
+  - ✅ **#116 (A) — scaffold** (PR #121): `apps/web` (Vite + React PWA) + `packages/ui` +
+    `packages/design-tokens` — the **first browser-visible app shell**. PWA hand-rolled (manifest + minimal
+    SW), not workbox (see PR #121); presentation kept **plain/neutral greyscale** pending a later design
+    decision. `packages/design-tokens` is a hand-authored placeholder until the ADR 0007 generation pipeline.
+  - **#117 (B) — OPFS/WASM SQLite drivers** for `EventStorePort` + `ReadModelStorePort` (browser side of
+    #103/#104; Web Worker + COOP/COEP headers), against the existing shared contracts. **← next.**
+  - **#118 (C)** — composition root + ADR 0012 §13 offline-session identity (owner-only `PolicyPort` fake).
+  - **#119 (D)** — minimal character-sheet view (the visible milestone).
+  - **#120 (E, deferred)** — auth binding (AuthPort + login + §13 first-bind); the `apps/api`-vs-direct-Supabase
+    owner decision lives here.
 - **#106 — Real authorization** — `PolicyPort` + the Owner/GM/Player/Spectator role×action×resource
   matrix, replacing the owner-only skeleton policy; the existence-before-authz unification; the ADR 0012
   §13 unbound-device (`Owner`) case (ADR 0009 §3). **Owner-domain design decisions** — do not settle
@@ -236,8 +248,11 @@ This is why #105 and #106 below explicitly incorporate it.
 `EventStorePort` and `ReadModelStorePort` rows now read **Real (native)** after #103/#104. Keep it in sync
 with `packages/core-domain/src/application/ports.ts` as adapters land.
 
-**Clearest next step:** decompose **#105** (`apps/web` shell) into sub-issues *with the owner* and settle
-its two open decisions (auth target, OPFS driver) — a joint planning step, not solo code.
+**Clearest next step:** **#117 (#105-B)** — the OPFS/WASM SQLite drivers, the browser counterpart to
+#103/#104 and the technically heaviest item of the slice (a Web Worker + cross-origin-isolation COOP/COEP
+headers, held to the existing `eventStoreContract`/`readModelStoreContract`). Milestone-1 scope + real-OPFS
+decision are already settled, so this is agent-ready; one open *technical* choice (WASM lib + how to test
+OPFS deterministically) to settle at pickup.
 
 ### External ADR review (2026-07-07) — assessment & consequences
 
