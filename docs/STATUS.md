@@ -11,7 +11,8 @@
   + self-hosted auth via `gotrue` + optional Ollama), `packages/shared-types`, ADR / `docs/legal/` structure.
 - **Phase 1 (architecture as ADRs):** ✅ complete — **Epic #1 closed 2026-07-10.** The architectural
   foundation is worked out as ADRs and merged one PR at a time. **21 ADRs Accepted** (0001–0012 + 0014 +
-  0015 + 0017 + 0020–0025). The first implementation ticket (conformance harness, #9) is done and merged
+  0015 + 0017 + 0020–0025) in the Phase-1 run; a 22nd, **ADR 0027** (`apps/api` framework/structure), was
+  added later in Phase 2. The first implementation ticket (conformance harness, #9) is done and merged
   (`scripts/arch/` + `.dependency-cruiser.cjs`, wired as the CI `arch` step). "Done" here = the
   *architecture-ADR run + the walking-skeleton gate*; the operational carry-overs (#71/#72/#76) continue as
   tracked tickets outside the closed epic (see the close-out cut below).
@@ -72,6 +73,7 @@
 | 0023 | Event-payload privacy: declarative per-field classification (validated at load, SDK privacy metadata), metadata pseudonyms, per-subject DEK crypto-shredding (offline-distributed), graceful degradation (Constraint D), external-AI exclusion mechanism (R1–R3) |
 | 0024 | Realtime session, presence & sync-trust: durable/ephemeral split, social-contract sync-trust (hard tenancy/provenance, own-aggregate fabrication bounded), visibility-by-stream-routing, on-grant backfill, RealtimePort (Supabase Realtime), deterministic rolls kept (R1–R3) |
 | 0025 | Plugin-SDK v0 contract freeze: `0.x` semver line (not permanent), skeleton-validated surface frozen, hard security boundary, 1.0/registry trigger-gated (R1–R3) |
+| 0027 | apps/api backend framework & structure (Phase 2): Hono (runtime-portable, OpenAPI-first), code-first generated OpenAPI SSOT, apps/api as a composition root (route↔use-case, problem+json), Bun canonical + node-compatible; a minimal walking-skeleton scaffold validates it — full build trigger-gated to Phase 3+ (R1–R4) |
 
 ### New: EU/DE compliance matrix
 
@@ -277,20 +279,24 @@ OPFS/WASM (#105-B), now wired and exercised **in a real browser** at the `apps/w
 (#105-C). Keep it in sync with `packages/core-domain/src/application/ports.ts` as adapters land.
 
 **Clearest next step:** the **offline vertical slice's visible milestone is complete** (#105-A→D merged) —
-Grimora boots, persists, and is usable in a browser with no login/network. What remains in the slice is
-**owner-gated**, so the next move is a decision, not agent-ready implementation:
+Grimora boots, persists, and is usable in a browser with no login/network. **The `apps/api` backend question
+is now settled:** the boundary was already decided (a modular-monolith `apps/api`, ADR 0003 §8, + the ADR
+0011 contract — the earlier "apps/api-vs-direct-Supabase" framing was a mischaracterization; the client talks
+to `apps/api`, and to Supabase only for the auth JWT). **ADR 0027** then fixed the deferred framework/structure
+(Hono, code-first OpenAPI, `apps/api` as a composition root, Bun/node-compatible), and a **minimal
+walking-skeleton scaffold** landed (#137/PR #139) validating it with running code.
 
-- **#120 (#105-E) — auth binding** and **#107 — sync adapter** both hinge on the **`apps/api`-vs-direct-Supabase**
-  decision (a public boundary + external-network/secrets question — ADR 0011/0009/0005): does the client
-  talk to Supabase directly, or through an `apps/api` backend composition root? This is the pivot for the
-  cloud half of the slice.
+What remains — the **cloud half** — is **trigger-gated to Phase 3+** (ADR 0014 §3) and owner-gated:
+
+- **#107 — sync adapter** + the `apps/api` sync endpoints (a cloud Postgres `EventStorePort`), and **#120
+  (#105-E) — auth binding** (client → Supabase Auth directly, ADR 0011 §9): both need a **provisioned
+  Supabase project + secrets** (owner setup; first external-network integration).
 - **#106 — real authorization** (Owner/GM/Player/Spectator matrix replacing the owner-only skeleton policy)
   is **owner-domain design** (ADR 0009 §3) — do not settle in code first.
 
-✅ **Done since the milestone (no longer open):** the `apps/web` Playwright e2e specs now run **in CI**
-(#130), so the browser-runtime path is guarded. The only outstanding web follow-up is **#134** — remove or
-hide the dev-only "Reset all" button before the first real deployment — which is **trigger-gated** (acted on
-at ADR 0014 hosting), not now.
+✅ **Done / not open:** `apps/web` e2e in CI (#130); the `apps/api` framework/structure decision + scaffold
+(ADR 0027 / #139). Outstanding trigger-gated follow-up: **#134** — remove/hide the dev-only "Reset all"
+button before the first real deployment (acted on at ADR 0014 hosting), not now.
 
 ### External ADR review (2026-07-07) — assessment & consequences
 
