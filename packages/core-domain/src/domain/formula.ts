@@ -19,6 +19,19 @@ export interface FormulaContext {
   readonly tables?: Readonly<Record<string, Readonly<Record<string, number>>>>;
 }
 
+/**
+ * Guard a freshly-computed number against a non-finite result (`NaN`, `±Infinity`). Non-finite values
+ * enter through a malformed `const`, a non-finite trait/dice/table input, or arithmetic overflow (e.g.
+ * `mul`/`div` exceeding the float range) — a derived value must never *silently* become `NaN`/`Infinity`,
+ * which would poison the read model and every later comparison. Surface it as a `Validation` error
+ * instead (ADR 0021 §1 numeric safety), the same class as division-by-zero.
+ * @param n  the value just computed at this node
+ * @returns  `ok(n)` when finite, else a `rules.non_finite_result` `Validation` error
+ */
+function finite(n: number): Result<number, AppError> {
+  return Number.isFinite(n) ? ok(n) : err(appError('rules.non_finite_result', 'Validation'));
+}
+
 /** Evaluate two sub-expressions, then combine — short-circuiting on the first error. */
 function binary(
   left: FormulaAst,
@@ -46,7 +59,10 @@ function unary(
 
 /**
  * Evaluate a formula AST to a number. Pure and total: every failure (unknown trait, division by zero,
- * missing dice/table entry) is returned as an {@link AppError}, never thrown.
+ * missing dice/table entry, a non-finite `NaN`/`Infinity` result) is returned as an {@link AppError},
+ * never thrown. Numbers that enter at a leaf (`const`, `traitRef`, `dice`, `tableLookup`) and every
+ * overflow-capable arithmetic result are checked with {@link finite}, so a non-finite value can never
+ * silently propagate into a stored derived value.
  *
  * @param ast  the plugin-defined expression tree
  * @param ctx  the trait/dice/table inputs to resolve leaves against
@@ -55,26 +71,31 @@ function unary(
 export function evaluateFormula(ast: FormulaAst, ctx: FormulaContext): Result<number, AppError> {
   switch (ast.kind) {
     case 'const':
-      return ok(ast.value);
+      // A `const` is plugin-supplied data (could be built as NaN/Infinity) — validate it like any leaf.
+      return finite(ast.value);
     case 'traitRef': {
       const value = ctx.traits[ast.traitId];
-      return value === undefined ? err(appError('rules.unknown_trait', 'Validation')) : ok(value);
+      return value === undefined
+        ? err(appError('rules.unknown_trait', 'Validation'))
+        : finite(value);
     }
     case 'dice': {
       const value = ctx.dice?.[ast.ref];
       return value === undefined
         ? err(appError('rules.missing_dice_result', 'Validation'))
-        : ok(value);
+        : finite(value);
     }
     case 'add':
-      return binary(ast.left, ast.right, ctx, (a, b) => ok(a + b));
+      return binary(ast.left, ast.right, ctx, (a, b) => finite(a + b));
     case 'sub':
-      return binary(ast.left, ast.right, ctx, (a, b) => ok(a - b));
+      return binary(ast.left, ast.right, ctx, (a, b) => finite(a - b));
     case 'mul':
-      return binary(ast.left, ast.right, ctx, (a, b) => ok(a * b));
+      return binary(ast.left, ast.right, ctx, (a, b) => finite(a * b));
     case 'div':
+      // b !== 0 is not enough: a finite/finite division can still overflow (e.g. 1e300 / 1e-300), so the
+      // quotient is finite-checked too.
       return binary(ast.left, ast.right, ctx, (a, b) =>
-        b === 0 ? err(appError('rules.division_by_zero', 'Validation')) : ok(a / b),
+        b === 0 ? err(appError('rules.division_by_zero', 'Validation')) : finite(a / b),
       );
     case 'mod':
       // Floored modulo (`a − b·floor(a/b)`), consistent with integer division = `floor(div(a,b))`
@@ -82,7 +103,7 @@ export function evaluateFormula(ast: FormulaAst, ctx: FormulaContext): Result<nu
       return binary(ast.left, ast.right, ctx, (a, b) =>
         b === 0
           ? err(appError('rules.modulo_by_zero', 'Validation'))
-          : ok(a - b * Math.floor(a / b)),
+          : finite(a - b * Math.floor(a / b)),
       );
     case 'floor':
       return unary(ast.operand, ctx, (x) => Math.floor(x));
@@ -121,7 +142,7 @@ export function evaluateFormula(ast: FormulaAst, ctx: FormulaContext): Result<nu
       const value = ctx.tables?.[ast.tableId]?.[String(key.value)];
       return value === undefined
         ? err(appError('rules.missing_table_entry', 'Validation'))
-        : ok(value);
+        : finite(value);
     }
   }
 }
