@@ -41,8 +41,11 @@
   value recomputing live, roll a check, and it all persists across a reload, fully offline). A small tooling
   change also landed: a **curated primary-verb
   script convention** (`check`/`clear`/`refresh`/`serve`/`test:coverage`, documented in CLAUDE.md,
-  #122 — `bun run check` runs the full local DoD chain). **No open PRs at time of writing** — everything
-  merged/cleaned up.
+  #122 — `bun run check` runs the full local DoD chain). Post-milestone hardening then landed from the
+  owner's own manual test of the app: the Playwright e2e now runs **in CI** (#130), a stale-service-worker
+  bug (dev showed an old shell) + a missing `turbo serve` task were fixed (#131), and a **dev-only "Reset
+  all"** button that wipes all local state was added (#135, ticket #133; removal-before-launch tracked in
+  #134). **No open PRs at time of writing** — everything merged/cleaned up.
 
 ### Accepted ADRs
 
@@ -284,10 +287,10 @@ Grimora boots, persists, and is usable in a browser with no login/network. What 
 - **#106 — real authorization** (Owner/GM/Player/Spectator matrix replacing the owner-only skeleton policy)
   is **owner-domain design** (ADR 0009 §3) — do not settle in code first.
 
-**Agent-ready follow-up (decision-light):** wire the two `apps/web` Playwright e2e specs (the golden journey
-+ the OPFS smoke) into CI — they are a **local gate only** today. This needs a chromium-install step and a
-small `.github/workflows/ci.yml` addition (operationalizing ADR 0014/0017's E2E layer, no new decision);
-the one judgement call is the CI-time cost, worth a quick owner nod.
+✅ **Done since the milestone (no longer open):** the `apps/web` Playwright e2e specs now run **in CI**
+(#130), so the browser-runtime path is guarded. The only outstanding web follow-up is **#134** — remove or
+hide the dev-only "Reset all" button before the first real deployment — which is **trigger-gated** (acted on
+at ADR 0014 hosting), not now.
 
 ### External ADR review (2026-07-07) — assessment & consequences
 
