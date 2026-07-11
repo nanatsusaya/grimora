@@ -28,7 +28,9 @@ export type { SqliteReadModelStore } from './read-model-store-core';
 export interface OpfsReadModelStoreOptions {
   /** why: the DB file *within* the SAHPool — SAHPool requires an absolute path, so it must start with `/` */
   readonly filename?: string;
-  /** why: names (and, by default, the OPFS directory of) this app's VFS pool, isolating its storage */
+  /** why: names (and, by default, the OPFS directory of) this app's VFS pool, isolating its storage. MUST
+   * be **distinct** from the event store's pool name — two SAHPool VFSes of the same name in one worker
+   * collide on OPFS access handles, so each store uses its own pool (see the distinct defaults). */
   readonly vfsName?: string;
 }
 
@@ -98,7 +100,8 @@ export async function createOpfsReadModelStore(
 ): Promise<SqliteReadModelStore> {
   const driver = await createOpfsSqlDriver(
     options.filename ?? '/grimora-read-models.sqlite3',
-    options.vfsName ?? 'grimora-opfs',
+    // Distinct from the event store's pool (see the `vfsName` doc) — same-named pools collide.
+    options.vfsName ?? 'grimora-read-models-opfs',
   );
   return createReadModelStoreOverDriver(driver);
 }

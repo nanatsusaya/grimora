@@ -20,4 +20,11 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
   plugins: [react()],
+  // `@sqlite.org/sqlite-wasm` resolves its `.wasm` asset and its OPFS worker relative to its own module
+  // via `import.meta.url`. Vite's dependency pre-bundling (esbuild) rewrites those URLs and breaks that
+  // resolution, so the package must be excluded from optimization and served as native ESM (the SQLite
+  // project's documented Vite setup). The OPFS SAHPool VFS needs no COOP/COEP headers (issue #105-B).
+  optimizeDeps: {
+    exclude: ['@sqlite.org/sqlite-wasm'],
+  },
 });
