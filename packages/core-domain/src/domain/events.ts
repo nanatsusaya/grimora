@@ -13,7 +13,7 @@ import {
   privacy,
   type RollRequest,
   type RollResult,
-} from '@grimora/plugin-sdk';
+} from '@grimora/rules-contract';
 import type { EntityId } from '@grimora/shared-types';
 
 /** A newly-decided domain event: an intent-named type + its structured payload. */

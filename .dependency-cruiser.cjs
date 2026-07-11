@@ -60,6 +60,21 @@ module.exports = {
       to: { dependencyTypes: ['core'] },
     },
     {
+      name: 'domain-only-shared-types-and-rules-contract',
+      severity: 'error',
+      comment:
+        'ADR 0003 §2.1 + ADR 0028 §4 — the Domain layer imports ONLY @grimora/shared-types and ' +
+        '@grimora/rules-contract (the stable shared rules-execution contract) from other packages; it ' +
+        'must NOT import @grimora/plugin-sdk, whose 0.x surface may break (ADR 0025 §1) and must not type ' +
+        'persisted event payloads (ADR 0028 §1). Own core-domain files are allowed here (domain→application ' +
+        'is separately forbidden by domain-no-application).',
+      from: { path: '(?:^|/)packages/core-domain/src/domain/' },
+      to: {
+        path: '(?:^|/)(?:packages|apps|plugins)/',
+        pathNot: '(?:^|/)packages/(?:shared-types|rules-contract|core-domain)/',
+      },
+    },
+    {
       name: 'core-no-adapters',
       severity: 'error',
       comment:
@@ -137,6 +152,20 @@ module.exports = {
       to: {
         path: '(?:^|/)(?:packages|apps|plugins)/',
         pathNot: '(?:^|/)packages/shared-types/',
+      },
+    },
+    {
+      name: 'rules-contract-is-a-leaf',
+      severity: 'error',
+      comment:
+        'ADR 0028 §2 — @grimora/rules-contract is a stable leaf (the shared rules-execution contract + ' +
+        'privacy helpers) that both core-domain and plugin-sdk depend on; it must not import any other ' +
+        'workspace package except @grimora/shared-types, so it never depends "upward" into the SDK or ' +
+        'core — which is what keeps the persisted-payload types it defines stable (ADR 0028 §1).',
+      from: { path: '(?:^|/)packages/rules-contract/' },
+      to: {
+        path: '(?:^|/)(?:packages|apps|plugins)/',
+        pathNot: '(?:^|/)packages/(?:shared-types|rules-contract)/',
       },
     },
     {

@@ -1,5 +1,5 @@
 {
-  "name": "@grimora/core-domain",
+  "name": "@grimora/rules-contract",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -9,10 +9,6 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
-    },
-    "./testing": {
-      "types": "./dist/testing/index.d.ts",
-      "default": "./dist/testing/index.js"
     }
   },
   "files": [
@@ -24,12 +20,9 @@
     "test": "bun test ./src"
   },
   "dependencies": {
-    "@grimora/plugin-sdk": "workspace:*",
-    "@grimora/rules-contract": "workspace:*",
     "@grimora/shared-types": "workspace:*"
   },
   "devDependencies": {
-    "fast-check": "^3.23.0",
     "typescript": "^6.0.3"
   }
 }

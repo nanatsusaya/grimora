@@ -4,7 +4,8 @@
 - **Date:** 2026-07-05 (accepted via PR #11, issue #2)
 - **Deciders:** project owner + AI agents
 - **Supersedes:** —
-- **Amended:** 2026-07-05 — added §9 Domain-Driven Design (owner-authorized; see Amendments).
+- **Amended:** 2026-07-05 — added §9 Domain-Driven Design; 2026-07-12 — §2.1/§3 add
+  `@grimora/rules-contract` as a Domain dependency (ADR 0028). Owner-authorized; see Amendments.
 
 ## Context
 
@@ -30,7 +31,7 @@ adapter behind a port.
 
 | Layer | Contains | May depend on |
 | --- | --- | --- |
-| **Domain** | Rule-agnostic model: aggregates, value objects, domain events, invariants, pure logic. No I/O, no framework, no time/randomness access except via injected ports. | `shared-types` only |
+| **Domain** | Rule-agnostic model: aggregates, value objects, domain events, invariants, pure logic. No I/O, no framework, no time/randomness access except via injected ports. | `shared-types` + `rules-contract` |
 | **Application** | Use cases: command handlers, query handlers, projection definitions, orchestration. Declares **ports** (interfaces) it needs. | Domain, `shared-types` |
 | **Ports** | Interfaces owned by the application (e.g. `EventStorePort`, `ObjectStoragePort`, `AiProviderPort`, `AuthPort`, `SyncPort`, `ClockPort`, `IdGeneratorPort`, `LoggerPort`). | Domain types, `shared-types` |
 | **Adapters** | Concrete implementations of ports (SQLite event store, Supabase, R2/MinIO, Claude/OpenAI/Ollama, pino logger, …). | Ports + Domain types they implement against |
@@ -42,7 +43,10 @@ stored, transported, rendered, or which AI vendor is used.
 
 ### 2. The dependency rule (enforceable)
 
-1. **Domain depends on nothing** except `@grimora/shared-types` (pure types).
+1. **Domain depends on nothing** except `@grimora/shared-types` (pure types) and
+   `@grimora/rules-contract` (the stable shared rules-execution contract — formula/dice/roll/RNG +
+   privacy helpers; ADR 0028). It must **not** import `@grimora/plugin-sdk` (whose `0.x` surface may
+   break, ADR 0025 §1) — enforced by the `domain-only-shared-types-and-rules-contract` fitness function.
 2. **Application** depends only on Domain + Ports. It must **not** import any adapter or app.
 3. **Adapters** depend on Ports (to implement) + Domain types. They must **not** import each other,
    and nothing in Domain/Application may import an adapter.
@@ -61,7 +65,10 @@ This rule is normative and is what the conformance harness (#9) encodes as fitne
 packages/
   shared-types/     Pure shared types (leaf; importable everywhere).            [leaf]
   core-domain/      Domain + Application + Port interfaces (the hexagon).       [domain+app+ports]
-  plugin-sdk/       Published plugin contract (depends on shared-types only).   [contract]
+  rules-contract/   Shared rules-execution contract + privacy helpers          [leaf]
+                    (formula/dice/roll/RNG); shared-types only (ADR 0028).
+  plugin-sdk/       Published plugin contract (re-exports rules-contract;       [contract]
+                    depends on shared-types + rules-contract).
   design-tokens/    Theming SSOT (JSON tokens + generators).                    [leaf]
   ui/               Presentation components (web).                              [presentation]
   event-store/      Adapter: local append-only event log (SQLite/IndexedDB).   [adapter]
@@ -285,3 +292,12 @@ The conformance harness will encode, at minimum:
   ADR**, expressly **authorized by the project owner** (per the amended governance in
   [ADR 0001](0001-record-architecture-decisions.md)). Ticket #21 (a planned standalone DDD ADR) is
   folded into §9.
+- **2026-07-12** — *Authorized by the project owner ([ADR 0028](0028-rules-contract-dependency.md) R4).*
+  §2.1 (dependency rule + the layer table's Domain row) and §3 (module map) now name a new leaf package
+  **`@grimora/rules-contract`** — the stable shared rules-execution contract (formula/dice/roll/RNG +
+  privacy helpers) that both `core-domain` and `plugin-sdk` depend on. **Domain may now depend on
+  `@grimora/rules-contract` in addition to `@grimora/shared-types`, and must not import
+  `@grimora/plugin-sdk`.** This resolves the previously-unrecorded `Domain → plugin-sdk` drift and the
+  event-payload durability hazard (roll/formula types were typed from the SDK's break-permitted `0.x`
+  surface); see ADR 0028 for the reasoning. A new `domain-only-shared-types-and-rules-contract` fitness
+  function enforces it. The plugin-author surface is unchanged (the SDK re-exports the contract).

@@ -11,8 +11,8 @@
   + self-hosted auth via `gotrue` + optional Ollama), `packages/shared-types`, ADR / `docs/legal/` structure.
 - **Phase 1 (architecture as ADRs):** ✅ complete — **Epic #1 closed 2026-07-10.** The architectural
   foundation is worked out as ADRs and merged one PR at a time. **21 ADRs Accepted** (0001–0012 + 0014 +
-  0015 + 0017 + 0020–0025) in the Phase-1 run; a 22nd, **ADR 0027** (`apps/api` framework/structure), was
-  added later in Phase 2. The first implementation ticket (conformance harness, #9) is done and merged
+  0015 + 0017 + 0020–0025) in the Phase-1 run; a 22nd (**ADR 0027**, `apps/api` framework/structure) and
+  23rd (**ADR 0028**, rules-execution contract dependency) were added later in Phase 2. The first implementation ticket (conformance harness, #9) is done and merged
   (`scripts/arch/` + `.dependency-cruiser.cjs`, wired as the CI `arch` step). "Done" here = the
   *architecture-ADR run + the walking-skeleton gate*; the operational carry-overs (#71/#72, #76 done
   2026-07-11) continue as tracked tickets outside the closed epic (see the close-out cut below).
@@ -78,6 +78,7 @@
 | 0024 | Realtime session, presence & sync-trust: durable/ephemeral split, social-contract sync-trust (hard tenancy/provenance, own-aggregate fabrication bounded), visibility-by-stream-routing, on-grant backfill, RealtimePort (Supabase Realtime), deterministic rolls kept (R1–R3) |
 | 0025 | Plugin-SDK v0 contract freeze: `0.x` semver line (not permanent), skeleton-validated surface frozen, hard security boundary, 1.0/registry trigger-gated (R1–R3) |
 | 0027 | apps/api backend framework & structure (Phase 2): Hono (runtime-portable, OpenAPI-first), code-first generated OpenAPI SSOT, apps/api as a composition root (route↔use-case, problem+json), Bun canonical + node-compatible; a minimal walking-skeleton scaffold validates it — full build trigger-gated to Phase 3+ (R1–R4) |
+| 0028 | Rules-execution contract dependency & event-payload type stability (Phase 2): re-home the shared rules-execution contract (formula/dice/roll/RNG + privacy helpers) into a new stable `@grimora/rules-contract` leaf that both `core-domain` and `plugin-sdk` depend on; SDK re-exports (plugin surface unchanged); fixes the Domain→plugin-sdk drift + the payload-typing durability hazard at the root; owner-authorized amendments to ADR 0003 §2.1/§3 + ADR 0025 §2 (R1–R4) |
 
 ### New: EU/DE compliance matrix
 
@@ -358,9 +359,12 @@ logged in `docs/meta/agent-collaboration-log.md`). It produced **8 issues (#147�
   SQLite `replicate` path does not exist yet (it lands with the sync adapter) and its idempotency /
   same-id-different-content semantics are exactly what the sync-protocol ADR must decide, so fixing it now
   would front-run that decision.
-- **Owner-decision tickets (not code):** #153 reconcile the verified **Domain→`plugin-sdk`** import vs
-  ADR 0003 §2.1 + SDK-`0.x` payload stability (DoR for an ADR 0003/0025 amendment) · #154 a
-  **sync-protocol design ADR before #107** (idempotency, server-bound identity, roll-seed collision).
+- **Owner-decision tickets:** #153 reconcile the **Domain→`plugin-sdk`** import vs ADR 0003 §2.1 +
+  SDK-`0.x` payload stability — **decided & implemented** (ADR 0028 Accepted; the shared rules-execution
+  contract now lives in the new `@grimora/rules-contract` leaf, SDK re-exports; ADR 0003 §2.1/§3 + 0025 §2
+  amended, owner-authorized; a `domain-only-shared-types-and-rules-contract` fitness function enforces it)
+  · #154 a sync-protocol design ADR — **closed as redundant**: the protocol is already owned by ADR 0005
+  (§3/§4) + ADR 0024 (§2/§3/§5/§9); the real remaining work is #107 (implementation, owner-gated).
 
 The reviews' **strategic** layer (Event-Sourcing-as-default, over-architecture, SDK-freeze timing) was
 assessed as owner-roadmap opinion colliding with Accepted ADRs and deliberately **not** converted to
