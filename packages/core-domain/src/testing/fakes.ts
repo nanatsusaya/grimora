@@ -160,7 +160,9 @@ export function createSequentialIdGenerator(prefix = 'id'): IdGeneratorPort {
 
 /**
  * The provisional minimal authorization policy (ADR 0022 §7): any authenticated actor may *create*;
- * only an aggregate's owner may mutate it. **Not** the final authz matrix (Epic #52).
+ * only an aggregate's owner may mutate it. Kept for tests (ADR 0017 R1 fakes) alongside the real
+ * production policy, `createRoleMatrixPolicy` (`application/policy.ts`, #106), which composition roots
+ * wire instead.
  */
 export function createOwnerPolicy(): PolicyPort {
   return {

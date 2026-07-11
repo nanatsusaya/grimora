@@ -9,8 +9,9 @@
  *     because OPFS SAHPool is worker-only (`../store/worker-backed-stores.ts`).
  *   - **clock:** the real system clock (the Domain still never reads wall-clock time itself, ADR 0004 §9).
  *   - **id generator:** production UUIDv7 (`./id-generator.ts`).
- *   - **policy:** the skeleton owner-only `createOwnerPolicy` (ADR 0022 §7) — correct for an unbound device
- *     whose implicit identity owns everything it creates (ADR 0012 §13); #106 swaps in the real matrix.
+ *   - **policy:** the real `createRoleMatrixPolicy` (#106, ADR 0009 §3) — an unbound device's implicit
+ *     identity needs no special case here: it owns everything it creates locally (ADR 0012 §13), which is
+ *     the ordinary owner branch the matrix already grants.
  *   - **rules:** a plugin host with the **DSA5 plugin loaded** (#105-D) — the one place a composition root
  *     is allowed to import a plugin alongside core + adapters; the character path binds to `dsa5`.
  *
@@ -19,8 +20,7 @@
  */
 
 import type { Actor, ClockPort, ReadModelStorePort } from '@grimora/core-domain';
-import { type CommandDeps, createPluginHost } from '@grimora/core-domain';
-import { createOwnerPolicy } from '@grimora/core-domain/testing';
+import { type CommandDeps, createPluginHost, createRoleMatrixPolicy } from '@grimora/core-domain';
 import dsa5 from '@grimora/plugin-dsa5';
 import type { IsoTimestamp } from '@grimora/shared-types';
 import { createWorkerBackedStores } from '../store/worker-backed-stores';
@@ -36,7 +36,7 @@ const systemClock: ClockPort = {
 
 /** Everything a `apps/web` surface needs from the wired hexagon: the command ports, the actor, and boot state. */
 export interface AppComposition {
-  /** the wired command ports for writes (OPFS event store + UUIDv7 ids + system clock + owner policy + host) */
+  /** the wired command ports for writes (OPFS event store + UUIDv7 ids + system clock + role-matrix policy + host) */
   readonly deps: CommandDeps;
   /**
    * the read-model store, kept separate from {@link CommandDeps} because it belongs to the *projection*
@@ -71,7 +71,7 @@ export function createAppComposition(): AppComposition {
     events,
     ids,
     clock: systemClock,
-    policy: createOwnerPolicy(),
+    policy: createRoleMatrixPolicy(),
     rules,
   };
 

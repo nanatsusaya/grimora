@@ -114,7 +114,7 @@ describe('setAttribute', () => {
     ).toBe(true);
   });
 
-  it('denies a non-owner (Forbidden — same PolicyPort the AI path reuses)', async () => {
+  it('denies a non-owner with NotFound-uniform (ADR 0010 §1, #106 — same PolicyPort the AI path reuses; not a distinguishable Forbidden, so the error cannot be used to enumerate real ids)', async () => {
     const deps = makeDeps();
     await seedCharacter(deps);
     const result = await setAttribute(deps, {
@@ -124,7 +124,10 @@ describe('setAttribute', () => {
       actor: intruder,
     });
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error.category).toBe('Forbidden');
+    if (!result.ok) {
+      expect(result.error.category).toBe('NotFound');
+      expect(result.error.code).toBe('character.not_found');
+    }
   });
 
   it('rejects an out-of-range value and an unknown attribute (Validation)', async () => {
@@ -146,17 +149,42 @@ describe('setAttribute', () => {
     expect(unknown.ok).toBe(false);
     if (!unknown.ok) expect(unknown.error.code).toBe('character.unknown_attribute');
   });
+
+  it('returns the identical error for an absent character and a non-owner on an existing one (NotFound-uniform, #106)', async () => {
+    const deps = makeDeps();
+    await seedCharacter(deps);
+    const absent = await setAttribute(deps, {
+      characterId: 'ch-does-not-exist' as EntityId,
+      attributeId: 'STR',
+      value: 5,
+      actor: owner,
+    });
+    const unauthorized = await setAttribute(deps, {
+      characterId,
+      attributeId: 'STR',
+      value: 5,
+      actor: intruder,
+    });
+    expect(absent.ok).toBe(false);
+    expect(unauthorized.ok).toBe(false);
+    if (!absent.ok && !unauthorized.ok) {
+      expect(unauthorized.error).toEqual(absent.error);
+    }
+  });
 });
 
 describe('rollCheck', () => {
-  it('lets the owner roll and denies a non-owner', async () => {
+  it('lets the owner roll and denies a non-owner with NotFound-uniform (#106)', async () => {
     const deps = makeDeps();
     await seedCharacter(deps);
     await setAttribute(deps, { characterId, attributeId: 'STR', value: 5, actor: owner });
     expect((await rollCheck(deps, { characterId, checkId: 'lift', actor: owner })).ok).toBe(true);
     const denied = await rollCheck(deps, { characterId, checkId: 'lift', actor: intruder });
     expect(denied.ok).toBe(false);
-    if (!denied.ok) expect(denied.error.category).toBe('Forbidden');
+    if (!denied.ok) {
+      expect(denied.error.category).toBe('NotFound');
+      expect(denied.error.code).toBe('character.not_found');
+    }
   });
 
   it('rejects an unknown check (NotFound)', async () => {

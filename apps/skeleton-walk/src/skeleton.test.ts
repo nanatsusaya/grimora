@@ -143,9 +143,11 @@ describe('authorization parity (pass criterion 5)', () => {
     expect(uiResult.ok).toBe(false);
     expect(aiResult.ok).toBe(false);
     // Both rejected by the same PolicyPort → same category (no privileged AI path, ADR 0008 §2).
+    // NotFound, not Forbidden: existence-before-authz is NotFound-uniform (ADR 0010 §1, #106) so an
+    // intruder's error can't be used to distinguish "not authorized" from "doesn't exist".
     if (!uiResult.ok && !aiResult.ok) {
-      expect(uiResult.error.category).toBe('Forbidden');
-      expect(aiResult.error.category).toBe('Forbidden');
+      expect(uiResult.error.category).toBe('NotFound');
+      expect(aiResult.error.category).toBe('NotFound');
     }
 
     // The owner is allowed on both paths.
