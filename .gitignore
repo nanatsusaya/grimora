@@ -39,3 +39,8 @@ Thumbs.db
 # Local reference rulebooks — copyright, NEVER commit (only the README is tracked)
 /rulebooks/*
 !/rulebooks/README.md
+
+# Playwright E2E artefacts (generated per run)
+test-results/
+playwright-report/
+.playwright/

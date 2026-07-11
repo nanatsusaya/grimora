@@ -5,16 +5,25 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "serve": "vite preview",
     "build": "vite build",
     "preview": "vite preview",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "bun test src",
+    "e2e": "playwright test",
+    "e2e:install": "playwright install chromium"
   },
   "dependencies": {
+    "@grimora/core-domain": "workspace:*",
+    "@grimora/cqrs-read": "workspace:*",
     "@grimora/design-tokens": "workspace:*",
+    "@grimora/event-store": "workspace:*",
+    "@grimora/shared-types": "workspace:*",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react-swc": "^3.7.0",

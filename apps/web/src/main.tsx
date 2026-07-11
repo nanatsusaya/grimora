@@ -10,6 +10,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import '@grimora/design-tokens/tokens.css';
 import { App } from './App';
+import { getComposition } from './composition/bootstrap';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -17,9 +18,13 @@ if (!rootElement) {
   throw new Error('Grimora: #root element not found in index.html');
 }
 
+// Wire the offline composition once (opens the OPFS store worker + resolves the device identity) and hand
+// it to the shell. This is the composition root's single invocation for the running app (#105-C).
+const composition = getComposition();
+
 createRoot(rootElement).render(
   <StrictMode>
-    <App />
+    <App composition={composition} />
   </StrictMode>,
 );
 
@@ -29,4 +34,11 @@ if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js').catch(() => undefined);
   });
+}
+
+// Dev-only: expose the OPFS smoke surface for the Playwright browser test (#105-C). The dynamic import
+// keeps the WASM store — and this harness — out of the production shell (the branch is dead-code-eliminated
+// when `import.meta.env.DEV` is statically false at build time).
+if (import.meta.env.DEV) {
+  import('./opfs-smoke').then((smoke) => smoke.installOpfsSmoke());
 }
