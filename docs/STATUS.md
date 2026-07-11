@@ -332,7 +332,7 @@ either **trigger-gated to Phase 3+** (ADR 0014 §3) or genuinely **owner-gated**
 - **#73 / #74 — Consent / DSAR**: blocked on `ConsentPort`/`CryptoPort`, not yet built.
 
 So the next step is now **two-track** (see *Cross-model review* below): an **agent-ready** correctness/doc
-backlog from the review (#148–#152, bugs before features — #147 already merged), **and** the still
+backlog from the review (#148–#152, bugs before features — #147 and #150 already merged), **and** the still
 **owner-gated** Supabase decision — whether/when to provision the Supabase project that unblocks #107/#120
 (first external network integration — a "stop and ask" item per CLAUDE.md regardless).
 
@@ -351,9 +351,10 @@ logged in `docs/meta/agent-collaboration-log.md`). It produced **8 issues (#147�
 - **Docs/hygiene (agent-ready):** #147 README refresh + `bun run dev` quickstart fix (**merged**, PR #155)
   · #148 doc/config hygiene batch (`clear` glob, `.env`/comment drift, lint warnings) · #149
   maturity-labeling pass (planned/designed/…/real) across README/STATUS/ADR index.
-- **Core-correctness (agent-ready, on the path to #107):** #150 character-sheet projection is neither
-  atomic nor idempotent (ADR 0004 §5) · #151 event store maps a duplicate event-`id` to `Conflict`
-  instead of an idempotent no-op · #152 guard non-finite (NaN/Infinity) numeric inputs.
+- **Core-correctness (agent-ready, on the path to #107):** #150 character-sheet projection idempotency
+  under re-delivery — per-sheet `lastPosition` watermark (ADR 0004 §5, **merged**, PR #157) · #151 event
+  store maps a duplicate event-`id` to `Conflict` instead of an idempotent no-op · #152 guard non-finite
+  (NaN/Infinity) numeric inputs.
 - **Owner-decision tickets (not code):** #153 reconcile the verified **Domain→`plugin-sdk`** import vs
   ADR 0003 §2.1 + SDK-`0.x` payload stability (DoR for an ADR 0003/0025 amendment) · #154 a
   **sync-protocol design ADR before #107** (idempotency, server-bound identity, roll-seed collision).
