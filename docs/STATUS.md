@@ -315,20 +315,31 @@ to `apps/api`, and to Supabase only for the auth JWT). **ADR 0027** then fixed t
 (Hono, code-first OpenAPI, `apps/api` as a composition root, Bun/node-compatible), and a **minimal
 walking-skeleton scaffold** landed (#137/PR #139) validating it with running code.
 
-**#106 (real authorization) is done and merged** (2026-07-11, PR #141) — the only Phase-2 core piece
-that could move without the owner's cloud setup did, per two owner decisions recorded above. What
-remains — the **cloud half** — is **trigger-gated to Phase 3+** (ADR 0014 §3) and owner-gated:
+**#106 (real authorization) and #76 (remaining conformance fitness functions) are both done and merged**
+(2026-07-11, PR #141 / PR #143) — the two Phase-2/Phase-1-carry-over pieces that could move without the
+owner's cloud setup did, per the two owner decisions recorded above (#106) and the ticket's own
+implement-what's-assertable-now scope (#76). **With this, everything currently agent-ready and
+decision-free in this vertical slice is done.** What remains is either **trigger-gated to Phase 3+**
+(ADR 0014 §3) or genuinely **owner-gated**:
 
 - **#107 — sync adapter** + the `apps/api` sync endpoints (a cloud Postgres `EventStorePort`), and **#120
   (#105-E) — auth binding** (client → Supabase Auth directly, ADR 0011 §9): both need a **provisioned
   Supabase project + secrets** (owner setup; first external-network integration). #107 also unblocks
-  #106's deferred `gm`/`player`/`spectator` `actorRole` resolution (needs campaign membership).
+  #106's deferred `gm`/`player`/`spectator` `actorRole` resolution (needs campaign membership), and the
+  two `pending-fitness-functions.test.ts` placeholders (consent gate needs `ConsentPort`/#73; realtime-
+  never-persisted needs a realtime adapter, after #107).
+- **#73 / #74 — Consent / DSAR**: blocked on `ConsentPort`/`CryptoPort`, not yet built.
+
+So the **clearest next step for the next session is an owner decision**, not more agent-ready
+implementation: whether/when to provision the Supabase project that unblocks #107/#120 (first external
+network integration — a "stop and ask" item per CLAUDE.md regardless), or to pick up one of the smaller
+trigger-gated/housekeeping items below in the meantime.
 
 ✅ **Done / not open:** `apps/web` e2e in CI (#130); the `apps/api` framework/structure decision + scaffold
-(ADR 0027 / #139); real authorization (#106 / PR #141). Outstanding trigger-gated follow-up:
-**#134** — remove/hide the dev-only "Reset all" button before the first real deployment (acted on at
-ADR 0014 hosting), not now. **Housekeeping:** issue **#116** (#105-A) is implemented and merged (PR
-#121) but the issue itself is still open — close it.
+(ADR 0027 / #139); real authorization (#106 / PR #141); the remaining conformance fitness functions
+(#76 / PR #143). Outstanding trigger-gated follow-up: **#134** — remove/hide the dev-only "Reset all"
+button before the first real deployment (acted on at ADR 0014 hosting), not now. **Housekeeping:** issue
+**#116** (#105-A) is implemented and merged (PR #121) but the issue itself is still open — close it.
 
 ### External ADR review (2026-07-07) — assessment & consequences
 
