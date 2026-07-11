@@ -57,7 +57,12 @@
   authorization** landed (#106/PR #141), and the remaining ADR-mandated **conformance fitness functions**
   landed (#76 — default-deny, determinism, SDK re-export, privacy-classification completeness,
   UI-reads-read-models-only, `/testing` production-import guard, the `plugin-sdk` boundary/language-leak
-  rule, and the per-aggregate version-uniqueness skeleton-fidelity fix).
+  rule, and the per-aggregate version-uniqueness skeleton-fidelity fix). Then a long **2026-07-11/12
+  session** (driven by a three-way cross-model review) cleared a whole correctness/doc backlog and, its
+  landmark, **re-homed the shared rules-execution contract into a new `@grimora/rules-contract` leaf**
+  (ADR 0028 — fixes the `Domain→plugin-sdk` boundary violation + the event-payload durability hazard at the
+  root) and scaffolded the **Art. 30 RoPA** legal doc (#71). Details in the *Cross-model review* +
+  *What's next* sections below.
 
 ### Accepted ADRs
 
@@ -339,10 +344,37 @@ either **trigger-gated to Phase 3+** (ADR 0014 §3) or genuinely **owner-gated**
   never-persisted needs a realtime adapter, after #107).
 - **#73 / #74 — Consent / DSAR**: blocked on `ConsentPort`/`CryptoPort`, not yet built.
 
-So the next step is now **two-track** (see *Cross-model review* below): an **agent-ready** correctness/doc
-backlog from the review (#148–#152, bugs before features — #147, #150 and #152 already merged), **and** the still
-**owner-gated** Supabase decision — whether/when to provision the Supabase project that unblocks #107/#120
-(first external network integration — a "stop and ask" item per CLAUDE.md regardless).
+### What's next (2026-07-12) — the agent-ready well is dry; everything left is owner-gated
+
+**Session of 2026-07-11/12 cleared the entire cross-model-review backlog + the two flagged carry-overs:**
+#147/#148/#149/#150/#152 merged; **#153 decided _and_ implemented** (ADR 0028 Accepted + the new
+`@grimora/rules-contract` leaf, PR #163); #154 closed as redundant; #151 deferred to #107; and **#71** (the
+Art. 30 RoPA + processor/transfer register + DPIA screening scaffold) merged (PR #165). **No agent-ready,
+decision-free work remains** — every open item now needs an owner decision or owner input. In rough
+priority for the next session:
+
+1. **Provision Supabase (EU region) + secrets — the single biggest unblock.** First external-network
+   integration (a CLAUDE.md "stop and ask" regardless). Unblocks **#107** (sync adapter: the `SyncPort`
+   interface + `apps/api` sync endpoints + a cloud `EventStorePort`), **#120** (auth binding, ADR 0011 §9),
+   **#106's deferred `gm`/`player`/`spectator`** role resolution (needs a campaign-membership read model),
+   **#151** (event-store duplicate-`id` idempotency — belongs on the sync `replicate` path), and the two
+   `pending-fitness-functions.test.ts` placeholders (consent gate; realtime-never-persisted).
+2. **#72 — Impressum + ToS.** The **only already-triggered** legal item (§5 DDG plausibly triggers on the
+   public repo today, ADR 0015 R2/§9); **highest non-technical priority.** Owner/legal content, not code.
+3. **#71 legal TODOs.** The RoPA scaffold is merged; it now needs the owner's legal input —
+   controller identity, signed DPAs per processor, DPF-certification/TIA per US AI provider, retention
+   periods. All **go-live-gated** (not urgent while offline-only, no processor handles real data yet).
+4. **#73 / #74 — Consent (`ConsentPort`) / DSAR (`CryptoPort`).** Blocked on those ports (not built);
+   partly gated on the same cloud/auth work.
+5. **Trigger-gated ADRs** (owner decides whether the trigger has fired): **#18 ADR 0016 A11y/i18n** is the
+   most plausibly-relevant now (a real UI exists); then #15 (0013 perf), #23 (0019 analytics), #82 (0026
+   user docs).
+6. **Housekeeping:** **#134** — remove the dev-only "Reset all" button before the first real deployment
+   (not now).
+
+**The clearest single next step is an owner decision**, most likely either **provision Supabase** (unblocks
+the whole sync/auth vertical — the biggest functional progress) or **#72 Impressum** (the already-triggered
+legal obligation). Everything else waits on one of those, on a port not yet built, or on a trigger firing.
 
 ✅ **Done / not open:** `apps/web` e2e in CI (#130); the `apps/api` framework/structure decision + scaffold
 (ADR 0027 / #139); real authorization (#106 / PR #141); the remaining conformance fitness functions
@@ -357,8 +389,9 @@ code-verified against `main`); each checkable claim was verified against source 
 logged in `docs/meta/agent-collaboration-log.md`). It produced **8 issues (#147–#154)**:
 
 - **Docs/hygiene (agent-ready):** #147 README refresh + `bun run dev` quickstart fix (**merged**, PR #155)
-  · #148 doc/config hygiene batch (`clear` glob, `.env`/comment drift, lint warnings) · #149
-  maturity-labeling pass (planned/designed/…/real) across README/STATUS/ADR index.
+  · #148 doc/config hygiene batch (`clear` glob, `.env`/comment drift, lint warnings — **merged**, PR #161)
+  · #149 maturity-labeling pass (the "Accepted ADR ≠ implemented" note + a STATUS maturity legend —
+  **merged**, PR #164).
 - **Core-correctness (agent-ready, on the path to #107):** #150 character-sheet projection idempotency
   under re-delivery — per-sheet `lastPosition` watermark (ADR 0004 §5, **merged**, PR #157) · #152 guard
   non-finite (NaN/Infinity) numeric inputs in the domain (**merged**, PR #159) · #151 event store maps a
