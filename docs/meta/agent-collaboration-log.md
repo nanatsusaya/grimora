@@ -931,3 +931,48 @@ need re-checking against the *ADRs and the real contract*, not the fake. Verify-
 own recent output as much as to an external review ([[cross-model-review-pattern]]). (3) The honest move
 when the ground truth contradicts the task is to **not do the task and say why**, even when the owner just
 asked for it — surfacing the redundancy served the project better than dutifully producing a shadow ADR.
+
+---
+
+## 2026-07-12 — Two external audits of the auth→sync vertical, verified against the code (a P1 my own close-out missed)
+
+**Trigger:** immediately after I drove Phase 2 to close (#181, declaring the vertical clean), the owner
+supplied **two independent AI audit reports** of the same commit (`738abf8`) — one Markdown (had run the
+full green build chain), one PDF (static-only: its sandbox had no network, could not clone/build) — and
+asked, in a long structured prompt, to **verify each finding against the actual code** (not summarize or
+defer), recalibrate severities, and derive an action plan.
+
+**Method:** treated every finding as an unverified hint; read the whole auth→sync path
+(`sync-service`, `http-sync-port`, `routes`, `pg-sync-store`, `event-store-core`, `character-view`,
+`composition-root`, `offline-identity`, the migration, both READMEs), deduped ~30 findings across the two
+reports, and assigned each a verdict + a stage-calibrated severity. Convergence between the two audits was
+the strongest signal; divergence was informative too.
+
+**Impact / observations:**
+- **The external audit caught a real P1 that my own Phase-2 close-out had declared clean.** Finding **F-01**
+  (a same-browser **account-switch** can misattribute local events to the wrong cloud account: the
+  device→account binding is *recorded* but never *enforced* before push/pull) is real — verified against
+  `character-view`/`offline-identity`. It was the PDF audit's single "Critical"; the MD audit missed it
+  entirely; **and so had I.** Shipped a fail-safe interim gate (#198, PR) + a P1 ticket (#185) for the full
+  model. The clearest evidence yet that an external audit earns its keep precisely on what the author + one
+  review both overlooked.
+- **Static-only audits over-inflate severity.** The PDF audit could not run the code or weight by
+  runtime/stage, so it rated several own-tenant-bounded, latent-under-Option-A gaps as "Hoch/Kritisch".
+  Recalibrating to the actual stage (solo, no real users/data, offline path intact = no data loss) moved
+  most down a notch. The MD audit (which *ran* the chain) was better-calibrated but narrower. **Neither
+  the "ran it" nor the "read it" audit was sufficient alone** — the union, verified, was.
+- **Verify-not-defer still routes the real decisions to the owner.** The two genuine forks (F-01 handling;
+  the deferred ADR-0024 §2 server gates) went to the owner via a decision prompt rather than being silently
+  coded — they chose the fail-safe gate + a *named, owner-authorized ADR amendment* documenting the
+  deviation (the accepted way to record it, not a silent code choice).
+- **Both audits independently flagged the stale README/API-README** (auth/sync described as unbuilt) — my
+  own close-out had updated STATUS but not the READMEs. "Stale docs = defect" bit the close-out itself.
+
+**Lessons learned:** (1) *Closing my own work is not a substitute for an outside read.* I had just signed off
+Phase 2 as clean; an external audit found a P1 isolation gap in it. Treat a self-declared "done" as the
+**input** to a verification pass, not the end. (2) Weigh a static audit's severities skeptically but its
+*findings* seriously — it can't see runtime, so it inflates impact, yet it still surfaced the most important
+item. (3) The verify-not-defer discipline ([[cross-model-review-pattern]]) scaled cleanly to ~30 findings
+across two sources: dedupe first, then a per-finding verdict against the code, then stage-calibrated
+severity, then route only the true decisions to the owner. Outputs: 12 DoR tickets (#185–#196), 3 PRs (docs
+accuracy #197, the F-01 gate #198, the ADR-0024 amendment + hardening #199), and a #107 scope-annotation.
