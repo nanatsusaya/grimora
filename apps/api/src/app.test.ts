@@ -6,20 +6,10 @@
  */
 
 import { describe, expect, test } from 'bun:test';
-import { appError } from '@grimora/core-domain';
-import { err, ok } from '@grimora/shared-types';
 import { createApp } from './app';
-import type { SupabaseAuthClient } from './auth/supabase-auth-client';
-import { createApiComposition } from './composition/composition-root';
+import { testComposition } from './test-support';
 
-/** A no-op auth client — these scaffold tests exercise the non-auth routes; auth has its own suite. */
-const stubAuth: SupabaseAuthClient = {
-  signInWithPassword: async () => err(appError('auth.invalid_credentials', 'Unauthorized')),
-  refresh: async () => err(appError('auth.invalid_credentials', 'Unauthorized')),
-  signOut: async () => ok(undefined),
-};
-
-const app = createApp(createApiComposition({ auth: stubAuth, cookie: { secure: true } }));
+const app = createApp(testComposition());
 
 describe('apps/api scaffold', () => {
   test('GET /health → 200 { status: "ok" }', async () => {

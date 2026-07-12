@@ -31,6 +31,9 @@ export type {
   ReadModelStorePort,
   Role,
   RuleSystemRegistryPort,
+  SyncPort,
+  SyncPullPage,
+  SyncPushResult,
 } from './application/ports';
 export {
   CHARACTER_SHEET,

@@ -16,6 +16,8 @@
     "@grimora/shared-types": "workspace:*",
     "@hono/zod-openapi": "^1.4.0",
     "hono": "^4.12.0",
+    "jose": "^6.2.3",
+    "postgres": "^3.4.9",
     "zod": "^4.4.0"
   },
   "devDependencies": {
