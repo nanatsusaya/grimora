@@ -10,7 +10,7 @@
  */
 
 import type { AppError, EventStorePort } from '@grimora/core-domain';
-import { appError } from '@grimora/core-domain';
+import { appError, EventIdMismatchError } from '@grimora/core-domain';
 import type { EntityId, EventEnvelope, PersistedEvent, Result } from '@grimora/shared-types';
 import { err, ok } from '@grimora/shared-types';
 import type { SqlDriver } from './sql-driver';
@@ -93,6 +93,29 @@ function rowToEvent(row: EventRow): PersistedEvent {
 }
 
 /**
+ * Whether an already-stored row carries the **same content** as an incoming event with the same `id` — the
+ * test the append idempotency check uses to tell a harmless re-delivery from corrupt id reuse (#151). Each
+ * field is compared against how it was persisted: `payload`/`metadata` against their stored canonical JSON
+ * (both serialized the same way on insert), so re-appending an identical event matches exactly.
+ * @param row    the stored row found by the incoming event's id
+ * @param event  the incoming event
+ * @returns      true iff every persisted field is identical
+ */
+function sameStoredContent(row: EventRow, event: EventEnvelope): boolean {
+  const expectedMetadata = event.metadata === undefined ? null : JSON.stringify(event.metadata);
+  return (
+    row.aggregate_id === event.aggregateId &&
+    row.aggregate_type === event.aggregateType &&
+    row.type === event.type &&
+    row.version === event.version &&
+    row.schema_version === event.schemaVersion &&
+    row.occurred_at === event.occurredAt &&
+    row.metadata === expectedMetadata &&
+    row.payload === JSON.stringify(event.payload)
+  );
+}
+
+/**
  * Build a durable {@link SqliteEventStore} over an already-open {@link SqlDriver}. Creates the `events`
  * table on first use (idempotent `IF NOT EXISTS`, ADR 0005 §6 startup migration) with the invariants the
  * port relies on: a store-local monotonic `position` (`INTEGER PRIMARY KEY AUTOINCREMENT`), a
@@ -130,6 +153,7 @@ export function createEventStoreOverDriver(driver: SqlDriver): SqliteEventStore 
     'SELECT * FROM events WHERE aggregate_id = ? AND version > ? ORDER BY version ASC',
   );
   const selectAll = driver.prepare('SELECT * FROM events WHERE position > ? ORDER BY position ASC');
+  const selectById = driver.prepare('SELECT * FROM events WHERE id = ?');
 
   return {
     async append(
@@ -139,13 +163,29 @@ export function createEventStoreOverDriver(driver: SqlDriver): SqliteEventStore 
     ): Promise<Result<void, AppError>> {
       if (events.length === 0) return ok(undefined);
       try {
-        // The version check and the inserts are one atomic unit, so a concurrent writer cannot interleave
-        // between "read current version" and "insert". A stale expectedVersion throws to roll the batch back.
+        // The idempotency pre-pass, the version check and the inserts are one atomic unit, so a concurrent
+        // writer cannot interleave between "read current version" and "insert". A stale expectedVersion or
+        // an id-corruption throws to roll the whole batch back.
         driver.transaction(() => {
+          // Idempotency pre-pass (#151, ADR 0005 §3): an event whose `id` is already stored *identically*
+          // is a no-op (re-delivery); the same id with a *different* body is corruption (throws, distinct
+          // from a version Conflict). Only genuinely-new events proceed to the optimistic-concurrency check,
+          // so re-delivering an already-applied batch succeeds rather than tripping the stale-version check.
+          const toInsert: EventEnvelope[] = [];
+          for (const event of events) {
+            const existing = selectById.get(event.id) as EventRow | undefined;
+            if (existing) {
+              if (!sameStoredContent(existing, event)) throw new EventIdMismatchError(event.id);
+              continue; // identical re-delivery → skip
+            }
+            toInsert.push(event);
+          }
+          if (toInsert.length === 0) return; // fully idempotent re-delivery — commit nothing, no-op success
+
           const row = selectMaxVersion.get(streamId) as { v: number | null } | undefined;
           const current = row?.v ?? 0;
           if (current !== expectedVersion) throw new VersionConflictError();
-          for (const event of events) {
+          for (const event of toInsert) {
             insertEvent.run(
               event.id,
               event.aggregateId,
@@ -163,8 +203,9 @@ export function createEventStoreOverDriver(driver: SqlDriver): SqliteEventStore 
       } catch (error) {
         // Both a stale expectedVersion (app-level check) and a UNIQUE(aggregate_id, version) violation
         // (storage-level backstop for concurrent writers) are the same optimistic-concurrency conflict —
-        // the caller rebases (ADR 0005 §4). Anything else is unexpected and rethrows to the composition
-        // root (ADR 0009 §1: programmer/infrastructure errors are not modelled as Result errors).
+        // the caller rebases (ADR 0005 §4). An `EventIdMismatchError` (id reuse with different content) is
+        // corruption and propagates as a throw (#151). Anything else is unexpected and rethrows to the
+        // composition root (ADR 0009 §1: programmer/infrastructure errors are not modelled as Result errors).
         if (error instanceof VersionConflictError || isUniqueViolation(error)) {
           return err(appError(CONFLICT_CODE, 'Conflict'));
         }

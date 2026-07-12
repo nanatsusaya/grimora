@@ -71,19 +71,21 @@ describe('SQLite adapter — storage-level guarantees (#103)', () => {
     }
   });
 
-  test('a duplicate event id is rejected as a Conflict (UNIQUE(id) → Conflict mapping)', async () => {
+  test('a duplicate event id with DIFFERENT content throws corruption, not Conflict (#151)', async () => {
     const store = createSqliteEventStore();
     try {
       const seed = await store.append('agg-1' as EntityId, 0, [event('agg-1', 1, 'dup-id')]);
       expect(seed.ok).toBe(true);
-      // Version check passes (current=1, expected=1), but the insert reuses id 'dup-id' → UNIQUE(id)
-      // violation, which the adapter maps to a Conflict rather than letting the raw error escape.
-      const clash = await store.append('agg-1' as EntityId, 1, [event('agg-1', 2, 'dup-id')]);
-      expect(clash.ok).toBe(false);
-      if (!clash.ok) expect(clash.error.category).toBe('Conflict');
-      // The rejected batch must not have persisted.
+      // Reusing id 'dup-id' with a different body (version 2, payload {version:2}) is a data-integrity
+      // violation, not an optimistic-concurrency conflict: the adapter throws the distinct corruption error
+      // (idempotent identical re-delivery + the version-collision Conflict are covered by the shared contract).
+      await expect(
+        store.append('agg-1' as EntityId, 1, [event('agg-1', 2, 'dup-id')]),
+      ).rejects.toThrow(/already stored with different content/);
+      // The rejected batch must not have persisted — the original stays.
       const events = await store.readStream('agg-1' as EntityId);
       expect(events.length).toBe(1);
+      expect(events[0]?.version).toBe(1);
     } finally {
       store.close();
     }
