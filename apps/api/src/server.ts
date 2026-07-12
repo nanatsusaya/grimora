@@ -10,20 +10,25 @@
  */
 
 import { createApp } from './app';
+import { createJwksTokenVerifier } from './auth/jwt';
 import { createSupabaseAuthClient } from './auth/supabase-auth-client';
 import { createApiComposition } from './composition/composition-root';
 import { loadApiConfig } from './config';
+import { createPgSyncStore } from './sync/pg-sync-store';
 
 /**
  * The composition-root edge: read + validate config from the environment **once, here** (ADR 0010 §4 —
- * secrets/config only at the composition root), then wire the real Supabase auth client. A missing
- * `PROJECT_URL`/`PUBLISHABLE_KEY` fails fast at startup rather than surfacing as a confusing 500 later.
+ * secrets/config only at the composition root), then wire the real adapters (Supabase auth client, the
+ * Postgres sync store, the JWKS token verifier). A missing required var fails fast at startup rather than
+ * surfacing as a confusing 500 later.
  */
 const config = loadApiConfig(process.env);
 const app = createApp(
   createApiComposition({
     auth: createSupabaseAuthClient(config.supabase),
     cookie: config.cookie,
+    syncStore: createPgSyncStore(config.databaseUrl),
+    tokenVerifier: createJwksTokenVerifier(config.supabase),
   }),
 );
 

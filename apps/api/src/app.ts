@@ -20,6 +20,7 @@ import { registerAuthRoutes } from './auth/routes';
 import type { ApiComposition } from './composition/composition-root';
 import { toProblem } from './http/problem';
 import { ProblemSchema } from './http/schemas';
+import { registerSyncRoutes } from './sync/routes';
 
 /** Liveness response — no domain data, just proof the process serves requests. */
 const HealthSchema = z.object({ status: z.literal('ok') }).openapi('Health');
@@ -105,6 +106,9 @@ export function createApp(composition: ApiComposition): OpenAPIHono {
 
   // The auth-proxy routes (sign-in / refresh / sign-out) — ADR 0012 §5 cookie-based session (#120 E2).
   registerAuthRoutes(app, composition);
+
+  // The sync routes (push / pull) — the durable cloud replication path (#107, ADR 0005 §3).
+  registerSyncRoutes(app, composition);
 
   // The generated OpenAPI 3.1 document — the published contract SSOT (ADR 0011 §2, ADR 0027 §3).
   app.doc('/api/v1/openapi.json', {

@@ -31,6 +31,8 @@ export interface CookieConfig {
 export interface ApiConfig {
   readonly supabase: SupabaseConfig;
   readonly cookie: CookieConfig;
+  /** The direct Postgres connection string for the cloud event store (#107) — a **secret**. */
+  readonly databaseUrl: string;
 }
 
 /**
@@ -39,14 +41,15 @@ export interface ApiConfig {
  * composition-root entry (`server.ts`); tests inject a config directly and never touch this.
  * @param env  the environment bag to read (`process.env` in production)
  * @returns    a fully-validated {@link ApiConfig}
- * @throws     Error if a required variable (`PROJECT_URL`, `PUBLISHABLE_KEY`) is missing/empty
+ * @throws     Error if a required variable (`PROJECT_URL`, `PUBLISHABLE_KEY`, `DATABASE_URL`) is missing/empty
  */
 export function loadApiConfig(env: Record<string, string | undefined>): ApiConfig {
   const url = required(env, 'PROJECT_URL');
   const publishableKey = required(env, 'PUBLISHABLE_KEY');
+  const databaseUrl = required(env, 'DATABASE_URL');
   // Default-secure; only an explicit `COOKIE_SECURE=false` (local http dev) relaxes it.
   const secure = env.COOKIE_SECURE !== 'false';
-  return { supabase: { url, publishableKey }, cookie: { secure } };
+  return { supabase: { url, publishableKey }, cookie: { secure }, databaseUrl };
 }
 
 /**

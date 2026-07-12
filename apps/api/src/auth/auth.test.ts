@@ -10,7 +10,7 @@ import { describe, expect, test } from 'bun:test';
 import { appError } from '@grimora/core-domain';
 import { err, ok } from '@grimora/shared-types';
 import { createApp } from '../app';
-import { createApiComposition } from '../composition/composition-root';
+import { testComposition } from '../test-support';
 import type { SupabaseAuthClient } from './supabase-auth-client';
 
 /** A configurable fake GoTrue client — happy-path by default; override a method to force a failure. */
@@ -27,7 +27,7 @@ function createFakeAuth(overrides: Partial<SupabaseAuthClient> = {}): SupabaseAu
 
 /** Build an app whose auth client is the given fake. */
 function appWith(auth: SupabaseAuthClient) {
-  return createApp(createApiComposition({ auth, cookie: { secure: true } }));
+  return createApp(testComposition({ auth }));
 }
 
 const jsonPost = (body: unknown, headers: Record<string, string> = {}) => ({
