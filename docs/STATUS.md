@@ -52,6 +52,12 @@
   grouped under the **hardening epic #200** — a **post-Phase-2 backlog** (Phase 2 stays closed), with a
   **Gate subset (#192 → #186 + #193 → #188 → #185, and #187 before any sharing feature)** recommended
   **before hard Phase-3 work builds on the sync/identity surface** (see #200 for the sequencing + rationale).
+  **Progress (2026-07-12):** the interim F-01 gate (PR #198) plus **#186** (local store integrity), **#188**
+  (sync-client robustness incl. token-refresh), **#190** (worker lifecycle), **#191** (atomic char-create)
+  and **#196** (dev-stack pinning + the owner-authorized ADR-0002 react-hooks reconcile) are **merged/closed**
+  (PRs #197–#207). Remaining in the gate: **#192** (ephemeral-Postgres test — unblocks the *cloud* half of
+  #186, which was scoped to the local store) and the owner-gated **#185** (full account-switch model); #187
+  stays trigger-gated. Carried: #189, #193, #194, #195.
 - **Walking skeleton built (gate passed):** ✅ #61 / PR #64 — the **first real code beyond
   `shared-types`**: provisional-v0 `packages/plugin-sdk` + `packages/core-domain` (with a
   `/testing` fakes subpath) + minimal `plugins/dsa5` + an `apps/skeleton-walk` composition root and
@@ -449,13 +455,15 @@ tracked in #181** (docs current, completed epics closed, deferred concerns each 
    user docs).
 6. **Housekeeping:** **#134** — remove the dev-only "Reset all" button before the first real deployment.
 
-**Auth→Sync hardening gate (#200, audit follow-up).** Before Phase-3 features build *on* the sync/identity
-surface — above all **#176** — the epic's **Gate subset** (#192 → #186 + #193 → #188 → #185; #187 before any
-sharing/multi-account feature) should be closed or explicitly re-deferred. Whether it strictly precedes
-Phase 3 depends on the Phase-3 opener: a **#176 (co-editing / multi-user)** start makes the Gate a genuine
-prerequisite; a **deeper DSA5-plugin** start couples less (though #192 + the token-refresh part of #188 are
-worth doing early regardless — cloud sync silently 401s after ~1 h today). The interim F-01 gate (PR #198)
-already makes the account-switch case fail-safe.
+**Auth→Sync hardening gate (#200, audit follow-up).** Most of the gate landed on 2026-07-12 (see the
+"External audit follow-up" bullet above): #186 (local), #188, #190, #191, #196 are **closed**, and the
+interim F-01 gate (PR #198) already makes the account-switch case fail-safe. **Still open in the gate before
+Phase-3 features build *on* the sync/identity surface — above all #176:** **#192** (ephemeral-Postgres test,
+which then unblocks the *cloud* half of #186 — server version contiguity + cloud id-content compare) and the
+owner-gated **#185** (full account-switch model: partition vs. explicit migration); **#187** stays
+trigger-gated to a sharing/multi-account feature. Whether the remainder strictly precedes Phase 3 depends on
+the opener: a **#176 (co-editing / multi-user)** start makes it a genuine prerequisite; a **deeper
+DSA5-plugin** start couples less (though #192 is worth doing early regardless).
 
 **The clearest single next step is an owner decision** — the **Phase-3 direction** (#176 identity/co-editing
 vs. deeper DSA5-plugin work), which in turn sets how much of the **#200 hardening Gate** must land first;
