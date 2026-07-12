@@ -48,10 +48,16 @@ export interface WorkerBackedStores {
  *
  * The `new URL(..., import.meta.url)` form is how Vite discovers and bundles a worker entry; `type:
  * 'module'` matches the ESM worker the adapters need (they use static `import`).
+ * @param workerFactory  builds the underlying `Worker` — defaulted to the real Vite-bundled store worker;
+ *                       injected in tests (ADR 0017) so the lifecycle (terminate rejecting in-flight calls,
+ *                       #190) can be exercised without a real browser worker
  * @returns the two port-shaped proxies, a `ready` promise, and a `terminate` handle
  */
-export function createWorkerBackedStores(): WorkerBackedStores {
-  const worker = new Worker(new URL('./store.worker.ts', import.meta.url), { type: 'module' });
+export function createWorkerBackedStores(
+  workerFactory: () => Worker = () =>
+    new Worker(new URL('./store.worker.ts', import.meta.url), { type: 'module' }),
+): WorkerBackedStores {
+  const worker = workerFactory();
 
   // Correlate each request with its response: the worker echoes the `id`, and we resolve the matching
   // pending promise. A monotonic counter is unique per worker instance, which is all we need.
@@ -60,6 +66,17 @@ export function createWorkerBackedStores(): WorkerBackedStores {
     number,
     { resolve: (value: unknown) => void; reject: (reason: Error) => void }
   >();
+  // Once the worker is torn down, no reply will ever arrive; `closed` lets a late `call()` fail fast
+  // instead of registering a promise that could never settle (audit F-11, #190).
+  let closed = false;
+
+  /** Reject every in-flight request with `error` and clear the map — the single "fail all pending" path. */
+  const rejectAllPending = (error: Error): void => {
+    for (const [id, entry] of pending) {
+      pending.delete(id);
+      entry.reject(error);
+    }
+  };
 
   let resolveReady!: () => void;
   let rejectReady!: (reason: Error) => void;
@@ -88,10 +105,7 @@ export function createWorkerBackedStores(): WorkerBackedStores {
   worker.onerror = (event: ErrorEvent) => {
     const error = new Error(`OPFS store worker error: ${event.message}`);
     rejectReady(error);
-    for (const [id, entry] of pending) {
-      pending.delete(id);
-      entry.reject(error);
-    }
+    rejectAllPending(error);
   };
 
   /**
@@ -102,6 +116,9 @@ export function createWorkerBackedStores(): WorkerBackedStores {
    * @returns       the method's return value, typed by the caller
    */
   function call(target: StoreTarget, method: string, args: readonly unknown[]): Promise<unknown> {
+    // After teardown the worker is gone, so a new call could never be answered — reject immediately rather
+    // than leave a forever-pending promise (audit F-11, #190).
+    if (closed) return Promise.reject(new Error('OPFS store worker is closed'));
     const id = nextId++;
     const request: StoreWorkerRequest = { id, target, method, args };
     return new Promise<unknown>((resolve, reject) => {
@@ -152,6 +169,11 @@ export function createWorkerBackedStores(): WorkerBackedStores {
     reads,
     ready,
     terminate() {
+      // Mark closed and reject any in-flight RPC so its promise settles instead of hanging forever (audit
+      // F-11, #190) — e.g. a call outstanding during HMR / the dev "Reset all" / test teardown — then
+      // release the worker's OPFS handles.
+      closed = true;
+      rejectAllPending(new Error('OPFS store worker terminated'));
       worker.terminate();
     },
   };
