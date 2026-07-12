@@ -25,7 +25,7 @@ import {
   type CharacterIndexEntry,
   type CharacterSheet,
   createCampaign as createCampaignCommand,
-  createCharacter as createCharacterCommand,
+  createCharacterWithAttributes as createCharacterCommand,
   rollCheck as rollCheckCommand,
   runCharacterSheetProjection,
   setAttribute as setAttributeCommand,
@@ -248,6 +248,8 @@ export function createCharacterView(composition: AppComposition): CharacterView 
         localStorage.setItem(CAMPAIGN_KEY, campaignId);
       }
 
+      // Create the character AND its starting traits in one atomic append (#191): a failure part-way
+      // through no longer leaves a half-created character in the log (which the old create-then-loop could).
       const characterId = deps.ids.newId();
       const created = await createCharacterCommand(deps, {
         characterId,
@@ -255,18 +257,11 @@ export function createCharacterView(composition: AppComposition): CharacterView 
         campaignId,
         ruleSystemId: RULE_SYSTEM_ID,
         actor,
+        attributes: STARTING_TRAITS,
       });
       if (!created.ok) {
         setModel({ error: `character: ${created.error.code}` });
         return;
-      }
-
-      for (const [attributeId, value] of STARTING_TRAITS) {
-        const set = await setAttributeCommand(deps, { characterId, attributeId, value, actor });
-        if (!set.ok) {
-          setModel({ error: `${attributeId}: ${set.error.code}` });
-          return;
-        }
       }
 
       localStorage.setItem(CHARACTER_KEY, characterId);

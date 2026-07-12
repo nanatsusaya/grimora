@@ -19,6 +19,7 @@ import {
   type CommandDeps,
   createCampaign,
   createCharacter,
+  createCharacterWithAttributes,
   rollCheck,
   setAttribute,
 } from './use-cases';
@@ -194,5 +195,77 @@ describe('rollCheck', () => {
     const result = await rollCheck(deps, { characterId, checkId: 'nope', actor: owner });
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error.code).toBe('character.unknown_check');
+  });
+});
+
+describe('createCharacterWithAttributes (atomic creation, #191)', () => {
+  it('creates the character and all starting attributes in a single contiguous batch', async () => {
+    const deps = makeDeps();
+    await createCampaign(deps, { campaignId, name: 'C', actor: owner });
+    const result = await createCharacterWithAttributes(deps, {
+      characterId,
+      name: 'Hero',
+      campaignId,
+      ruleSystemId: 'test',
+      actor: owner,
+      attributes: [['STR', 5]],
+    });
+    expect(result.ok).toBe(true);
+    const events = await deps.events.readStream(characterId);
+    expect(events.map((e) => e.type)).toEqual(['character.created', 'character.attributeSet']);
+    // Contiguous per-aggregate versions from one append (satisfies the store's batch invariants, #186).
+    expect(events.map((e) => e.version)).toEqual([1, 2]);
+  });
+
+  it('persists NOTHING when a starting attribute is out of range — no half-created character', async () => {
+    const deps = makeDeps();
+    await createCampaign(deps, { campaignId, name: 'C', actor: owner });
+    const result = await createCharacterWithAttributes(deps, {
+      characterId,
+      name: 'Hero',
+      campaignId,
+      ruleSystemId: 'test',
+      actor: owner,
+      attributes: [
+        ['STR', 5],
+        ['STR', 99], // > max 10 → the whole creation must be rejected, not persisted partially
+      ],
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.category).toBe('Validation');
+    // The atomicity guarantee: the earlier valid events were never appended either.
+    expect((await deps.events.readStream(characterId)).length).toBe(0);
+  });
+
+  it('rejects an unknown starting attribute without persisting anything', async () => {
+    const deps = makeDeps();
+    await createCampaign(deps, { campaignId, name: 'C', actor: owner });
+    const result = await createCharacterWithAttributes(deps, {
+      characterId,
+      name: 'Hero',
+      campaignId,
+      ruleSystemId: 'test',
+      actor: owner,
+      attributes: [['NOPE', 1]],
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.code).toBe('character.unknown_attribute');
+    expect((await deps.events.readStream(characterId)).length).toBe(0);
+  });
+
+  it('requires the rule system to be loaded (nothing persisted)', async () => {
+    const deps = makeDeps();
+    await createCampaign(deps, { campaignId, name: 'C', actor: owner });
+    const result = await createCharacterWithAttributes(deps, {
+      characterId,
+      name: 'Hero',
+      campaignId,
+      ruleSystemId: 'missing',
+      actor: owner,
+      attributes: [['STR', 5]],
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.category).toBe('NotFound');
+    expect((await deps.events.readStream(characterId)).length).toBe(0);
   });
 });
