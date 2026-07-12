@@ -7,6 +7,7 @@
  */
 
 import type { AuthPort, AuthSession } from '@grimora/core-domain';
+import type { SyncService } from '@grimora/offline-sync';
 import { Button, Field } from '@grimora/ui';
 import { type FormEvent, useEffect, useState } from 'react';
 
@@ -34,18 +35,29 @@ function useAuthSession(auth: AuthPort): AuthSession | undefined {
 }
 
 /**
- * The auth panel: a signed-in banner (with sign-out) when authenticated, otherwise an email+password
- * login form.
+ * The auth panel: a signed-in banner (with sign-out + a manual cloud-sync trigger) when authenticated,
+ * otherwise an email+password login form.
  * @param props       the component props
  * @param props.auth  the client-side authentication port (from the composition root)
+ * @param props.sync  optional client-side cloud push service (#107 slice 3a); when provided, the signed-in
+ *                    banner shows a "Sync now" button. Optional so the panel renders without it (tests, or
+ *                    before sync is wired)
  * @returns           the auth surface for the current session state
  */
-export function AuthPanel({ auth }: { readonly auth: AuthPort }) {
+export function AuthPanel({
+  auth,
+  sync,
+}: {
+  readonly auth: AuthPort;
+  readonly sync?: SyncService;
+}) {
   const session = useAuthSession(auth);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | undefined>(undefined);
   const [busy, setBusy] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<string | undefined>(undefined);
+  const [syncing, setSyncing] = useState(false);
 
   const panelStyle = {
     marginBottom: 'var(--gr-space-lg)',
@@ -54,12 +66,45 @@ export function AuthPanel({ auth }: { readonly auth: AuthPort }) {
   };
 
   if (session) {
+    /** Trigger a cloud push and reflect the non-sensitive outcome (counts only) in the banner. */
+    const onSync = () => {
+      if (!sync) return;
+      setSyncing(true);
+      setSyncStatus(undefined);
+      void sync.pushPending().then((result) => {
+        setSyncing(false);
+        if (!result.ok) {
+          setSyncStatus('Sync failed — will retry later.');
+          return;
+        }
+        const { accepted, duplicates, conflicts } = result.value;
+        setSyncStatus(
+          accepted === 0 && duplicates === 0 && conflicts === 0
+            ? 'Up to date.'
+            : `Synced: ${accepted} new, ${duplicates} already there${conflicts > 0 ? `, ${conflicts} deferred` : ''}.`,
+        );
+      });
+    };
+
     return (
       <section data-testid="auth-signed-in" style={panelStyle}>
         <span style={{ fontFamily: 'var(--gr-font-sans)' }}>
           Signed in as <code>{session.userId}</code>
         </span>{' '}
+        {sync && (
+          <Button disabled={syncing} onClick={onSync}>
+            Sync now
+          </Button>
+        )}{' '}
         <Button onClick={() => void auth.signOut()}>Sign out</Button>
+        {syncStatus && (
+          <p
+            data-testid="sync-status"
+            style={{ fontFamily: 'var(--gr-font-sans)', marginTop: 'var(--gr-space-sm)' }}
+          >
+            {syncStatus}
+          </p>
+        )}
       </section>
     );
   }

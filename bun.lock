@@ -51,6 +51,7 @@
         "@grimora/cqrs-read": "workspace:*",
         "@grimora/design-tokens": "workspace:*",
         "@grimora/event-store": "workspace:*",
+        "@grimora/offline-sync": "workspace:*",
         "@grimora/plugin-dsa5": "workspace:*",
         "@grimora/shared-types": "workspace:*",
         "@grimora/ui": "workspace:*",
@@ -108,6 +109,18 @@
         "@grimora/core-domain": "workspace:*",
         "@grimora/shared-types": "workspace:*",
         "@sqlite.org/sqlite-wasm": "3.53.0-build1",
+      },
+      "devDependencies": {
+        "@types/bun": "^1.1.0",
+        "typescript": "^6.0.3",
+      },
+    },
+    "packages/offline-sync": {
+      "name": "@grimora/offline-sync",
+      "version": "0.0.0",
+      "dependencies": {
+        "@grimora/core-domain": "workspace:*",
+        "@grimora/shared-types": "workspace:*",
       },
       "devDependencies": {
         "@types/bun": "^1.1.0",
@@ -248,6 +261,8 @@
     "@grimora/design-tokens": ["@grimora/design-tokens@workspace:packages/design-tokens"],
 
     "@grimora/event-store": ["@grimora/event-store@workspace:packages/event-store"],
+
+    "@grimora/offline-sync": ["@grimora/offline-sync@workspace:packages/offline-sync"],
 
     "@grimora/plugin-dsa5": ["@grimora/plugin-dsa5@workspace:plugins/dsa5"],
 

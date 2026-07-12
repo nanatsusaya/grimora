@@ -64,6 +64,40 @@
   root) and scaffolded the **Art. 30 RoPA** legal doc (#71). Details in the *Cross-model review* +
   *What's next* sections below.
 
+### Auth → cloud-sync vertical (2026-07-12 session)
+
+The **first cloud vertical** landed this session — the app now authenticates against a real Supabase
+project and replicates its offline events to the cloud:
+
+- **Supabase provisioned** (owner) — project `grimora-dev`, new-style publishable/secret keys, asymmetric
+  ES256 JWTs (JWKS), Data API off (the client never queries Postgres directly; `apps/api` uses a direct
+  connection). Reproducible runbook: `docs/ops/supabase-setup.md` (#167).
+- **#120 — auth binding (email+password):** the `AuthPort` contract (E1), the `apps/api` auth proxy
+  (E2 — access token in memory, refresh token in an `HttpOnly` cookie, ADR 0012 §5), the web `AuthPort`
+  adapter + login UI (E3), and the ADR 0012 §13 device→account **first-bind** (E4). OAuth-only is the
+  deferred end state (email+password first — owner, 2026-07-12).
+- **#107 — cloud sync**, delivered in slices: **slice 1** the `events` table migration (#174, RLS as
+  defense-in-depth), **slice 2** the `apps/api` sync endpoints + Postgres event store + JWKS JWT
+  verification with hard actor-binding (#175, ADR 0024 §2), **slice 3a** the client `@grimora/offline-sync`
+  adapter (HTTP `SyncPort`) + push orchestration + the "Sync now" / push-on-login trigger. Each slice was
+  live-verified end-to-end against real `grimora-dev` (login → JWKS → Postgres push/pull/dedup/conflict;
+  and the client stack pushing real events attributed to the account).
+
+**Scope decision — "Option A" (owner-approved 2026-07-12), and its consequences.** Cloud sync ships in two
+capability steps rather than all at once:
+
+- **Now (slice 3a):** offline → cloud **push**. *Consequence:* a signed-in device durably backs up its
+  locally-created events to the cloud, attributed to the account by the server (JWT → `owner_id`).
+- **Next (slice 3b):** cloud → local **pull** + idempotent local apply + projection rebuild → cross-device
+  **view**. Needs a new insert-by-id path in the local (OPFS) event store; its own PR (one concern per PR).
+- **Deferred (issue #176):** cross-device **co-editing**. *Consequence to be aware of:* under the ADR 0012
+  §13 "Reading 2" device-principal model, a device can *view* an aggregate created on another device (the
+  cloud attributes it to the account) but **cannot edit** it, because local owner-only authorization
+  (ADR 0009 / #106) sees the other device's pseudonym as owner. Resolving this needs the Reading 1↔2
+  identity decision — tracked in **#176**, not silently decided in code. Until then, the rebase
+  re-application on a `conflict` is also deferred: slice 3a **parks** any `conflict` (never drops it), and
+  under Option A conflicts do not arise in normal single-device use (only the origin device writes a stream).
+
 ### Accepted ADRs
 
 | ADR | Topic |

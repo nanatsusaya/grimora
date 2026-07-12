@@ -37,6 +37,14 @@ export interface HttpAuthPort extends AuthPort {
    * @returns resolves once the refresh attempt has completed (session set or left absent)
    */
   restore(): Promise<void>;
+  /**
+   * The current access token (a Bearer JWT), or `undefined` when signed out. Exposed **only** so the
+   * composition root can hand the sync adapter (#107) a per-request token source without the token ever
+   * leaving this module's memory-only closure for web storage (ADR 0012 §5): the value is read live on each
+   * sync call and never persisted. Not part of the core `AuthPort` (which stays transport-agnostic).
+   * @returns the in-memory access token, or `undefined` if there is no active session
+   */
+  getAccessToken(): string | undefined;
 }
 
 /**
@@ -114,6 +122,10 @@ export function createHttpAuthPort(
 
     async getSession(): Promise<AuthSession | undefined> {
       return session;
+    },
+
+    getAccessToken(): string | undefined {
+      return accessToken;
     },
 
     onSessionChange(listener: (next: AuthSession | undefined) => void): () => void {

@@ -21,6 +21,7 @@
 
 import type { Actor, AuthPort, ClockPort, ReadModelStorePort } from '@grimora/core-domain';
 import { type CommandDeps, createPluginHost, createRoleMatrixPolicy } from '@grimora/core-domain';
+import { createHttpSyncPort, createSyncService, type SyncService } from '@grimora/offline-sync';
 import dsa5 from '@grimora/plugin-dsa5';
 import type { IsoTimestamp } from '@grimora/shared-types';
 import { createHttpAuthPort } from '../auth/http-auth-port';
@@ -48,6 +49,12 @@ export interface AppComposition {
   readonly actor: Actor;
   /** the client-side authentication port (login/session over the `apps/api` proxy, ADR 0012 §5) */
   readonly auth: AuthPort;
+  /**
+   * the client-side cloud **push** service (#107 slice 3a): replicates local events to the cloud once the
+   * user is signed in. Push runs automatically on login and can be triggered from the UI; the pull half
+   * (cross-device view) is slice 3b (see `docs/STATUS.md` / issue #176 for the Option-A scope)
+   */
+  readonly sync: SyncService;
   /** resolves once the OPFS stores are open; await before the first read/write, and to surface init errors */
   readonly ready: Promise<void>;
   /** release the store worker (tests/HMR); the running app keeps a single composition for its lifetime */
@@ -89,6 +96,23 @@ export function createAppComposition(): AppComposition {
   // Record the device → account binding on the first session (ADR 0012 §13 first-bind, #120 E4). Installed
   // BEFORE restore() so a session recovered from the refresh cookie is bound too; idempotent thereafter.
   const unbindFirstLogin = bindDeviceOnFirstLogin(auth, actor.userId, () => systemClock.now());
+
+  // Client-side cloud push (#107 slice 3a). The sync adapter reads the Bearer access token live from the
+  // auth adapter on each request (the token stays in that adapter's memory-only closure, ADR 0012 §5); the
+  // push cursor persists in the OPFS read store (`reads`), which structurally satisfies the checkpoint port.
+  const sync = createSyncService({
+    syncPort: createHttpSyncPort({ getAccessToken: () => auth.getAccessToken() }),
+    events,
+    checkpoints: reads,
+  });
+  // Push on login: when a session becomes current (fresh sign-in or a restore() from the refresh cookie),
+  // replicate whatever accumulated offline. Fire-and-forget and best-effort — a failed/offline push must
+  // never disrupt the local-first path (the events stay pending for the next attempt). `ready` guards the
+  // first store access so a push triggered by an early cookie-restore does not race OPFS startup.
+  const unbindPushOnLogin = auth.onSessionChange((session) => {
+    if (!session) return;
+    void ready.then(() => sync.pushPending()).catch(() => undefined);
+  });
   void auth.restore();
 
   return {
@@ -96,8 +120,10 @@ export function createAppComposition(): AppComposition {
     reads,
     actor,
     auth,
+    sync,
     ready,
     terminate() {
+      unbindPushOnLogin();
       unbindFirstLogin();
       terminateStores();
     },

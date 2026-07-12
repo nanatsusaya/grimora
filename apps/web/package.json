@@ -18,6 +18,7 @@
     "@grimora/cqrs-read": "workspace:*",
     "@grimora/design-tokens": "workspace:*",
     "@grimora/event-store": "workspace:*",
+    "@grimora/offline-sync": "workspace:*",
     "@grimora/plugin-dsa5": "workspace:*",
     "@grimora/shared-types": "workspace:*",
     "@grimora/ui": "workspace:*",
