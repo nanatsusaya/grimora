@@ -13,7 +13,10 @@ What is needed to build and operate Grimora, grouped by when it becomes necessar
 
 ## When cloud sync is wanted (Phase 3+)
 
-- **Supabase** project (URL, `anon key`, `service_role key`), EU region.
+- **Supabase** project, EU region — a non-prod dev project (`grimora-dev`, Frankfurt `eu-central-1`) is
+  provisioned; provisioning steps, key handling and the production/go-live gates are the runbook
+  [`ops/supabase-setup.md`](ops/supabase-setup.md). Note: use the new **publishable / secret** API keys,
+  not the legacy `anon` / `service_role` keys.
 - **Cloudflare** account (+ R2); optionally **Fly.io** / Railway; a web host (Cloudflare Pages / Vercel).
 - At least **one AI API key** (e.g. Anthropic) for the default adapter — or Ollama locally, no key.
 - DNS management for **`grimora.game`**.
