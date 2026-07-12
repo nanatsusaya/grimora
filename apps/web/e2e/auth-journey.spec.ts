@@ -35,6 +35,13 @@ test.describe('auth login journey (live apps/api + Supabase)', () => {
     // Signed in — the proxy set the refresh cookie and returned the access token.
     await expect(page.getByTestId('auth-signed-in')).toBeVisible();
 
+    // #120 E4: the first login recorded the device → account binding (ADR 0012 §13) in localStorage.
+    const rawBinding = await page.evaluate(() => localStorage.getItem('grimora.account-binding'));
+    expect(rawBinding).not.toBeNull();
+    const binding = JSON.parse(rawBinding as string) as { deviceId: string; accountId: string };
+    expect(binding.accountId.length).toBeGreaterThan(0);
+    expect(binding.deviceId.length).toBeGreaterThan(0);
+
     // Reload drops the in-memory access token, but the HttpOnly refresh cookie survives → restore() from
     // the composition root re-establishes the session without re-login (the ADR 0012 §5 proof).
     await page.reload();
