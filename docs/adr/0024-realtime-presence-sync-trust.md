@@ -82,6 +82,12 @@ GM-verified or commit-reveal rolls — R1). This makes ADR 0010 §1's "forged sy
 cross-tenant forgery is mitigated **hard**; own-aggregate fabrication is a **named, bounded** residual, not
 a silent hole. *(This refines ADR 0010 §1's threat row → §10 flagged amendment.)*
 
+> **Implementation status (2026-07-12, see Amendments):** of the five checks above, the Phase-2 ingress
+> currently enforces only **authentication + actor-binding** and **optimistic concurrency**. **Schema
+> validity, privacy-classification validity, and provenance** (plus server-side cross-aggregate/stream
+> routing) are **deferred** — a named, triggered deviation, bounded to the caller's own tenant under Option A,
+> tracked in **#187**. Do not read this section as fully implemented yet.
+
 ### 3. Rolls stay deterministic and (accepted) predictable — no server entropy now (R3)
 
 Rolls remain **deterministic** in the ADR 0021 §3 sense — the seed derivation (stream id + per-aggregate
@@ -286,6 +292,26 @@ play ever demands it.
 
 ## Amendments
 
+- **2026-07-12** — *Authorized by the project owner.* **§2 — implementation deviation: three of the five
+  hard-enforced push-ingress checks are deferred (named, triggered), not yet built.** Two independent code
+  audits (verified against `738abf8`) confirmed that the Phase-2 sync ingress (`apps/api/src/sync/routes.ts`
+  + `pg-sync-store.ts`) enforces only **two** of §2's five checks — **authentication + actor-binding**
+  (`owner_id` from the verified JWT, never a client claim) and **optimistic concurrency** (the
+  `(aggregate_id, version)` UNIQUE → `conflict`). The other three — **per-`type` payload-schema validity**,
+  **privacy-classification validity** (ADR 0023 §2; `validateClassification` already exists in
+  `plugin-sdk/privacy.ts` but is not called), and **provenance** (`pluginId`/version required) — plus
+  server-side **cross-aggregate / stream-routing** policy, are **not yet implemented**. This amendment does
+  **not** change the §2 decision (those checks remain the target); it records the deviation explicitly so the
+  ADR is not read as fully implemented. **Why deferring is acceptable now:** under the Option A single-account
+  model (see [ADR 0012 §13](0012-web-pwa-auth-realtime.md) / #176) a push only ever affects the caller's
+  **own** tenant — so a malformed/unclassified/unprovenanced event is bounded exactly like §2's already-named
+  **own-aggregate fabrication** social-contract residual, not a cross-tenant hole (reinforced by the by-design
+  RLS bypass: the ingress JWT check is the real boundary — see the migration). **Trigger to implement** (do
+  **not** ship past it without these gates): shared campaigns / multi-account visibility (a pull lets *other*
+  users see these events), server-side projections over cloud events, third-party plugins, or a public API.
+  **Applied now** (the cheap subset): the wire schema rejects `version`/`schemaVersion` ≤ 0 (audit F-15). The
+  deferred gates are tracked in **#187**; the adjacent persistence-boundary integrity items (server version
+  contiguity, id-content compare) in **#186**.
 - **2026-07-09** — *Authorized by the project owner.* **§4 + §3 — the roll×visibility seam, made
   explicit (no decision reversal).** A code-verified cross-model review (ChatGPT + Claude Fable; logged in
   [`docs/meta/agent-collaboration-log.md`](../meta/agent-collaboration-log.md)) found that §4's
