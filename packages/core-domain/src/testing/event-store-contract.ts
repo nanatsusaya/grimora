@@ -15,7 +15,7 @@
 
 import type { EntityId, EventEnvelope, IsoTimestamp } from '@grimora/shared-types';
 import type { EventStorePort } from '../application/ports';
-import { type AppError, EVENT_ID_MISMATCH_CODE } from '../domain/errors';
+import { type AppError, EVENT_BATCH_INVALID_CODE, EVENT_ID_MISMATCH_CODE } from '../domain/errors';
 
 /**
  * One named contract case over an already-constructed, empty store. `run` throws on a contract violation.
@@ -183,6 +183,56 @@ export function eventStoreContract(): readonly EventStoreContractCase[] {
         assert(
           JSON.stringify(events[0]?.payload) === JSON.stringify(original.payload),
           'the original event body must be untouched',
+        );
+      },
+    },
+    {
+      name: 'append rejects a batch whose event belongs to a DIFFERENT stream — throws, persists nothing (F-03)',
+      run: async (store) => {
+        // A well-formed optimistic append can still carry a foreign-stream event (a caller bug); the store
+        // must not silently persist an event whose aggregateId is not the stream being appended to.
+        let threw: unknown;
+        try {
+          await store.append('agg-1' as EntityId, 0, [makeEvent('agg-2', 1, 1)]);
+        } catch (error) {
+          threw = error;
+        }
+        assert(threw !== undefined, 'a foreign-stream event in the batch must throw, not persist');
+        assert(
+          (threw as { code?: string }).code === EVENT_BATCH_INVALID_CODE,
+          `expected code '${EVENT_BATCH_INVALID_CODE}', got '${(threw as { code?: string }).code}'`,
+        );
+        const one = await store.readStream('agg-1' as EntityId);
+        const two = await store.readStream('agg-2' as EntityId);
+        assert(
+          one.length === 0 && two.length === 0,
+          'a rejected append must persist nothing in either stream',
+        );
+      },
+    },
+    {
+      name: 'append rejects a batch with a version GAP within it — throws, persists nothing (F-03)',
+      run: async (store) => {
+        // Versions 1 then 3 inside one batch is a caller bug (a missing version 2); replay could not
+        // reconstruct the stream, so the store must reject the whole batch rather than persist a gap.
+        let threw: unknown;
+        try {
+          await store.append('agg-1' as EntityId, 0, [
+            makeEvent('agg-1', 1, 1),
+            makeEvent('agg-1', 3, 2),
+          ]);
+        } catch (error) {
+          threw = error;
+        }
+        assert(threw !== undefined, 'a non-contiguous batch must throw');
+        assert(
+          (threw as { code?: string }).code === EVENT_BATCH_INVALID_CODE,
+          `expected code '${EVENT_BATCH_INVALID_CODE}', got '${(threw as { code?: string }).code}'`,
+        );
+        const events = await store.readStream('agg-1' as EntityId);
+        assert(
+          events.length === 0,
+          'a rejected gapped batch must persist nothing (all-or-nothing)',
         );
       },
     },

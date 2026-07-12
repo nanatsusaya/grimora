@@ -48,6 +48,32 @@ export function appError(
 /** The stable `code` carried by {@link EventIdMismatchError}, so callers/tests match it without an `instanceof`. */
 export const EVENT_ID_MISMATCH_CODE = 'store.event_id_mismatch';
 
+/** The stable `code` carried by {@link EventBatchInvalidError}, matched by callers/tests without an `instanceof`. */
+export const EVENT_BATCH_INVALID_CODE = 'store.event_batch_invalid';
+
+/**
+ * Thrown when an `append` batch is **structurally malformed** — an event whose `aggregateId` is not the
+ * `streamId` being appended to, or a batch whose versions are not internally contiguous (a gap or a swap
+ * *within* the batch). Like {@link EventIdMismatchError} this is a **programmer error / corruption**, not an
+ * expected failure, so it is **thrown**, never returned as a `Result` (ADR 0009 §1) — the caller (a use case)
+ * is responsible for building a well-formed batch, and the store must not silently persist a foreign-stream
+ * or gapped event that a later replay could not reconstruct (audit F-03, #186). It is **distinct** from the
+ * optimistic-concurrency `Conflict` (a stale `expectedVersion` vs. the *actual stream state*, which stays a
+ * `Result` error): this error is about the batch's own internal shape, checked before trusting its versions.
+ */
+export class EventBatchInvalidError extends Error {
+  /** Stable discriminator ({@link EVENT_BATCH_INVALID_CODE}) so callers match without cross-package `instanceof`. */
+  readonly code = EVENT_BATCH_INVALID_CODE;
+  /**
+   * @param reason  a non-sensitive description of the structural violation (stream/version ids are opaque,
+   *                not personal data, so they are safe to name for diagnostics)
+   */
+  constructor(reason: string) {
+    super(`append batch invalid: ${reason}`);
+    this.name = 'EventBatchInvalidError';
+  }
+}
+
 /**
  * Thrown when an event whose `id` is already stored is appended with **different content** (issue #151) —
  * a genuine data-integrity violation, never a normal outcome. Per ADR 0009 §1 such corruption is

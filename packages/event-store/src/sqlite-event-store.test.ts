@@ -155,6 +155,20 @@ describe('SQLite adapter — replicate (sync pull apply, #107 slice 3b)', () => 
     }
   });
 
+  test('a re-pull with the same id but DIFFERENT content throws — corruption, not a silent duplicate (F-04, #186)', async () => {
+    const store = createSqliteEventStore();
+    try {
+      await store.replicate([persisted('agg-1', 1, 'e1', 41)]);
+      // Same id, different body — previously swallowed by `ON CONFLICT (id) DO NOTHING` as if idempotent.
+      const tampered = { ...persisted('agg-1', 1, 'e1', 41), payload: { tampered: true } };
+      await expect(store.replicate([tampered])).rejects.toThrow(/different content/);
+      const all = await store.readAll();
+      expect(all.length).toBe(1);
+    } finally {
+      store.close();
+    }
+  });
+
   test('a divergent (aggregate_id, version) from a different id throws (deferred to #176)', async () => {
     const store = createSqliteEventStore();
     try {

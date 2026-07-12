@@ -71,7 +71,13 @@ export {
 export { describeEvent } from './domain/describe';
 // --- Domain: aggregates, events, the rules-runtime ---
 export type { AppError, ErrorCategory } from './domain/errors';
-export { appError, EVENT_ID_MISMATCH_CODE, EventIdMismatchError } from './domain/errors';
+export {
+  appError,
+  EVENT_BATCH_INVALID_CODE,
+  EVENT_ID_MISMATCH_CODE,
+  EventBatchInvalidError,
+  EventIdMismatchError,
+} from './domain/errors';
 export type {
   AnyDomainEvent,
   CampaignEvent,
