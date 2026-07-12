@@ -24,8 +24,11 @@ const EnvelopeSchema = z
     aggregateId: z.string(),
     aggregateType: z.string(),
     type: z.string(),
-    version: z.number().int(),
-    schemaVersion: z.number().int(),
+    // 1-based, strictly positive (ADR 0004 §1): a `version`/`schemaVersion` <= 0 violates the causal-stream
+    // invariant, so reject it at the wire boundary rather than persisting a malformed event (audit F-15 —
+    // the cheap subset of the deferred ADR 0024 §2 ingress hardening, see this ADR's 2026-07-12 amendment).
+    version: z.number().int().positive(),
+    schemaVersion: z.number().int().positive(),
     occurredAt: z.string(),
     payload: z.unknown(),
     metadata: z.record(z.string(), z.unknown()).optional(),
