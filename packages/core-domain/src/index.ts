@@ -50,6 +50,7 @@ export {
   type CommandDeps,
   createCampaign,
   createCharacter,
+  createCharacterWithAttributes,
   rollCheck,
   setAttribute,
 } from './application/use-cases';

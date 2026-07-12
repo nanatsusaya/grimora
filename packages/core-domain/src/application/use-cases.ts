@@ -164,6 +164,100 @@ export async function createCharacter(
 }
 
 /**
+ * Create a character **and** stamp its initial attributes as **one atomic operation** (#191): all events —
+ * `character.created` plus one `character.attributeSet` per starting trait — are decided, folded, and then
+ * appended in a **single** `append` batch, so either the whole character comes into being or nothing does.
+ *
+ * Why this exists: doing `createCharacter` then a loop of `setAttribute` (as the web view did) is **not**
+ * atomic — a failure on a later attribute (a storage error, or a future dynamic/plugin trait that turns out
+ * invalid) leaves a **half-created** character persisted, the UI reports an error although data was written,
+ * and a retry can hit `already_exists`. Batching makes the whole initialization all-or-nothing (ADR 0004 §3);
+ * the batch's contiguous versions + shared aggregate id also satisfy the store's append-batch invariants
+ * (#186). Attribute bounds are still validated per trait by the pure `decideSetAttribute`, so an out-of-range
+ * starting value rejects the entire creation rather than persisting a partial character.
+ *
+ * @param deps   the command ports (event store, ids, clock, `PolicyPort`, rule registry)
+ * @param input  `characterId`, `name`, `campaignId`, `ruleSystemId`, the acting `actor` (= owner), and the
+ *               ordered `attributes` (`[attributeId, value]` pairs) to set at creation
+ * @returns      ok on the single atomic append, or the first `Forbidden`/`NotFound`/`Validation`/`Conflict`
+ *               error — in which case **nothing** is persisted
+ */
+export async function createCharacterWithAttributes(
+  deps: CommandDeps,
+  input: {
+    readonly characterId: EntityId;
+    readonly name: string;
+    readonly campaignId: EntityId;
+    readonly ruleSystemId: string;
+    readonly actor: Actor;
+    readonly attributes: readonly (readonly [attributeId: string, value: number])[];
+  },
+): Promise<Result<void, AppError>> {
+  if (!deps.policy.can(input.actor, 'character.create', {})) {
+    return err(appError('character.forbidden', 'Forbidden'));
+  }
+  // The initial attributes are set on the character the actor is creating (so it is its owner). Check the
+  // same authz the standalone `setAttribute` uses, against the actor-as-owner, so the atomic path cannot
+  // grant an edit the per-attribute path would deny.
+  if (
+    input.attributes.length > 0 &&
+    !deps.policy.can(input.actor, 'character.setAttribute', { ownerId: input.actor.userId })
+  ) {
+    return err(appError('character.forbidden', 'Forbidden'));
+  }
+  const provenance = deps.rules.getProvenance(input.ruleSystemId);
+  if (!provenance) {
+    return err(appError('character.rule_system_not_loaded', 'NotFound'));
+  }
+
+  const { state, version } = await loadCharacter(deps, input.characterId);
+  const created = decideCreateCharacter(state, {
+    name: input.name,
+    campaignId: input.campaignId,
+    ownerId: input.actor.userId,
+    ruleSystemId: input.ruleSystemId,
+    pluginId: provenance.pluginId,
+    pluginVersion: provenance.pluginVersion,
+  });
+  if (!created.ok) return created;
+
+  // Fold each decided event as we go (assigning the next per-aggregate version), so `decideSetAttribute`
+  // sees an existing character and each decision builds on the last — while collecting every event to append
+  // together. `StoredEvent` is just `{ type, version, payload }`, so a decided `NewEvent` folds directly.
+  const domainEvents: NewEvent[] = [];
+  let folded = state;
+  let foldedVersion = version;
+  const foldInto = (events: readonly NewEvent[]): void => {
+    for (const event of events) {
+      foldedVersion += 1;
+      folded = applyCharacter(folded, {
+        type: event.type,
+        version: foldedVersion,
+        payload: event.payload,
+      });
+      domainEvents.push(event);
+    }
+  };
+  foldInto(created.value);
+
+  for (const [attributeId, value] of input.attributes) {
+    const bounds = deps.rules.getRatedTrait(input.ruleSystemId, attributeId);
+    if (!bounds) return err(appError('character.unknown_attribute', 'Validation'));
+    const decided = decideSetAttribute(folded, attributeId, value, bounds);
+    if (!decided.ok) return decided; // e.g. out of range → the whole creation is rejected, nothing persisted
+    foldInto(decided.value);
+  }
+
+  // One append for the whole initialization: all-or-nothing (ADR 0004 §3). `version` is the rehydrated
+  // baseline (0 for a new stream); `toEnvelopes` numbers the batch contiguously from there.
+  return deps.events.append(
+    input.characterId,
+    version,
+    toEnvelopes(deps, input.characterId, 'character', version, domainEvents, input.actor),
+  );
+}
+
+/**
  * Set a character attribute to an absolute value (resource-scoped authz: only the owner may edit).
  * @param deps   the command ports (incl. `PolicyPort` and the rule registry for bounds validation)
  * @param input  `characterId`, `attributeId`, the absolute `value`, and the acting `actor`
