@@ -14,7 +14,7 @@
  * rather than a silent overwrite. Both are to be resolved once #176 lands.
  */
 
-import type { AppError, SyncPort } from '@grimora/core-domain';
+import type { AppError, SyncPort, SyncPushResult } from '@grimora/core-domain';
 import { type EntityId, err, ok, type PersistedEvent, type Result } from '@grimora/shared-types';
 
 /**
@@ -129,25 +129,39 @@ export function createSyncService(deps: {
       // positions (results carry only the event `id`, not the local position).
       const positionById = new Map<EntityId, number>(pending.map((e) => [e.id, e.position]));
 
+      // Index the results by id so the confirmed prefix is computed from the ORIGINAL `pending` order, never
+      // the server's response order (audit F-08, #188). A well-behaved server returns exactly one result per
+      // event, in order — but the client must not depend on that: a reordered, missing, duplicated, or
+      // unknown result must never let the checkpoint advance *past* an unconfirmed event, which would
+      // silently drop it from the pending set. `malformed` trips on a result we did not send or a repeated
+      // result id, in which case we advance nothing (safer to re-push than to lose an event).
+      const resultById = new Map<EntityId, SyncPushResult>();
+      let malformed = false;
       let accepted = 0;
       let duplicates = 0;
       let conflicts = 0;
-      let checkpoint = from;
-      // Walk in order; advance the checkpoint over the leading run of confirmed events and STOP at the
-      // first conflict — everything from the conflict onward stays pending (never dropped) for #176.
-      let stillContiguous = true;
       for (const r of results) {
+        if (!positionById.has(r.id) || resultById.has(r.id)) malformed = true;
+        resultById.set(r.id, r);
         if (r.status === 'accepted') accepted++;
         else if (r.status === 'duplicate') duplicates++;
         else conflicts++;
+      }
 
-        if (!stillContiguous) continue;
-        if (r.status === 'conflict') {
-          stillContiguous = false;
-          continue;
+      // Advance the checkpoint over the leading run of CONFIRMED events (`accepted`/`duplicate`), walking
+      // `pending` in order and stopping at the first event that conflicted or is missing a result — so it and
+      // everything after it stay pending (parked, never dropped; the rebase is #176). A malformed response
+      // advances nothing at all.
+      let checkpoint = from;
+      if (!malformed) {
+        for (const e of pending) {
+          const r = resultById.get(e.id);
+          if (r && (r.status === 'accepted' || r.status === 'duplicate')) {
+            checkpoint = e.position;
+          } else {
+            break;
+          }
         }
-        const pos = positionById.get(r.id);
-        if (pos !== undefined) checkpoint = pos;
       }
 
       if (checkpoint > from) await checkpoints.setCheckpoint(PUSH_CURSOR, checkpoint);

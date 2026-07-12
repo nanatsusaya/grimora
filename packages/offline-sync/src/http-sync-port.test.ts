@@ -10,7 +10,12 @@ import type { EntityId, EventEnvelope, IsoTimestamp } from '@grimora/shared-type
 import { createHttpSyncPort } from './http-sync-port';
 
 /** A recording fake `fetch` returning a canned response; captures the last request for assertions. */
-function fakeFetch(response: { status?: number; body?: unknown; throws?: boolean }) {
+function fakeFetch(response: {
+  status?: number;
+  body?: unknown;
+  throws?: boolean;
+  jsonThrows?: boolean;
+}) {
   const calls: { url: string; init: RequestInit }[] = [];
   const fn = (async (input: string | URL | Request, init?: RequestInit) => {
     calls.push({ url: String(input), init: init ?? {} });
@@ -18,7 +23,11 @@ function fakeFetch(response: { status?: number; body?: unknown; throws?: boolean
     return {
       ok: (response.status ?? 200) >= 200 && (response.status ?? 200) < 300,
       status: response.status ?? 200,
-      json: async () => response.body,
+      // `jsonThrows` models a 200 whose body is not valid JSON (e.g. a proxy's HTML error page).
+      json: async () => {
+        if (response.jsonThrows) throw new SyntaxError('Unexpected token < in JSON');
+        return response.body;
+      },
     } as Response;
   }) as unknown as typeof fetch;
   return { fn, calls };
@@ -84,6 +93,68 @@ describe('createHttpSyncPort.push', () => {
     if (result.ok) return;
     expect(result.error.category).toBe('Infrastructure');
   });
+
+  test('a 200 with invalid JSON becomes an Infrastructure error, not a thrown exception (F-09)', async () => {
+    const { fn } = fakeFetch({ status: 200, jsonThrows: true });
+    const port = createHttpSyncPort({ getAccessToken: () => 'tok', fetch: fn });
+    // Must resolve to an err Result, never reject — the old `(await res.json()) as T` let the parse throw.
+    const result = await port.push([sampleEvent]);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.category).toBe('Infrastructure');
+    expect(result.error.code).toBe('sync.malformed_response');
+  });
+
+  test('a 200 whose body has the wrong shape becomes an Infrastructure error (F-09)', async () => {
+    const { fn } = fakeFetch({ status: 200, body: { results: 'not-an-array' } });
+    const port = createHttpSyncPort({ getAccessToken: () => 'tok', fetch: fn });
+    const result = await port.push([sampleEvent]);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.code).toBe('sync.malformed_response');
+  });
+
+  test('recovers from a 401 by refreshing once and retrying with the new token (M-2)', async () => {
+    let token = 'expired';
+    let calls = 0;
+    const fetchFn = (async () => {
+      calls += 1;
+      if (calls === 1) return { ok: false, status: 401, json: async () => ({}) } as Response;
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ results: [{ id: 'e1', status: 'accepted', position: 7 }] }),
+      } as Response;
+    }) as unknown as typeof fetch;
+    const port = createHttpSyncPort({
+      getAccessToken: () => token,
+      fetch: fetchFn,
+      onUnauthorized: async () => {
+        token = 'fresh'; // a successful refresh installs a new access token
+        return true;
+      },
+    });
+
+    const result = await port.push([sampleEvent]);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value[0]?.status).toBe('accepted');
+    expect(calls).toBe(2); // the request was retried once after the refresh
+  });
+
+  test('a 401 whose refresh fails still maps to Unauthorized — no infinite retry (M-2)', async () => {
+    const { fn, calls } = fakeFetch({ status: 401, body: {} });
+    const port = createHttpSyncPort({
+      getAccessToken: () => 'tok',
+      fetch: fn,
+      onUnauthorized: async () => false, // refresh could not re-establish a session
+    });
+    const result = await port.push([sampleEvent]);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.category).toBe('Unauthorized');
+    expect(calls.length).toBe(1); // not retried when the refresh failed
+  });
 });
 
 describe('createHttpSyncPort.pull', () => {
@@ -108,5 +179,25 @@ describe('createHttpSyncPort.pull', () => {
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.error.category).toBe('Unauthorized');
+  });
+
+  test('a 200 with a malformed event in the page becomes an Infrastructure error, not a bad apply (F-09)', async () => {
+    // `events[0]` is missing required fields (only an id) — it must be rejected before it can reach the
+    // local replicate, not cast through as a PersistedEvent.
+    const { fn } = fakeFetch({ status: 200, body: { events: [{ id: 'x' }], checkpoint: 3 } });
+    const port = createHttpSyncPort({ getAccessToken: () => 'tok', fetch: fn });
+    const result = await port.pull(0);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.code).toBe('sync.malformed_response');
+  });
+
+  test('a 200 with a negative checkpoint is rejected (F-09)', async () => {
+    const { fn } = fakeFetch({ status: 200, body: { events: [], checkpoint: -1 } });
+    const port = createHttpSyncPort({ getAccessToken: () => 'tok', fetch: fn });
+    const result = await port.pull(0);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.code).toBe('sync.malformed_response');
   });
 });

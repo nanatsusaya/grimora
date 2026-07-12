@@ -104,7 +104,16 @@ export function createAppComposition(): AppComposition {
   // because after a pull applies cloud events it must re-run the read-model projection to refresh the UI —
   // a view concern the composition root does not own.
   const sync = createSyncService({
-    syncPort: createHttpSyncPort({ getAccessToken: () => auth.getAccessToken() }),
+    syncPort: createHttpSyncPort({
+      getAccessToken: () => auth.getAccessToken(),
+      // On a 401 (typically the ~1 h in-memory access token expiring), refresh the session from the HttpOnly
+      // cookie and report whether a token is now available; the adapter retries the request once (audit M-2,
+      // #188). Without this a long-lived PWA session's sync silently fails until the next reload.
+      onUnauthorized: async () => {
+        await auth.restore();
+        return auth.getAccessToken() !== undefined;
+      },
+    }),
     events,
     checkpoints: reads,
   });

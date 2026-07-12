@@ -9,7 +9,13 @@
 import { describe, expect, test } from 'bun:test';
 import { appError } from '@grimora/core-domain';
 import { createInMemoryEventStore, createInMemorySyncPort } from '@grimora/core-domain/testing';
-import { type EntityId, type EventEnvelope, err, type IsoTimestamp } from '@grimora/shared-types';
+import {
+  type EntityId,
+  type EventEnvelope,
+  err,
+  type IsoTimestamp,
+  ok,
+} from '@grimora/shared-types';
 import { createSyncService, type SyncCheckpointStore } from './sync-service';
 
 /** A minimal in-memory checkpoint store (what the OPFS read store provides in production). */
@@ -99,6 +105,64 @@ describe('createSyncService.pushPending', () => {
     expect(result.value.checkpoint).toBe(0);
     // Re-running still sees both events as pending (the checkpoint never moved), so no data is lost.
     expect(await checkpoints.getCheckpoint('sync:push')).toBe(0);
+  });
+
+  test('computes the confirmed prefix by pending order, not response order — a reordered conflict is not skipped (F-08)', async () => {
+    const events = createInMemoryEventStore();
+    await events.append('char-1' as EntityId, 0, [event('char-1', 1, 'e1')]); // position 1
+    await events.append('char-2' as EntityId, 0, [event('char-2', 1, 'e2')]); // position 2
+    const checkpoints = fakeCheckpoints();
+    const service = createSyncService({
+      // The server reports e2 (accepted) BEFORE e1 (conflict) — a reordered response. The old code walked
+      // results in order, advanced to e2's position, then hit the conflict — silently dropping e1.
+      syncPort: {
+        async push() {
+          return ok([
+            { id: 'e2' as EntityId, status: 'accepted', position: 99 },
+            { id: 'e1' as EntityId, status: 'conflict', currentVersion: 1 },
+          ]);
+        },
+        async pull() {
+          return ok({ events: [], checkpoint: 0 });
+        },
+      },
+      events,
+      checkpoints,
+    });
+
+    const result = await service.pushPending();
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    // e1 (position 1) conflicted, so the checkpoint must stay at 0 — e1 stays pending despite e2 being
+    // accepted and returned first.
+    expect(result.value.checkpoint).toBe(0);
+    expect(await checkpoints.getCheckpoint('sync:push')).toBe(0);
+  });
+
+  test('stops the checkpoint at the first event whose result is MISSING (F-08)', async () => {
+    const events = createInMemoryEventStore();
+    await events.append('char-1' as EntityId, 0, [event('char-1', 1, 'e1')]); // position 1
+    await events.append('char-2' as EntityId, 0, [event('char-2', 1, 'e2')]); // position 2
+    const checkpoints = fakeCheckpoints();
+    const service = createSyncService({
+      // Only e1 is reported; e2's result is missing (a truncated/incomplete response). e2 must stay pending.
+      syncPort: {
+        async push() {
+          return ok([{ id: 'e1' as EntityId, status: 'accepted', position: 50 }]);
+        },
+        async pull() {
+          return ok({ events: [], checkpoint: 0 });
+        },
+      },
+      events,
+      checkpoints,
+    });
+
+    const result = await service.pushPending();
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.checkpoint).toBe(1); // e1 confirmed → 1; e2 parked (no result)
+    expect(await checkpoints.getCheckpoint('sync:push')).toBe(1);
   });
 
   test('propagates a transport failure and leaves the checkpoint untouched', async () => {
