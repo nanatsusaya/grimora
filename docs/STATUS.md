@@ -48,7 +48,10 @@
   Client robustness #188, limits/pagination #189, worker lifecycle #190, atomic char-create #191, the
   ephemeral-Postgres test #192, migration hardening #193, LoggerPort #194, multi-tab #195, and tooling #196
   round out the backlog. The root `README.md` + `apps/api/README.md` (which still described auth/sync as
-  unbuilt) and the migration's crypto-shredding comment were corrected in the same pass.
+  unbuilt) and the migration's crypto-shredding comment were corrected in the same pass. All twelve are
+  grouped under the **hardening epic #200** — a **post-Phase-2 backlog** (Phase 2 stays closed), with a
+  **Gate subset (#192 → #186 + #193 → #188 → #185, and #187 before any sharing feature)** recommended
+  **before hard Phase-3 work builds on the sync/identity surface** (see #200 for the sequencing + rationale).
 - **Walking skeleton built (gate passed):** ✅ #61 / PR #64 — the **first real code beyond
   `shared-types`**: provisional-v0 `packages/plugin-sdk` + `packages/core-domain` (with a
   `/testing` fakes subpath) + minimal `plugins/dsa5` + an `apps/skeleton-walk` composition root and
@@ -446,8 +449,17 @@ tracked in #181** (docs current, completed epics closed, deferred concerns each 
    user docs).
 6. **Housekeeping:** **#134** — remove the dev-only "Reset all" button before the first real deployment.
 
-**The clearest single next step is an owner decision** — most likely the **#176 identity model** (to open
-Phase 3's co-editing work) or **#72 Impressum** (the already-triggered legal obligation).
+**Auth→Sync hardening gate (#200, audit follow-up).** Before Phase-3 features build *on* the sync/identity
+surface — above all **#176** — the epic's **Gate subset** (#192 → #186 + #193 → #188 → #185; #187 before any
+sharing/multi-account feature) should be closed or explicitly re-deferred. Whether it strictly precedes
+Phase 3 depends on the Phase-3 opener: a **#176 (co-editing / multi-user)** start makes the Gate a genuine
+prerequisite; a **deeper DSA5-plugin** start couples less (though #192 + the token-refresh part of #188 are
+worth doing early regardless — cloud sync silently 401s after ~1 h today). The interim F-01 gate (PR #198)
+already makes the account-switch case fail-safe.
+
+**The clearest single next step is an owner decision** — the **Phase-3 direction** (#176 identity/co-editing
+vs. deeper DSA5-plugin work), which in turn sets how much of the **#200 hardening Gate** must land first;
+alongside the already-triggered **#72 Impressum** (owner/legal).
 
 ✅ **Done / not open (this phase):** the full Phase-2 vertical (see the *Phase 2 … closed* bullet above);
 **#151** closed via #178; the completed epics **#10 / #105 / #107 / #120** closed at the 2026-07-12
