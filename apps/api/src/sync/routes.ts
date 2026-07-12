@@ -9,7 +9,7 @@
  */
 
 import { type AppError, appError } from '@grimora/core-domain';
-import { type EventEnvelope, err, ok, type Result } from '@grimora/shared-types';
+import { type EventEnvelope, err, type Result } from '@grimora/shared-types';
 import { createRoute, type OpenAPIHono, z } from '@hono/zod-openapi';
 import type { Context } from 'hono';
 import type { VerifiedActor } from '../auth/jwt';

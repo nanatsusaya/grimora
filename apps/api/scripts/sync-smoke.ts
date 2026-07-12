@@ -73,17 +73,24 @@ try {
     console.log(`${cond ? '✅' : '❌'} ${label}`);
     if (!cond) process.exitCode = 2;
   };
-  check(`push accepted (position ${accepted[0]?.status === 'accepted' ? accepted[0].position : '?'})`,
-    accepted[0]?.status === 'accepted');
+  check(
+    `push accepted (position ${accepted[0]?.status === 'accepted' ? accepted[0].position : '?'})`,
+    accepted[0]?.status === 'accepted',
+  );
   check('re-push same id → duplicate (idempotent)', duplicate[0]?.status === 'duplicate');
   check(
     'push same (aggregate, version), new id → conflict currentVersion=1',
     conflict[0]?.status === 'conflict' && conflict[0].currentVersion === 1,
   );
-  check('pull returns the pushed event for this owner', page.events.some((e) => e.id === event.id));
+  check(
+    'pull returns the pushed event for this owner',
+    page.events.some((e) => e.id === event.id),
+  );
 } finally {
   await cleanup();
   console.log('🧹 cleaned up test rows');
 }
 
-console.log(process.exitCode ? '\n❌ sync-smoke: FAILED' : '\n🎉 sync-smoke: sync path works end-to-end.');
+console.log(
+  process.exitCode ? '\n❌ sync-smoke: FAILED' : '\n🎉 sync-smoke: sync path works end-to-end.',
+);
