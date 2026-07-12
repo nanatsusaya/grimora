@@ -18,6 +18,9 @@ export { createRoleMatrixPolicy } from './application/policy';
 export type {
   Actor,
   AiProviderPort,
+  AuthCredentials,
+  AuthPort,
+  AuthSession,
   ClockPort,
   EventStorePort,
   IdGeneratorPort,

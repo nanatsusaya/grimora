@@ -20,6 +20,19 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
   plugins: [react()],
+  // Dev-only reverse proxy: forward `/api/*` to the locally-running `apps/api` so the browser sees the
+  // API as **same-origin** (localhost:5173). That makes the auth refresh cookie (HttpOnly/SameSite=Strict,
+  // ADR 0012 §5) first-party and removes any need for CORS in dev (#120 E3). `apps/api` must be running on
+  // the target port (default 3001, override with API_PROXY_TARGET). Not used by the production build, where
+  // the app and API are served under one origin / configured host.
+  server: {
+    proxy: {
+      '/api': {
+        target: process.env.API_PROXY_TARGET ?? 'http://localhost:3001',
+        changeOrigin: false,
+      },
+    },
+  },
   // `@sqlite.org/sqlite-wasm` resolves its `.wasm` asset and its OPFS worker relative to its own module
   // via `import.meta.url`. Vite's dependency pre-bundling (esbuild) rewrites those URLs and breaks that
   // resolution, so the package must be excluded from optimization and served as native ESM (the SQLite
