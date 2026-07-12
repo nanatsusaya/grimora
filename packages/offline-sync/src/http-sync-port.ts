@@ -19,17 +19,94 @@ import {
   type SyncPullPage,
   type SyncPushResult,
 } from '@grimora/core-domain';
-import { type EntityId, type EventEnvelope, err, ok, type Result } from '@grimora/shared-types';
+import {
+  type EntityId,
+  type EventEnvelope,
+  err,
+  ok,
+  type PersistedEvent,
+  type Result,
+} from '@grimora/shared-types';
 
-/** The `apps/api` `POST /sync/push` response body — the per-event results (mirrors {@link SyncPushResult}). */
-interface PushResponseBody {
-  readonly results: readonly SyncPushResult[];
+/** True for a non-empty string — the shape guard the wire validators use for ids/types/timestamps. */
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === 'string' && value.length > 0;
 }
 
-/** The `apps/api` `GET /sync/pull` response body — the owner's events + the new checkpoint (mirrors {@link SyncPullPage}). */
-interface PullResponseBody {
-  readonly events: SyncPullPage['events'];
-  readonly checkpoint: number;
+/** True for a real (finite) number — rejects `NaN`/`Infinity` that `JSON.parse` can never produce but a hostile body could still claim via non-JSON. */
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value);
+}
+
+/**
+ * Validate + narrow a `POST /sync/push` response body into per-event results (audit F-09, #188). A `200`
+ * with a missing/renamed field, a non-array `results`, or an unknown `status` returns `undefined` so the
+ * caller maps it to an `AppError` — a corrupt body must never be cast blindly into the domain and carried
+ * toward persistence.
+ * @param raw  the parsed JSON body (untrusted)
+ * @returns    the validated results, or `undefined` if the body does not match the wire contract
+ */
+function parsePushResults(raw: unknown): readonly SyncPushResult[] | undefined {
+  if (typeof raw !== 'object' || raw === null) return undefined;
+  const results = (raw as { results?: unknown }).results;
+  if (!Array.isArray(results)) return undefined;
+  const out: SyncPushResult[] = [];
+  for (const item of results) {
+    if (typeof item !== 'object' || item === null) return undefined;
+    const id = (item as { id?: unknown }).id;
+    const status = (item as { status?: unknown }).status;
+    if (!isNonEmptyString(id)) return undefined;
+    if (status === 'accepted') {
+      const position = (item as { position?: unknown }).position;
+      if (!isFiniteNumber(position)) return undefined;
+      out.push({ id: id as EntityId, status: 'accepted', position });
+    } else if (status === 'duplicate') {
+      out.push({ id: id as EntityId, status: 'duplicate' });
+    } else if (status === 'conflict') {
+      const currentVersion = (item as { currentVersion?: unknown }).currentVersion;
+      if (!isFiniteNumber(currentVersion)) return undefined;
+      out.push({ id: id as EntityId, status: 'conflict', currentVersion });
+    } else {
+      return undefined; // unknown status
+    }
+  }
+  return out;
+}
+
+/** Validate one persisted event on the wire — the envelope fields the local `replicate` relies on plus the cloud `position`. */
+function isPersistedEvent(raw: unknown): raw is PersistedEvent {
+  if (typeof raw !== 'object' || raw === null) return false;
+  const e = raw as Record<string, unknown>;
+  return (
+    isNonEmptyString(e.id) &&
+    isNonEmptyString(e.aggregateId) &&
+    isNonEmptyString(e.aggregateType) &&
+    isNonEmptyString(e.type) &&
+    isFiniteNumber(e.version) &&
+    isFiniteNumber(e.schemaVersion) &&
+    isNonEmptyString(e.occurredAt) &&
+    isFiniteNumber(e.position) &&
+    'payload' in e
+  );
+}
+
+/**
+ * Validate + narrow a `GET /sync/pull` response body into a page (audit F-09, #188). Rejects a non-array
+ * `events`, a negative/non-numeric `checkpoint`, or any event that is not a well-formed persisted event —
+ * so a malformed page never reaches the local `replicate`.
+ * @param raw  the parsed JSON body (untrusted)
+ * @returns    the validated page, or `undefined` if the body does not match the wire contract
+ */
+function parsePullPage(
+  raw: unknown,
+): { readonly events: readonly PersistedEvent[]; readonly checkpoint: number } | undefined {
+  if (typeof raw !== 'object' || raw === null) return undefined;
+  const events = (raw as { events?: unknown }).events;
+  const checkpoint = (raw as { checkpoint?: unknown }).checkpoint;
+  if (!Array.isArray(events)) return undefined;
+  if (!isFiniteNumber(checkpoint) || checkpoint < 0) return undefined;
+  for (const event of events) if (!isPersistedEvent(event)) return undefined;
+  return { events: events as readonly PersistedEvent[], checkpoint };
 }
 
 /**
@@ -84,8 +161,18 @@ export function createHttpSyncPort(options: {
       }
       if (res.status === 401) return err(appError('sync.unauthorized', 'Unauthorized'));
       if (!res.ok) return err(appError('sync.push_failed', 'Infrastructure'));
-      const body = (await res.json()) as PushResponseBody;
-      return ok(body.results);
+      // Parse + validate the success body in the error channel (audit F-09): invalid JSON (e.g. a proxy's
+      // HTML error page under a 200) throws from `res.json()`, and a wrong shape fails validation — both map
+      // to an `AppError` rather than escaping as an exception (ADR 0009 §1) or being cast blindly.
+      let body: unknown;
+      try {
+        body = await res.json();
+      } catch {
+        return err(appError('sync.malformed_response', 'Infrastructure'));
+      }
+      const results = parsePushResults(body);
+      if (!results) return err(appError('sync.malformed_response', 'Infrastructure'));
+      return ok(results);
     },
 
     async pull(
@@ -107,8 +194,17 @@ export function createHttpSyncPort(options: {
       }
       if (res.status === 401) return err(appError('sync.unauthorized', 'Unauthorized'));
       if (!res.ok) return err(appError('sync.pull_failed', 'Infrastructure'));
-      const body = (await res.json()) as PullResponseBody;
-      return ok({ events: body.events, checkpoint: body.checkpoint });
+      // Same as push: a malformed/invalid page becomes an `AppError`, never a thrown parse error or a blind
+      // cast — a corrupt page must not reach the local `replicate` (audit F-09).
+      let body: unknown;
+      try {
+        body = await res.json();
+      } catch {
+        return err(appError('sync.malformed_response', 'Infrastructure'));
+      }
+      const page = parsePullPage(body);
+      if (!page) return err(appError('sync.malformed_response', 'Infrastructure'));
+      return ok(page);
     },
   };
 }
