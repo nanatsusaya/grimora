@@ -7,16 +7,19 @@
  * use case, maps a domain error through `toProblem` (ADR 0011 §4), and returns a DTO — no business logic,
  * no domain objects on the wire (ADR 0003 §1, ADR 0011 §1).
  *
- * **Scaffold scope (ADR 0027 R3):** two representative endpoints — a liveness `GET /health` and a
- * master-data read `GET /api/v1/rule-systems/{id}` (the plugin catalog, ADR 0011 §1.5/§6) — plus the
- * generated OpenAPI doc. They validate the framework + structure choices with running code; the full
- * endpoint surface (sync, AI, auth) is trigger-gated to Phase 3+ (ADR 0014 §3).
+ * **Endpoint surface so far:** a liveness `GET /health`, a master-data read `GET /api/v1/rule-systems/{id}`
+ * (the plugin catalog, ADR 0011 §1.5/§6), the generated OpenAPI doc, and — added in #120 E2 — the
+ * **auth proxy** (`/api/v1/auth/*`, ADR 0012 §5; see `auth/routes.ts`). The remaining surface (sync #107,
+ * AI) is still trigger-gated (ADR 0014 §3). `apps/api` runs **locally for dev** now; production deployment
+ * stays trigger-gated.
  */
 
 import { appError } from '@grimora/core-domain';
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { registerAuthRoutes } from './auth/routes';
 import type { ApiComposition } from './composition/composition-root';
 import { toProblem } from './http/problem';
+import { ProblemSchema } from './http/schemas';
 
 /** Liveness response — no domain data, just proof the process serves requests. */
 const HealthSchema = z.object({ status: z.literal('ok') }).openapi('Health');
@@ -33,18 +36,6 @@ const RuleSystemSchema = z
       .openapi({ description: 'provenance of the plugin that contributed this rule system' }),
   })
   .openapi('RuleSystem');
-
-/** RFC 9457 problem document as it appears in the OpenAPI spec (mirrors `ProblemDocument`). */
-const ProblemSchema = z
-  .object({
-    type: z.string(),
-    title: z.string(),
-    status: z.number().int(),
-    code: z.string(),
-    category: z.string(),
-    messageKey: z.string(),
-  })
-  .openapi('Problem');
 
 /** `GET /health` — liveness check. */
 const healthRoute = createRoute({
@@ -111,6 +102,9 @@ export function createApp(composition: ApiComposition): OpenAPIHono {
       200,
     );
   });
+
+  // The auth-proxy routes (sign-in / refresh / sign-out) — ADR 0012 §5 cookie-based session (#120 E2).
+  registerAuthRoutes(app, composition);
 
   // The generated OpenAPI 3.1 document — the published contract SSOT (ADR 0011 §2, ADR 0027 §3).
   app.doc('/api/v1/openapi.json', {
