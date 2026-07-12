@@ -27,7 +27,7 @@
     "typecheck": "turbo run typecheck",
     "arch": "bun test scripts/arch",
     "check": "bun run lint && bun run typecheck && bun run arch && bun run test && bun run build",
-    "clear": "bunx rimraf --glob node_modules .turbo \"apps/*/dist\" \"packages/*/dist\" \"plugins/*/dist\" \"apps/*/node_modules\" \"packages/*/node_modules\" \"plugins/*/node_modules\"",
+    "clear": "bunx rimraf@6 --glob node_modules .turbo \"apps/*/dist\" \"packages/*/dist\" \"plugins/*/dist\" \"apps/*/node_modules\" \"packages/*/node_modules\" \"plugins/*/node_modules\"",
     "refresh": "bun run clear && bun install"
   },
   "devDependencies": {
