@@ -1,5 +1,11 @@
-# Local Grimora stack — offline-first development without any cloud.
+# Local Grimora stack — **development only**, offline-first without any cloud (audit F-23, #196).
 # Usage: docker compose up -d
+#
+# Two hardening choices below (dev-only, but they matter on a shared/remote-dev host):
+#   - **Pinned images** (specific tags, not `latest`) so a rebuild is reproducible and can't silently pull a
+#     new major. Bump these deliberately, like any dependency.
+#   - **Host bindings restricted to 127.0.0.1** so these dev services (and their dev credentials) are reachable
+#     only from localhost, never from other machines on the network.
 services:
   postgres:
     image: postgres:16-alpine
@@ -10,7 +16,7 @@ services:
       POSTGRES_PASSWORD: grimora
       POSTGRES_DB: grimora
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - ./.docker-data/postgres:/var/lib/postgresql/data
     healthcheck:
@@ -20,7 +26,7 @@ services:
       retries: 5
 
   minio:
-    image: minio/minio:latest
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
     container_name: grimora-minio
     restart: unless-stopped
     command: server /data --console-address ":9001"
@@ -28,8 +34,8 @@ services:
       MINIO_ROOT_USER: grimora
       MINIO_ROOT_PASSWORD: grimora-dev-secret
     ports:
-      - "9000:9000" # S3 API
-      - "9001:9001" # Web console
+      - "127.0.0.1:9000:9000" # S3 API
+      - "127.0.0.1:9001:9001" # Web console
     volumes:
       - ./.docker-data/minio:/data
     healthcheck:
@@ -43,7 +49,7 @@ services:
   # (auto-migrated on first boot). Dev-only settings below (autoconfirm, static JWT secret) must
   # never be reused for a real deployment.
   gotrue:
-    image: supabase/gotrue:latest
+    image: supabase/gotrue:v2.189.0
     container_name: grimora-gotrue
     restart: unless-stopped
     depends_on:
@@ -61,16 +67,16 @@ services:
       GOTRUE_DISABLE_SIGNUP: "false"
       GOTRUE_MAILER_AUTOCONFIRM: "true" # local dev only: skip email confirmation, no SMTP needed
     ports:
-      - "9999:9999" # Auth API
+      - "127.0.0.1:9999:9999" # Auth API
 
   # Optional: local LLM for the AI chat (fully offline, no API key).
   # Enable with: docker compose --profile ai up -d
   ollama:
-    image: ollama/ollama:latest
+    image: ollama/ollama:0.31.2
     container_name: grimora-ollama
     profiles: ["ai"]
     restart: unless-stopped
     ports:
-      - "11434:11434"
+      - "127.0.0.1:11434:11434"
     volumes:
       - ./.docker-data/ollama:/root/.ollama
