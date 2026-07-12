@@ -9,8 +9,10 @@
  * tokens only (ADR 0007) — deliberately plain pending a later visual-design decision (owner, 2026-07-11).
  */
 
+import type { AuthPort } from '@grimora/core-domain';
 import { AppShell, Button, Field } from '@grimora/ui';
 import { useState, useSyncExternalStore } from 'react';
+import { AuthPanel } from './auth/AuthPanel';
 import type { CharacterView } from './state/character-view';
 
 /** The DSA5 traits this minimal sheet lets the user edit (attributes 8–20, the PER skill 0–25). */
@@ -29,15 +31,18 @@ const EDITABLE_TRAITS: readonly {
  * The application shell + character-sheet flow.
  * @param props             the component props
  * @param props.view        the reactive character-sheet view store (from the composition root)
+ * @param props.auth        the client-side authentication port (renders the login / signed-in panel)
  * @param props.onResetAll  dev-only full local-state reset (wired in `main.tsx`); the button is rendered
  *                          only in development builds
  * @returns                 the current screen, rendered from the view model
  */
 export function App({
   view,
+  auth,
   onResetAll,
 }: {
   readonly view: CharacterView;
+  readonly auth: AuthPort;
   readonly onResetAll: () => void;
 }) {
   const model = useSyncExternalStore(view.subscribe, view.getSnapshot);
@@ -46,6 +51,9 @@ export function App({
 
   return (
     <AppShell title="Grimora">
+      {/* Auth is additive: login is optional; the character flow below works under the §13 device identity. */}
+      <AuthPanel auth={auth} />
+
       {!model.ready ? (
         <p>opening local storage…</p>
       ) : (

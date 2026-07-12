@@ -14,15 +14,16 @@
  *     the ordinary owner branch the matrix already grants.
  *   - **rules:** a plugin host with the **DSA5 plugin loaded** (#105-D) — the one place a composition root
  *     is allowed to import a plugin alongside core + adapters; the character path binds to `dsa5`.
- *
- * No `AuthPort`, Supabase, or network is on this path (deferred to #105-E) — the app boots and writes from
- * purely local data.
+ *   - **auth:** the client-side `AuthPort` (#120 E3) — the HTTP adapter over the `apps/api` auth proxy. The
+ *     app still **boots and writes locally** under the ADR 0012 §13 device identity regardless of auth;
+ *     login is additive. `restore()` runs once at boot to re-establish a session from the refresh cookie.
  */
 
-import type { Actor, ClockPort, ReadModelStorePort } from '@grimora/core-domain';
+import type { Actor, AuthPort, ClockPort, ReadModelStorePort } from '@grimora/core-domain';
 import { type CommandDeps, createPluginHost, createRoleMatrixPolicy } from '@grimora/core-domain';
 import dsa5 from '@grimora/plugin-dsa5';
 import type { IsoTimestamp } from '@grimora/shared-types';
+import { createHttpAuthPort } from '../auth/http-auth-port';
 import { createWorkerBackedStores } from '../store/worker-backed-stores';
 import { createUuidV7IdGenerator } from './id-generator';
 import { ensureOfflineIdentity } from './offline-identity';
@@ -45,6 +46,8 @@ export interface AppComposition {
   readonly reads: ReadModelStorePort;
   /** the implicit local identity every offline use case runs as (ADR 0012 §13) */
   readonly actor: Actor;
+  /** the client-side authentication port (login/session over the `apps/api` proxy, ADR 0012 §5) */
+  readonly auth: AuthPort;
   /** resolves once the OPFS stores are open; await before the first read/write, and to surface init errors */
   readonly ready: Promise<void>;
   /** release the store worker (tests/HMR); the running app keeps a single composition for its lifetime */
@@ -79,5 +82,11 @@ export function createAppComposition(): AppComposition {
   // it is available before the stores finish opening.
   const actor = ensureOfflineIdentity(ids);
 
-  return { deps, reads, actor, ready, terminate };
+  // Client-side auth over the apps/api proxy. `restore()` is fire-and-forget: it re-establishes a session
+  // from the HttpOnly refresh cookie if present, but must never block boot or the offline path — when
+  // apps/api is unreachable (pure offline) it silently no-ops and the §13 device identity carries on.
+  const auth = createHttpAuthPort();
+  void auth.restore();
+
+  return { deps, reads, actor, auth, ready, terminate };
 }
