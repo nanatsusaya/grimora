@@ -32,6 +32,7 @@ import {
 } from '@grimora/core-domain';
 import type { EntityId } from '@grimora/shared-types';
 import type { AppComposition } from '../composition/composition-root';
+import { evaluateSyncGuard, getAccountBinding } from '../composition/offline-identity';
 
 /** `localStorage` key for the currently-open campaign (created once, reused across reloads). */
 const CAMPAIGN_KEY = 'grimora.current-campaign';
@@ -177,6 +178,16 @@ export function createCharacterView(composition: AppComposition): CharacterView 
    */
   async function runSync(): Promise<{ ok: boolean; pushed: number; pulled: number }> {
     await composition.ready;
+    // Account-binding safety gate (#185, audit F-01, ADR 0012 §13): this device's local store belongs to the
+    // account it first bound to; syncing while signed into a *different* account would stamp its local events
+    // with the wrong cloud `owner_id` (ADR 0024 §2) and mix that account's pulled events into this store. So
+    // on a binding/session mismatch we block BOTH halves (never push, never pull) and surface it, rather than
+    // silently misattributing data. The full account-switch model (partition/migrate) is tracked in #185.
+    const guard = evaluateSyncGuard(getAccountBinding(), await composition.auth.getSession());
+    if (!guard.allowed) {
+      setModel({ error: `sync-blocked:${guard.reason}` });
+      return { ok: false, pushed: 0, pulled: 0 };
+    }
     const push = await composition.sync.pushPending();
     const pull = await composition.sync.pullPending();
     const pushed = push.ok ? push.value.accepted : 0;

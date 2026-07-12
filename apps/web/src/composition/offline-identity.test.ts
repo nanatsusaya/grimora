@@ -8,7 +8,13 @@
 import { describe, expect, test } from 'bun:test';
 import type { AuthPort, AuthSession } from '@grimora/core-domain';
 import { type EntityId, ok } from '@grimora/shared-types';
-import { bindDeviceOnFirstLogin, getAccountBinding, recordFirstBind } from './offline-identity';
+import {
+  type AccountBinding,
+  bindDeviceOnFirstLogin,
+  evaluateSyncGuard,
+  getAccountBinding,
+  recordFirstBind,
+} from './offline-identity';
 
 /** An in-memory `Storage` stand-in exposing only what the binding helpers use. */
 function fakeStorage(): Pick<Storage, 'getItem' | 'setItem'> {
@@ -110,5 +116,40 @@ describe('account binding (first-bind, ADR 0012 §13)', () => {
     emit({ userId: ACCOUNT_A });
 
     expect(getAccountBinding(storage)).toBeUndefined();
+  });
+});
+
+describe('sync guard (account-binding, #185 / audit F-01, ADR 0012 §13)', () => {
+  const bindingTo = (accountId: EntityId): AccountBinding => ({
+    deviceId: DEVICE,
+    accountId,
+    boundAt: '2026-07-12T00:00:00.000Z',
+  });
+
+  test('blocks sync when the device is bound to A but signed into B', () => {
+    const decision = evaluateSyncGuard(bindingTo(ACCOUNT_A), { userId: ACCOUNT_B });
+    expect(decision.allowed).toBe(false);
+    // The block must name both accounts so the UI can explain it (bound A vs signed-in B).
+    if (!decision.allowed) {
+      expect(decision.reason).toBe('account-mismatch');
+      expect(decision.boundAccountId).toBe(ACCOUNT_A);
+      expect(decision.sessionAccountId).toBe(ACCOUNT_B);
+    }
+  });
+
+  test('allows sync when the signed-in account matches the binding', () => {
+    expect(evaluateSyncGuard(bindingTo(ACCOUNT_A), { userId: ACCOUNT_A }).allowed).toBe(true);
+  });
+
+  test('allows sync on the normal first-login path (no binding recorded yet)', () => {
+    // The device has never bound (first-bind happens on the first session) — there is no prior account to
+    // protect, so the first login must be allowed to sync, not blocked.
+    expect(evaluateSyncGuard(undefined, { userId: ACCOUNT_A }).allowed).toBe(true);
+  });
+
+  test('allows (no-op) when there is no current session', () => {
+    // Signed out: nothing to sync as; the transport would not authenticate anyway.
+    expect(evaluateSyncGuard(bindingTo(ACCOUNT_A), undefined).allowed).toBe(true);
+    expect(evaluateSyncGuard(undefined, undefined).allowed).toBe(true);
   });
 });
