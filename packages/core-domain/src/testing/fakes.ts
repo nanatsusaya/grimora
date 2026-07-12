@@ -16,6 +16,8 @@ import { err, ok } from '@grimora/shared-types';
 import type {
   Actor,
   AiProviderPort,
+  AuthPort,
+  AuthSession,
   ClockPort,
   EventStorePort,
   IdGeneratorPort,
@@ -167,6 +169,59 @@ export function createInMemorySyncPort(): SyncPort & {
     },
     snapshot() {
       return all;
+    },
+  };
+}
+
+/**
+ * An in-memory {@link AuthPort} for tests + the composition root before the real Supabase adapter exists
+ * (ADR 0017 R1). Sign-in succeeds for a **registered** user whose credentials match; anything else is an
+ * `Unauthorized` error. Session state and change-notifications are modelled so the ADR 0012 §13 first-bind
+ * and UI reactivity can be exercised deterministically — no network, no real tokens.
+ * @param users  the known accounts: each maps an `email` (+ the expected `password` for `method: 'password'`
+ *               or `token` for `method: 'otp'`) to a `userId`. Defaults to none (every sign-in fails).
+ * @returns      a fresh auth port starting with **no** current session (the §13 unbound-device state)
+ */
+export function createInMemoryAuthPort(
+  users: readonly {
+    readonly email: string;
+    readonly userId: EntityId;
+    readonly password?: string;
+    readonly token?: string;
+  }[] = [],
+): AuthPort {
+  let session: AuthSession | undefined;
+  const listeners = new Set<(next: AuthSession | undefined) => void>();
+  const notify = (): void => {
+    for (const listener of listeners) listener(session);
+  };
+  return {
+    async signIn(credentials) {
+      const user = users.find(
+        (u) =>
+          u.email === credentials.email &&
+          (credentials.method === 'password'
+            ? u.password === credentials.password
+            : u.token === credentials.token),
+      );
+      if (!user) return err(appError('auth.invalid_credentials', 'Unauthorized'));
+      session = { userId: user.userId };
+      notify();
+      return ok(session);
+    },
+    async signOut() {
+      session = undefined;
+      notify();
+      return ok(undefined);
+    },
+    async getSession() {
+      return session;
+    },
+    onSessionChange(listener) {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
     },
   };
 }

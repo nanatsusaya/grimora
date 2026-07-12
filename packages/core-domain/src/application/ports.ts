@@ -152,6 +152,71 @@ export interface Actor {
 }
 
 /**
+ * The identity of an authenticated account (ADR 0009 §3). Deliberately minimal: only the stable account
+ * `userId` the application needs — as the {@link Actor} for authorization, and as the target of the
+ * ADR 0012 §13 first-bind (attributing the device's locally-created streams to this account on first
+ * login). Display data (email, name) is an adapter/UI concern, not carried through this port.
+ */
+export interface AuthSession {
+  /** The authenticated account id (e.g. the Supabase auth user id) — the acting {@link Actor}'s `userId`. */
+  readonly userId: EntityId;
+}
+
+/**
+ * Credentials for a sign-in attempt — a **provisional** discriminated union (ports are v0, ADR 0022 §3).
+ * *Which* method(s) the real Supabase adapter supports is the #120 E2 decision; email+password and email
+ * OTP / magic-link are the EU-friendly candidates (OAuth would add a further variant). Callers and the UI
+ * stay method-agnostic by discriminating on `method`, so adding a method later is non-breaking.
+ */
+export type AuthCredentials =
+  | {
+      readonly method: 'password';
+      readonly email: string;
+      readonly password: string;
+    }
+  | {
+      readonly method: 'otp';
+      readonly email: string;
+      /** the one-time token delivered by the magic-link / email OTP */
+      readonly token: string;
+    };
+
+/**
+ * Authentication (ADR 0009 §3) — establishing and observing the authenticated session; distinct from
+ * {@link PolicyPort} authorization (authn = *who you are*; authz = *what you may do*). Token issuance,
+ * refresh, and the ADR 0012 §5 storage (access token in memory, refresh token in an `HttpOnly` cookie set
+ * by the `apps/api` auth proxy) are **adapter / composition-root** concerns — this port exposes only the
+ * resulting session identity the Application layer needs. The adapter talks to Supabase Auth (through
+ * `apps/api` on web); the port stays transport-agnostic (self-hosted GoTrue is the swap alternative).
+ */
+export interface AuthPort {
+  /**
+   * Attempt to authenticate; on success the session becomes current and subscribers are notified.
+   * @param credentials  the method-tagged credentials (see {@link AuthCredentials})
+   * @returns            the established {@link AuthSession}, or an `Unauthorized` error on bad credentials
+   */
+  signIn(credentials: AuthCredentials): Promise<Result<AuthSession, AppError>>;
+  /**
+   * End the current session. Idempotent — signing out when already signed out is not an error.
+   * @returns ok once no session is current; subscribers are notified of the cleared (`undefined`) session
+   */
+  signOut(): Promise<Result<void, AppError>>;
+  /**
+   * The current session *without* triggering a sign-in, or `undefined` when unauthenticated — the ADR 0012
+   * §13 unbound-device state (no token yet), a normal offline-first state rather than an error.
+   * @returns the current {@link AuthSession}, or `undefined` if none
+   */
+  getSession(): Promise<AuthSession | undefined>;
+  /**
+   * Subscribe to session changes (sign-in / sign-out / adapter-driven refresh or expiry), so the
+   * composition root can trigger the ADR 0012 §13 first-bind and the UI can react to auth state.
+   * @param listener  called with the new session (or `undefined` when cleared) on every change
+   * @returns         an unsubscribe function that detaches the listener
+   */
+  onSessionChange(listener: (session: AuthSession | undefined) => void): () => void;
+}
+
+/**
  * The minimum role set ADR 0009 §3 names (extensible by later amendment/ADR): `spectator` is
  * enforced as strictly read-only by every {@link PolicyPort} action below (never granted a write).
  */

@@ -16,6 +16,7 @@ import type { AppError, ErrorCategory } from '@grimora/core-domain';
  */
 const CATEGORY_STATUS: Readonly<Record<ErrorCategory, number>> = {
   Validation: 400,
+  Unauthorized: 401,
   Forbidden: 403,
   NotFound: 404,
   Conflict: 409,
