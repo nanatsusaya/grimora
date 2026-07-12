@@ -6,13 +6,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Grimora is an **engine-agnostic tabletop RPG platform**: the core is independent of any rule system;
 concrete rule systems (first *Das Schwarze Auge 5* / DSA5) are **plugins**. See `docs/vision.md` for
-the full product vision. **Phase 1 (architecture-as-ADRs) is closed** and the walking-skeleton gate has
-passed; the project is now in **Phase 2 (core engine / first vertical slice)**, with real (non-skeleton)
-code beyond `packages/shared-types` — `packages/core-domain`, `packages/plugin-sdk`, `plugins/dsa5`,
-`packages/event-store`/`cqrs-read`, and both `apps/web` (a real offline-first PWA running in a browser)
-and `apps/api` (a composition-root scaffold) — alongside the original `apps/skeleton-walk` validation
-harness; the remaining `apps/`/`packages/` are still scaffold-only. Check `docs/STATUS.md` for the
-current phase/next-step snapshot before starting work.
+the full product vision. **Phase 1 (architecture-as-ADRs) is closed**, and **Phase 2 (core engine / first
+vertical slice) closed 2026-07-12** (close-out epic #181): the offline-first core runs as a real app with
+an end-to-end **auth → cloud-sync** vertical. Real (non-skeleton) code lives in `packages/core-domain`,
+`packages/plugin-sdk`, `packages/rules-contract`, `plugins/dsa5`, `packages/event-store`/`cqrs-read`,
+`packages/offline-sync` (the client sync adapter), and both `apps/web` (a real offline-first PWA in a
+browser, syncing to the cloud) and `apps/api` (a real backend: the auth proxy + sync endpoints against
+Supabase) — alongside the original `apps/skeleton-walk` validation harness; the remaining `apps/`/`packages/`
+are still scaffold-only. **Phase 3** opens from here. Check `docs/STATUS.md` for the current
+phase/next-step snapshot before starting work.
 
 ## Commands
 
