@@ -27,6 +27,10 @@ create table if not exists public.events (
   occurred_at timestamptz not null,
   -- The event payload + envelope metadata (actorId pseudonym, ADR 0023 §3) as JSON — the store stays
   -- rule-agnostic (ADR 0004 §4), so concrete shapes live in the JSON, not columns.
+  -- NOTE (audit follow-up 2026-07-12): these are stored **unencrypted** today. The ADR 0023 per-subject
+  -- field encryption + crypto-shredding (CryptoPort) are **NOT yet implemented** (deferred, #74) — so
+  -- personal data is NOT cryptographically protected or erasable here yet. Until then, use only dev /
+  -- non-personal data in this table (grimora-dev). Do not read the erasure note below as "already enforced".
   payload jsonb not null,
   metadata jsonb,
   -- The owning account (RLS/tenancy anchor). Set to the authenticated account by `apps/api` on push
@@ -68,4 +72,6 @@ create policy events_insert_own on public.events
   with check (owner_id = (select auth.uid()));
 
 -- Append-only (ADR 0004): no UPDATE or DELETE policy is defined, so RLS denies both to every
--- authenticated role. Erasure is via crypto-shredding of the per-subject key (ADR 0023), not row deletion.
+-- authenticated role. Erasure is *intended* to be crypto-shredding of the per-subject key (ADR 0023), not
+-- row deletion — but that mechanism is **not yet built** (see the payload note above / #74); today there is
+-- no erasure path for stored payloads, which is why only dev/non-personal data belongs here for now.

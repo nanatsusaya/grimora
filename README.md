@@ -4,15 +4,17 @@
 rule systems are added as **plugins**. The first plugin is *Das Schwarze Auge 5* (DSA5), used as
 the reference example — but Grimora aims to support any pen-&-paper rule system.
 
-> **Status:** early Phase 2. The web app **runs offline in a browser today** (create a DSA5
+> **Status:** Phase 2 closed (2026-07-12). The web app **runs offline in a browser today** (create a DSA5
 > character, edit traits with derived values recomputing live, roll a check, and it all persists
-> across a reload — fully offline). Cloud sync, auth, and the mobile/desktop clients are **planned**,
-> not built. `docs/STATUS.md` is the authoritative current-state snapshot; this README is an
-> orientation, and where it says *(planned)* the feature is decided but not yet implemented.
+> across a reload — fully offline) **and syncs to the cloud**: email+password **auth** and offline→cloud
+> **sync** (push + pull + a visible cross-device view) are **built and live-verified** against a real
+> Supabase project, via the `apps/api` backend. Still **planned**: cross-device *co-editing* (#176) and
+> the mobile/desktop clients. `docs/STATUS.md` is the authoritative current-state snapshot; this README is
+> an orientation, and where it says *(planned)* the feature is decided but not yet implemented.
 
 - **Engine-agnostic core** — rule systems are plugins (DSA5 first); themes and content extend on top.
-- **Offline-first** — the web app runs and persists fully on localhost today (local SQLite);
-  cloud sync (Supabase) is *(planned)*.
+- **Offline-first** — the web app runs and persists fully on localhost, and replicates to **cloud sync**
+  (Supabase) through the `apps/api` backend; local-first always works, cloud is additive.
 - **Event Sourcing + CQRS** for all non-master data.
 - **Theme- and plugin-extensible** — frontend and backend extend independently.
 - **Frontend-first control** — the AI chat is an *additional* layer over the same public API.
@@ -23,8 +25,8 @@ the reference example — but Grimora aims to support any pen-&-paper rule syste
 - **Runtime & tooling:** TypeScript · **Bun** workspaces + **Turborepo** · **biome** (lint + format).
 - **Web (today):** **Vite + React** PWA (ADR 0002/0012), offline-first against a local **SQLite** store
   (OPFS/WASM in the browser, `bun:sqlite` natively).
-- **Backend & cloud** *(planned)*: **Supabase** (Postgres + Auth + RLS + Storage) for cloud sync; a
-  **Hono** backend (`apps/api`, ADR 0027, currently a scaffold).
+- **Backend & cloud (today):** a **Hono** backend (`apps/api`, ADR 0027) providing the auth proxy + sync
+  endpoints, against **Supabase** (Postgres + Auth + RLS) for cloud sync. Object **Storage** is *(planned)*.
 - **Other platforms** *(planned)*: mobile (React Native/Expo) and desktop (Tauri) from the shared core.
 - **Architecture:** hexagonal / ports & adapters + DDD; Event Sourcing + CQRS for user data.
 
@@ -32,10 +34,10 @@ the reference example — but Grimora aims to support any pen-&-paper rule syste
 
 ```
 apps/        web   — Vite + React offline-first PWA (the app you can run today)
-             api   — Hono backend composition root (scaffold, ADR 0027)
+             api   — Hono backend: auth proxy + cloud-sync endpoints (ADR 0027)
              skeleton-walk — walking-skeleton validation harness (ADR 0022)
 packages/    shared-types · rules-contract · core-domain · plugin-sdk · event-store · cqrs-read
-             design-tokens · ui
+             offline-sync · design-tokens · ui
 plugins/     dsa5 (mechanics/structure only — no copyrighted content)
 docs/        adr/ (architecture decision records) · legal/ · meta/
 ```
@@ -52,7 +54,8 @@ bun run dev          # builds the workspace packages, then serves the web PWA wi
 Open the localhost URL printed by Vite. `bun run dev` builds the workspace packages first (they are
 consumed from their `dist/` output), then starts the dev server(s).
 
-Optional — the local backend stack (only needed for backend/sync work, which is *(planned)*, Phase 3+):
+Optional — the local backend stack (for self-hosted backend/sync work; the cloud path runs against a real
+Supabase project, see `docs/ops/supabase-setup.md`):
 
 ```bash
 docker compose up -d                 # Postgres + MinIO (S3) + GoTrue (self-hosted auth)

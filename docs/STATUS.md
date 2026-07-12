@@ -38,6 +38,17 @@
   ADRs (#15/#18/#23/#82), the docs site (#82/#83), and the follow-ups this phase surfaced (#182 worker
   structured errors, #183 stream-scoped pull). **Phase 3** opens from this audited baseline — see #181 for
   the close-out checklist and the Phase-3 framing.
+- **External audit follow-up (2026-07-12):** two independent AI audits of the auth→sync vertical (both at
+  `738abf8`) were **verified against the code** (not taken at face value) and triaged into DoR tickets
+  **#185–#196**. No critical code defect; the local DoD chain stays green. Highest-priority items: **#185**
+  (P1 — a same-browser **account-switch** could misattribute local events to the wrong cloud account; a
+  defensive binding-gate ships as the interim mitigation, full model tracked there); **#187** (server
+  sync-ingress trust gates — owner-approved as a **named, triggered ADR-0024 deviation**); and **#186** (the
+  persistence-boundary integrity family — batch validation + id-content compare on the replicate/cloud paths).
+  Client robustness #188, limits/pagination #189, worker lifecycle #190, atomic char-create #191, the
+  ephemeral-Postgres test #192, migration hardening #193, LoggerPort #194, multi-tab #195, and tooling #196
+  round out the backlog. The root `README.md` + `apps/api/README.md` (which still described auth/sync as
+  unbuilt) and the migration's crypto-shredding comment were corrected in the same pass.
 - **Walking skeleton built (gate passed):** ✅ #61 / PR #64 — the **first real code beyond
   `shared-types`**: provisional-v0 `packages/plugin-sdk` + `packages/core-domain` (with a
   `/testing` fakes subpath) + minimal `plugins/dsa5` + an `apps/skeleton-walk` composition root and
