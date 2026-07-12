@@ -27,7 +27,7 @@ import type {
   SyncPort,
   SyncPushResult,
 } from '../application/ports';
-import { appError, EventIdMismatchError } from '../domain/errors';
+import { appError, EventBatchInvalidError, EventIdMismatchError } from '../domain/errors';
 
 /**
  * Whether two envelopes with the **same `id`** carry identical content — the test the append idempotency
@@ -52,6 +52,34 @@ function sameEventContent(a: EventEnvelope, b: EventEnvelope): boolean {
 }
 
 /**
+ * Validate an `append` batch's internal structure (audit F-03, #186) — kept identical to the real SQLite
+ * store's check so the fake and the adapter stay behaviourally equivalent (ADR 0017 port-contract tests):
+ * every event must belong to `streamId`, and a multi-event batch's versions must be contiguous in-batch. A
+ * violation is a caller bug → **throws** {@link EventBatchInvalidError} (not a `Result`, ADR 0009 §1). It
+ * does **not** tie the first version to `expectedVersion` — that is the optimistic-concurrency `Conflict`
+ * contract, checked separately.
+ * @param streamId  the stream being appended to
+ * @param events    the batch as provided by the caller
+ * @throws EventBatchInvalidError  on a foreign-stream event or non-contiguous in-batch versions
+ */
+function assertValidAppendBatch(streamId: string, events: readonly EventEnvelope[]): void {
+  let previous: EventEnvelope | undefined;
+  for (const event of events) {
+    if (event.aggregateId !== streamId) {
+      throw new EventBatchInvalidError(
+        `event ${event.id} has aggregateId ${event.aggregateId}, but the append targets stream ${streamId}`,
+      );
+    }
+    if (previous && event.version !== previous.version + 1) {
+      throw new EventBatchInvalidError(
+        `non-contiguous versions within the batch: ${previous.version} followed by ${event.version}`,
+      );
+    }
+    previous = event;
+  }
+}
+
+/**
  * An in-memory event store with the extra `replicate`/`snapshotAll` methods the sync harness needs.
  * `append` is the local write path (optimistic concurrency); `replicate` is insert-only, dedup-by-`id`
  * replication (ADR 0005 §3) that preserves each event's `version` while assigning a fresh local
@@ -69,7 +97,6 @@ export interface InMemoryEventStore extends EventStorePort {
 /** Create an in-memory event store (ADR 0004 §4). */
 export function createInMemoryEventStore(): InMemoryEventStore {
   const byStream = new Map<string, PersistedEvent[]>();
-  const seenIds = new Set<string>();
   const byId = new Map<string, PersistedEvent>();
   const all: PersistedEvent[] = [];
   let position = 0;
@@ -81,7 +108,6 @@ export function createInMemoryEventStore(): InMemoryEventStore {
     const stream = byStream.get(event.aggregateId) ?? [];
     byStream.set(event.aggregateId, [...stream, persisted]);
     all.push(persisted);
-    seenIds.add(event.id);
     byId.set(event.id, persisted);
     seenVersions.add(`${event.aggregateId}:${event.version}`);
     return persisted;
@@ -93,6 +119,10 @@ export function createInMemoryEventStore(): InMemoryEventStore {
       expectedVersion,
       events,
     ): Promise<Result<void, ReturnType<typeof appError>>> {
+      // Structural validation first (audit F-03, #186): a foreign-stream or in-batch-gapped event is a
+      // caller bug, thrown before any state change (distinct from the `Conflict` a stale `expectedVersion`
+      // returns) — kept identical to the real SQLite adapter.
+      assertValidAppendBatch(streamId, events);
       // Idempotency pre-pass (#151, ADR 0005 §3): an event whose `id` is already stored *identically* is a
       // no-op (a re-delivered event), while the same id with a *different* body is corruption (thrown, never
       // a Result). Only genuinely-new events go on to the optimistic-concurrency check — so re-delivering an
@@ -125,7 +155,15 @@ export function createInMemoryEventStore(): InMemoryEventStore {
     },
     async replicate(events) {
       for (const event of events) {
-        if (seenIds.has(event.id)) continue; // idempotent dedup-by-id (ADR 0005 §3)
+        // Dedup-by-id with a CONTENT check (audit F-04, #186): an id already present with *identical*
+        // content is an idempotent re-pull (skip); the same id with a *different* body is corruption —
+        // throw `EventIdMismatchError`, matching `append`'s #151 pre-pass and the real adapter, instead of
+        // silently treating a divergent-content event as a duplicate.
+        const existing = byId.get(event.id);
+        if (existing) {
+          if (!sameEventContent(existing, event)) throw new EventIdMismatchError(event.id);
+          continue;
+        }
         const versionKey = `${event.aggregateId}:${event.version}`;
         if (seenVersions.has(versionKey)) {
           // Per-aggregate version uniqueness (ADR 0004 §1/§2; the C11 collision bound, ADR 0024 §3
@@ -144,7 +182,6 @@ export function createInMemoryEventStore(): InMemoryEventStore {
     },
     reset() {
       byStream.clear();
-      seenIds.clear();
       byId.clear();
       seenVersions.clear();
       all.length = 0;

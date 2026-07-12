@@ -10,7 +10,7 @@
  */
 
 import type { AppError, EventStorePort } from '@grimora/core-domain';
-import { appError, EventIdMismatchError } from '@grimora/core-domain';
+import { appError, EventBatchInvalidError, EventIdMismatchError } from '@grimora/core-domain';
 import type { EntityId, EventEnvelope, PersistedEvent, Result } from '@grimora/shared-types';
 import { err, ok } from '@grimora/shared-types';
 import type { SqlDriver } from './sql-driver';
@@ -113,6 +113,36 @@ function rowToEvent(row: EventRow): PersistedEvent {
  * @param event  the incoming event
  * @returns      true iff every persisted field is identical
  */
+/**
+ * Validate an `append` batch's **internal structure** before it is trusted (audit F-03, #186): every event
+ * must belong to the `streamId` being appended to, and a multi-event batch must carry **contiguous** versions
+ * (no gap, no swap *within* the batch). A violation is a caller/programmer bug — a use case must build a
+ * well-formed batch — so it **throws** {@link EventBatchInvalidError} (never a `Result`, ADR 0009 §1),
+ * rolling nothing back because it runs *before* the write transaction. It deliberately does **not** check the
+ * first version against `expectedVersion`: that relationship is the optimistic-concurrency contract (a stale
+ * `expectedVersion` vs. the actual stream state returns a `Conflict` `Result`), so folding it in here would
+ * turn established `Conflict` outcomes into throws.
+ * @param streamId  the stream being appended to
+ * @param events    the batch as provided by the caller
+ * @throws EventBatchInvalidError  if any event is for another stream, or versions are non-contiguous in-batch
+ */
+function assertValidAppendBatch(streamId: EntityId, events: readonly EventEnvelope[]): void {
+  let previous: EventEnvelope | undefined;
+  for (const event of events) {
+    if (event.aggregateId !== streamId) {
+      throw new EventBatchInvalidError(
+        `event ${event.id} has aggregateId ${event.aggregateId}, but the append targets stream ${streamId}`,
+      );
+    }
+    if (previous && event.version !== previous.version + 1) {
+      throw new EventBatchInvalidError(
+        `non-contiguous versions within the batch: ${previous.version} followed by ${event.version}`,
+      );
+    }
+    previous = event;
+  }
+}
+
 function sameStoredContent(row: EventRow, event: EventEnvelope): boolean {
   const expectedMetadata = event.metadata === undefined ? null : JSON.stringify(event.metadata);
   return (
@@ -161,16 +191,6 @@ export function createEventStoreOverDriver(driver: SqlDriver): SqliteEventStore 
        (id, aggregate_id, aggregate_type, type, version, schema_version, occurred_at, metadata, payload)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   );
-  // The replication insert (sync pull, #107 slice 3b): `ON CONFLICT(id) DO NOTHING` makes a re-pulled
-  // event an idempotent no-op (ADR 0005 §3 dedup-by-id). It deliberately targets ONLY the `id` conflict —
-  // a `(aggregate_id, version)` clash by a *different* id is NOT swallowed, so it still raises and surfaces
-  // as divergence (deferred to #176), rather than `INSERT OR IGNORE` which would hide it.
-  const insertReplicated = driver.prepare(
-    `INSERT INTO events
-       (id, aggregate_id, aggregate_type, type, version, schema_version, occurred_at, metadata, payload)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-     ON CONFLICT (id) DO NOTHING`,
-  );
   const selectStream = driver.prepare(
     'SELECT * FROM events WHERE aggregate_id = ? AND version > ? ORDER BY version ASC',
   );
@@ -184,6 +204,10 @@ export function createEventStoreOverDriver(driver: SqlDriver): SqliteEventStore 
       events: readonly EventEnvelope[],
     ): Promise<Result<void, AppError>> {
       if (events.length === 0) return ok(undefined);
+      // Structural validation first (audit F-03, #186) — a foreign-stream or in-batch-gapped event is a
+      // caller bug, thrown before the transaction so nothing is persisted (distinct from the `Conflict` a
+      // stale `expectedVersion` returns below).
+      assertValidAppendBatch(streamId, events);
       try {
         // The idempotency pre-pass, the version check and the inserts are one atomic unit, so a concurrent
         // writer cannot interleave between "read current version" and "insert". A stale expectedVersion or
@@ -249,12 +273,22 @@ export function createEventStoreOverDriver(driver: SqlDriver): SqliteEventStore 
     async replicate(events: readonly PersistedEvent[]): Promise<void> {
       if (events.length === 0) return;
       try {
-        // One transaction for the whole page: either all newly-seen events apply, or (on divergence) none —
-        // so a re-run pulls the same page cleanly. Each event keeps its cloud `version`; the local `position`
-        // is reassigned by AUTOINCREMENT (positions are store-local, ADR 0004 §2), so it is not inserted.
+        // One transaction for the whole page: either all newly-seen events apply, or (on divergence/corruption)
+        // none — so a re-run pulls the same page cleanly. Each event keeps its cloud `version`; the local
+        // `position` is reassigned by AUTOINCREMENT (positions are store-local, ADR 0004 §2), so it is not
+        // inserted.
         driver.transaction(() => {
           for (const event of events) {
-            insertReplicated.run(
+            // Dedup-by-id with a CONTENT check (audit F-04, #186), mirroring `append`'s #151 pre-pass: an id
+            // already present with *identical* content is an idempotent re-pull (skip); the same id with a
+            // *different* body is corruption — throw `EventIdMismatchError` rather than the old
+            // `ON CONFLICT(id) DO NOTHING`, which silently accepted a divergent-content event as a duplicate.
+            const existing = selectById.get(event.id) as EventRow | undefined;
+            if (existing) {
+              if (!sameStoredContent(existing, event)) throw new EventIdMismatchError(event.id);
+              continue; // identical re-pull → idempotent skip
+            }
+            insertEvent.run(
               event.id,
               event.aggregateId,
               event.aggregateType,
@@ -268,10 +302,11 @@ export function createEventStoreOverDriver(driver: SqlDriver): SqliteEventStore 
           }
         });
       } catch (error) {
-        // A UNIQUE(aggregate_id, version) violation here means a *different* event already holds that
-        // (stream, version) locally — concurrent cross-device divergence, not an id re-delivery (those are
-        // absorbed by ON CONFLICT(id) DO NOTHING). That is the co-editing case deferred to #176; surface it
+        // Corruption (same id, different content) propagates as-is (`EventIdMismatchError`, thrown above). A
+        // UNIQUE(aggregate_id, version) violation means a *different* id already holds that (stream, version)
+        // locally — concurrent cross-device divergence (the co-editing case deferred to #176); surface it
         // loudly rather than silently dropping or overwriting. Anything else is unexpected infra → rethrow.
+        if (error instanceof EventIdMismatchError) throw error;
         if (isUniqueViolation(error)) {
           throw new Error(
             'event-store replicate: divergent (aggregate_id, version) — concurrent cross-device write, deferred to #176',

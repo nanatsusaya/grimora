@@ -40,6 +40,17 @@ describe('InMemoryEventStore.replicate', () => {
     expect(store.snapshotAll().length).toBe(1);
   });
 
+  it('rejects the same id with DIFFERENT content — corruption, not an idempotent no-op (F-04, #186)', async () => {
+    const store = createInMemoryEventStore();
+    await store.replicate([event({ id: 'e1' as EntityId, payload: { v: 1 } })]);
+    // Same id, different body: previously the id-dedup skipped it silently (a divergent event masquerading
+    // as a duplicate). It must now surface as corruption, exactly like `append`'s #151 check.
+    await expect(
+      store.replicate([event({ id: 'e1' as EntityId, payload: { v: 2 } })]),
+    ).rejects.toThrow(/different content/);
+    expect(store.snapshotAll().length).toBe(1);
+  });
+
   it('allows the same aggregate at a different version', async () => {
     const store = createInMemoryEventStore();
     await store.replicate([event({ id: 'e1' as EntityId, version: 1 })]);
