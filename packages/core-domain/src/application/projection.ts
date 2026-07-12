@@ -18,6 +18,32 @@ import type { EventStorePort, ReadModelStorePort, RuleSystemRegistryPort } from 
 /** Read-model collection + projection (checkpoint) name. */
 export const CHARACTER_SHEET = 'characterSheet';
 
+/**
+ * Read-model collection holding the **character index** — a single list document (see {@link CHARACTER_INDEX_KEY})
+ * enumerating every character the projection has seen. It exists because the read store is a key-value get/put
+ * with **no list query**, yet the UI must let the user pick a character to open — in particular one that arrived
+ * via cloud **pull** (#107 slice 3b) with a sheet but no local "current character" pointer. Folded from
+ * `character.created` and rebuilt deterministically from `position 0` alongside the sheets.
+ */
+export const CHARACTER_INDEX = 'characterIndex';
+
+/** The single document key the {@link CHARACTER_INDEX} collection stores its list under (a fixed slot, not per-id). */
+export const CHARACTER_INDEX_KEY = 'all';
+
+/** One entry in the {@link CharacterIndex} — the minimum the picker UI needs to list and open a character. */
+export interface CharacterIndexEntry {
+  /** the character id to open (the read-model + `localStorage` current-character key) */
+  readonly id: EntityId;
+  /** the character's display name at creation (this milestone has no rename event) */
+  readonly name: string;
+}
+
+/** The character index list document (see {@link CHARACTER_INDEX}) — all known characters, for the picker UI. */
+export interface CharacterIndex {
+  /** known characters in creation order; deduped by id, so re-delivery/rebuild never doubles an entry */
+  readonly characters: readonly CharacterIndexEntry[];
+}
+
 /** The denormalized character sheet the UI renders (attributes + computed derived values + history). */
 export interface CharacterSheet {
   readonly characterId: EntityId;
@@ -100,6 +126,19 @@ async function applyToSheet(deps: ProjectionDeps, event: PersistedEvent): Promis
       lastPosition: event.position,
     };
     await deps.reads.put(CHARACTER_SHEET, event.aggregateId, sheet);
+
+    // Add to the character index so the UI can list/open this character — crucial for one arriving via
+    // cloud pull (it has a sheet but no local "current" pointer). Deduped by id: the `lastPosition` guard
+    // above already blocks re-delivery of this same `character.created`, and a rebuild-from-0 clears the
+    // index first, so this stays a deterministic, no-duplicate set.
+    const index = (await deps.reads.get<CharacterIndex>(CHARACTER_INDEX, CHARACTER_INDEX_KEY)) ?? {
+      characters: [],
+    };
+    if (!index.characters.some((c) => c.id === event.aggregateId)) {
+      await deps.reads.put(CHARACTER_INDEX, CHARACTER_INDEX_KEY, {
+        characters: [...index.characters, { id: event.aggregateId, name: p.name }],
+      });
+    }
     return;
   }
 

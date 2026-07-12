@@ -14,7 +14,14 @@ import { describe, expect, test } from 'bun:test';
 import type { EntityId, EventEnvelope, IsoTimestamp } from '@grimora/shared-types';
 import { createInMemoryEventStore, createInMemoryReadModelStore } from '../testing';
 import type { RuleSystemRegistryPort } from './ports';
-import { CHARACTER_SHEET, type CharacterSheet, runCharacterSheetProjection } from './projection';
+import {
+  CHARACTER_INDEX,
+  CHARACTER_INDEX_KEY,
+  CHARACTER_SHEET,
+  type CharacterIndex,
+  type CharacterSheet,
+  runCharacterSheetProjection,
+} from './projection';
 
 const charId = 'character-1' as EntityId;
 const ownerId = 'user-1' as EntityId;
@@ -101,5 +108,49 @@ describe('character-sheet projection idempotency (#150)', () => {
     expect(second).toEqual(first);
     // The checkpoint advances back to the head after the replay.
     expect(await reads.getCheckpoint(CHARACTER_SHEET)).toBe(3);
+  });
+});
+
+describe('character index (#107 slice 3c — picker support)', () => {
+  /** A `character.created` envelope for `id`/`name` on its own fresh stream (version 1). */
+  function created(id: string, name: string): EventEnvelope {
+    return {
+      id: `ev-${id}` as EntityId,
+      aggregateId: id as EntityId,
+      aggregateType: 'character',
+      type: 'character.created',
+      version: 1,
+      schemaVersion: 1,
+      occurredAt: at,
+      payload: {
+        name,
+        campaignId,
+        ownerId,
+        ruleSystemId: 'dsa5',
+        pluginId: 'org.example.test',
+        pluginVersion: '0.0.0',
+      },
+    };
+  }
+
+  test('lists every created character, and is idempotent (no duplicates) under re-delivery', async () => {
+    const events = createInMemoryEventStore();
+    const reads = createInMemoryReadModelStore();
+    const deps = { events, reads, rules: noRules };
+    await events.append('char-a' as EntityId, 0, [created('char-a', 'Alrik')]);
+    await events.append('char-b' as EntityId, 0, [created('char-b', 'Gerbald')]);
+
+    await runCharacterSheetProjection(deps);
+    const index = await reads.get<CharacterIndex>(CHARACTER_INDEX, CHARACTER_INDEX_KEY);
+    expect(index?.characters).toEqual([
+      { id: 'char-a' as EntityId, name: 'Alrik' },
+      { id: 'char-b' as EntityId, name: 'Gerbald' },
+    ]);
+
+    // Re-deliver from position 0 (a crash-recovery replay): the index must not double-list a character.
+    await reads.setCheckpoint(CHARACTER_SHEET, 0);
+    await runCharacterSheetProjection(deps);
+    const after = await reads.get<CharacterIndex>(CHARACTER_INDEX, CHARACTER_INDEX_KEY);
+    expect(after?.characters.length).toBe(2);
   });
 });

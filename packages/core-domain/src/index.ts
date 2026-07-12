@@ -36,7 +36,11 @@ export type {
   SyncPushResult,
 } from './application/ports';
 export {
+  CHARACTER_INDEX,
+  CHARACTER_INDEX_KEY,
   CHARACTER_SHEET,
+  type CharacterIndex,
+  type CharacterIndexEntry,
   type CharacterSheet,
   type ProjectionDeps,
   rebuildCharacterSheetProjection,

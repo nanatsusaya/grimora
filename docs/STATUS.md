@@ -92,12 +92,13 @@ capability steps rather than all at once:
 - **Push (slice 3a, done):** offline → cloud. *Consequence:* a signed-in device durably backs up its
   locally-created events to the cloud, attributed to the account by the server (JWT → `owner_id`).
 - **Pull (slice 3b, done):** cloud → local **pull** + idempotent local apply (`replicate`) + the view
-  re-projects, so a signed-in device receives the account's cloud events into its local log and an **open**
-  character reflects cloud updates. **Remaining for *visible* cross-device view (slice 3c):** a minimal
-  **character list / picker** (a read-model index) to browse + open a *newly-pulled* character — today's
-  single-character UI can only show the one character in `localStorage`, so a freshly-pulled character is in
-  the local store + read model but not yet openable. Small UI follow-up, its own PR.
-- **Deferred (issue #176):** cross-device **co-editing**. *Consequence to be aware of:* under the ADR 0012
+  re-projects, so a signed-in device receives the account's cloud events into its local log and an open
+  character reflects cloud updates.
+- **Visible cross-device view (slice 3c, done):** a read-model **character index** + a **picker** in the UI
+  (plus a "New character" affordance), so a character that arrived via pull — which has a sheet but was never
+  this device's local "current" one — can be browsed and opened. Browser-verified (Playwright). **With this,
+  Option A is fully delivered**: push, pull, and a visible cross-device view.
+- **Deferred (issue #176):** cross-device **co-editing** (editing an aggregate created on another device). *Consequence to be aware of:* under the ADR 0012
   §13 "Reading 2" device-principal model, a device can *view* an aggregate created on another device (the
   cloud attributes it to the account) but **cannot edit** it, because local owner-only authorization
   (ADR 0009 / #106) sees the other device's pseudonym as owner. Resolving this needs the Reading 1↔2
