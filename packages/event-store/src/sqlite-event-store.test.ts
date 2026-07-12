@@ -109,6 +109,66 @@ describe('SQLite adapter — storage-level guarantees (#103)', () => {
   });
 });
 
+describe('SQLite adapter — replicate (sync pull apply, #107 slice 3b)', () => {
+  /** A cloud-shaped persisted event (envelope + a cloud position, which the local store reassigns). */
+  function persisted(aggregateId: string, version: number, id: string, cloudPosition: number) {
+    return { ...event(aggregateId, version, id), position: cloudPosition };
+  }
+
+  test('applies pulled events into the local log, assigning fresh local positions', async () => {
+    const store = createSqliteEventStore();
+    try {
+      await store.replicate([persisted('agg-1', 1, 'e1', 41), persisted('agg-1', 2, 'e2', 42)]);
+      const all = await store.readAll();
+      expect(all.map((e) => e.id)).toEqual(['e1' as EntityId, 'e2' as EntityId]);
+      // Local positions are store-local (AUTOINCREMENT), not the cloud positions 41/42.
+      expect(all[0]?.position).toBe(1);
+      expect(all[1]?.position).toBe(2);
+      // The cloud version is preserved.
+      expect(all.map((e) => e.version)).toEqual([1, 2]);
+    } finally {
+      store.close();
+    }
+  });
+
+  test('is idempotent by id — re-applying the same page does not duplicate', async () => {
+    const store = createSqliteEventStore();
+    try {
+      await store.replicate([persisted('agg-1', 1, 'e1', 41)]);
+      await store.replicate([persisted('agg-1', 1, 'e1', 41)]); // re-pull of the same event
+      const all = await store.readAll();
+      expect(all.length).toBe(1);
+    } finally {
+      store.close();
+    }
+  });
+
+  test('replicated events coexist with locally-appended ones and read back in position order', async () => {
+    const store = createSqliteEventStore();
+    try {
+      await store.append('agg-local' as EntityId, 0, [event('agg-local', 1, 'local-1')]);
+      await store.replicate([persisted('agg-remote', 1, 'remote-1', 99)]);
+      const all = await store.readAll();
+      expect(all.map((e) => e.id)).toEqual(['local-1' as EntityId, 'remote-1' as EntityId]);
+    } finally {
+      store.close();
+    }
+  });
+
+  test('a divergent (aggregate_id, version) from a different id throws (deferred to #176)', async () => {
+    const store = createSqliteEventStore();
+    try {
+      await store.append('agg-1' as EntityId, 0, [event('agg-1', 1, 'id-a')]);
+      // A different event claims the same (agg-1, version 1) — concurrent cross-device divergence.
+      await expect(store.replicate([persisted('agg-1', 1, 'id-b', 7)])).rejects.toThrow(
+        /divergent/,
+      );
+    } finally {
+      store.close();
+    }
+  });
+});
+
 describe('SQLite adapter — durability', () => {
   const dir = mkdtempSync(join(tmpdir(), 'grimora-event-store-'));
   const file = join(dir, 'events.sqlite');

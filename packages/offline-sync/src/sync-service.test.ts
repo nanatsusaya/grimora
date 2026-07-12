@@ -1,9 +1,9 @@
 /**
- * Tests for the push orchestration ({@link createSyncService}) against the in-memory event store + sync
- * port fakes (ADR 0017 R1). They pin the slice-3a behaviour the live client-smoke verifies against real
- * Postgres: push the events after the checkpoint, advance the checkpoint over the confirmed prefix, stay
- * idempotent on re-run, and — the Option-A safety property — **park** at a `conflict` without dropping it
- * or marking anything past it as synced (full rebase deferred to #176).
+ * Tests for the sync orchestration ({@link createSyncService}) against the in-memory event store + sync
+ * port fakes (ADR 0017 R1). They pin the behaviour the live client-smokes verify against real Postgres:
+ * **push** (slice 3a) — ship events after the checkpoint, advance over the confirmed prefix, stay idempotent
+ * on re-run, and **park** at a `conflict` without dropping it (Option A, #176); and **pull** (slice 3b) —
+ * apply the cloud page locally, advance the pull checkpoint, and stay idempotent (no double-apply by id).
  */
 
 import { describe, expect, test } from 'bun:test';
@@ -122,5 +122,81 @@ describe('createSyncService.pushPending', () => {
     const result = await service.pushPending();
     expect(result.ok).toBe(false);
     expect(await checkpoints.getCheckpoint('sync:push')).toBe(0);
+  });
+});
+
+describe('createSyncService.pullPending', () => {
+  test('pulls the cloud page, applies it locally, and advances the pull checkpoint', async () => {
+    // A cloud that already holds two events (as if another device pushed them).
+    const cloud = createInMemorySyncPort();
+    await cloud.push([event('char-1', 1, 'e1'), event('char-1', 2, 'e2')]);
+
+    const local = createInMemoryEventStore();
+    const checkpoints = fakeCheckpoints();
+    const service = createSyncService({ syncPort: cloud, events: local, checkpoints });
+
+    const result = await service.pullPending();
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.pulled).toBe(2);
+    expect(result.value.checkpoint).toBe(2); // the cloud position of the last pulled event
+    // The events were applied to the local log (cross-device view is now possible).
+    const applied = await local.readAll();
+    expect(applied.map((e) => e.id)).toEqual(['e1' as EntityId, 'e2' as EntityId]);
+    expect(await checkpoints.getCheckpoint('sync:pull')).toBe(2);
+  });
+
+  test('is idempotent: re-running finds nothing after the checkpoint and does not duplicate', async () => {
+    const cloud = createInMemorySyncPort();
+    await cloud.push([event('char-1', 1, 'e1')]);
+    const local = createInMemoryEventStore();
+    const service = createSyncService({
+      syncPort: cloud,
+      events: local,
+      checkpoints: fakeCheckpoints(),
+    });
+
+    await service.pullPending();
+    const second = await service.pullPending();
+    expect(second.ok).toBe(true);
+    if (!second.ok) return;
+    expect(second.value.pulled).toBe(0); // checkpoint already past the only event
+    expect((await local.readAll()).length).toBe(1); // no duplicate applied
+  });
+
+  test('re-applying an already-present event is a no-op (idempotent by id)', async () => {
+    const cloud = createInMemorySyncPort();
+    await cloud.push([event('char-1', 1, 'e1')]);
+    const local = createInMemoryEventStore();
+    const checkpoints = fakeCheckpoints();
+    const service = createSyncService({ syncPort: cloud, events: local, checkpoints });
+
+    await service.pullPending();
+    // Force a re-pull of the same page by resetting the pull cursor — replicate must dedup by id.
+    await checkpoints.setCheckpoint('sync:pull', 0);
+    const again = await service.pullPending();
+    expect(again.ok).toBe(true);
+    expect((await local.readAll()).length).toBe(1); // still exactly one — no double-apply
+  });
+
+  test('propagates a pull transport failure and leaves the pull checkpoint untouched', async () => {
+    const local = createInMemoryEventStore();
+    const checkpoints = fakeCheckpoints();
+    const service = createSyncService({
+      syncPort: {
+        async push() {
+          return err(appError('sync.push_failed', 'Infrastructure'));
+        },
+        async pull() {
+          return err(appError('sync.upstream_unreachable', 'Infrastructure'));
+        },
+      },
+      events: local,
+      checkpoints,
+    });
+
+    const result = await service.pullPending();
+    expect(result.ok).toBe(false);
+    expect(await checkpoints.getCheckpoint('sync:pull')).toBe(0);
   });
 });

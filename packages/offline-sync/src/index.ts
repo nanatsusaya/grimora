@@ -9,6 +9,8 @@ export { createHttpSyncPort } from './http-sync-port';
 export {
   createSyncService,
   type SyncCheckpointStore,
+  type SyncEventLog,
+  type SyncPullSummary,
   type SyncPushSummary,
   type SyncService,
 } from './sync-service';

@@ -50,9 +50,9 @@ export interface AppComposition {
   /** the client-side authentication port (login/session over the `apps/api` proxy, ADR 0012 §5) */
   readonly auth: AuthPort;
   /**
-   * the client-side cloud **push** service (#107 slice 3a): replicates local events to the cloud once the
-   * user is signed in. Push runs automatically on login and can be triggered from the UI; the pull half
-   * (cross-device view) is slice 3b (see `docs/STATUS.md` / issue #176 for the Option-A scope)
+   * the client-side cloud **sync** service (#107 slice 3): `pushPending` (offline → cloud) + `pullPending`
+   * (cloud → local apply). The view layer drives it on login and from the "Sync now" UI, re-projecting after
+   * a pull. Cross-device co-editing / rebase stays deferred (see `docs/STATUS.md` / issue #176)
    */
   readonly sync: SyncService;
   /** resolves once the OPFS stores are open; await before the first read/write, and to surface init errors */
@@ -97,21 +97,16 @@ export function createAppComposition(): AppComposition {
   // BEFORE restore() so a session recovered from the refresh cookie is bound too; idempotent thereafter.
   const unbindFirstLogin = bindDeviceOnFirstLogin(auth, actor.userId, () => systemClock.now());
 
-  // Client-side cloud push (#107 slice 3a). The sync adapter reads the Bearer access token live from the
-  // auth adapter on each request (the token stays in that adapter's memory-only closure, ADR 0012 §5); the
-  // push cursor persists in the OPFS read store (`reads`), which structurally satisfies the checkpoint port.
+  // Client-side cloud sync (#107 slice 3). The sync adapter reads the Bearer access token live from the auth
+  // adapter on each request (the token stays in that adapter's memory-only closure, ADR 0012 §5); the push
+  // and pull cursors persist in the OPFS read store (`reads`), which structurally satisfies the checkpoint
+  // port. The **login-triggered** sync (push + pull) lives in the view layer (`state/character-view.ts`),
+  // because after a pull applies cloud events it must re-run the read-model projection to refresh the UI —
+  // a view concern the composition root does not own.
   const sync = createSyncService({
     syncPort: createHttpSyncPort({ getAccessToken: () => auth.getAccessToken() }),
     events,
     checkpoints: reads,
-  });
-  // Push on login: when a session becomes current (fresh sign-in or a restore() from the refresh cookie),
-  // replicate whatever accumulated offline. Fire-and-forget and best-effort — a failed/offline push must
-  // never disrupt the local-first path (the events stay pending for the next attempt). `ready` guards the
-  // first store access so a push triggered by an early cookie-restore does not race OPFS startup.
-  const unbindPushOnLogin = auth.onSessionChange((session) => {
-    if (!session) return;
-    void ready.then(() => sync.pushPending()).catch(() => undefined);
   });
   void auth.restore();
 
@@ -123,7 +118,6 @@ export function createAppComposition(): AppComposition {
     sync,
     ready,
     terminate() {
-      unbindPushOnLogin();
       unbindFirstLogin();
       terminateStores();
     },

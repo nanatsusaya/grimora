@@ -10,7 +10,6 @@
  */
 
 import type { AuthPort } from '@grimora/core-domain';
-import type { SyncService } from '@grimora/offline-sync';
 import { AppShell, Button, Field } from '@grimora/ui';
 import { useState, useSyncExternalStore } from 'react';
 import { AuthPanel } from './auth/AuthPanel';
@@ -33,8 +32,6 @@ const EDITABLE_TRAITS: readonly {
  * @param props             the component props
  * @param props.view        the reactive character-sheet view store (from the composition root)
  * @param props.auth        the client-side authentication port (renders the login / signed-in panel)
- * @param props.sync        the client-side cloud push service (#107); the signed-in panel exposes a manual
- *                          "Sync now" trigger over it
  * @param props.onResetAll  dev-only full local-state reset (wired in `main.tsx`); the button is rendered
  *                          only in development builds
  * @returns                 the current screen, rendered from the view model
@@ -42,12 +39,10 @@ const EDITABLE_TRAITS: readonly {
 export function App({
   view,
   auth,
-  sync,
   onResetAll,
 }: {
   readonly view: CharacterView;
   readonly auth: AuthPort;
-  readonly sync: SyncService;
   readonly onResetAll: () => void;
 }) {
   const model = useSyncExternalStore(view.subscribe, view.getSnapshot);
@@ -57,7 +52,7 @@ export function App({
   return (
     <AppShell title="Grimora">
       {/* Auth is additive: login is optional; the character flow below works under the §13 device identity. */}
-      <AuthPanel auth={auth} sync={sync} />
+      <AuthPanel auth={auth} onSyncNow={() => view.syncNow()} />
 
       {!model.ready ? (
         <p>opening local storage…</p>
