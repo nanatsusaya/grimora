@@ -113,6 +113,48 @@ describe('createHttpSyncPort.push', () => {
     if (result.ok) return;
     expect(result.error.code).toBe('sync.malformed_response');
   });
+
+  test('recovers from a 401 by refreshing once and retrying with the new token (M-2)', async () => {
+    let token = 'expired';
+    let calls = 0;
+    const fetchFn = (async () => {
+      calls += 1;
+      if (calls === 1) return { ok: false, status: 401, json: async () => ({}) } as Response;
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ results: [{ id: 'e1', status: 'accepted', position: 7 }] }),
+      } as Response;
+    }) as unknown as typeof fetch;
+    const port = createHttpSyncPort({
+      getAccessToken: () => token,
+      fetch: fetchFn,
+      onUnauthorized: async () => {
+        token = 'fresh'; // a successful refresh installs a new access token
+        return true;
+      },
+    });
+
+    const result = await port.push([sampleEvent]);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value[0]?.status).toBe('accepted');
+    expect(calls).toBe(2); // the request was retried once after the refresh
+  });
+
+  test('a 401 whose refresh fails still maps to Unauthorized — no infinite retry (M-2)', async () => {
+    const { fn, calls } = fakeFetch({ status: 401, body: {} });
+    const port = createHttpSyncPort({
+      getAccessToken: () => 'tok',
+      fetch: fn,
+      onUnauthorized: async () => false, // refresh could not re-establish a session
+    });
+    const result = await port.push([sampleEvent]);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.category).toBe('Unauthorized');
+    expect(calls.length).toBe(1); // not retried when the refresh failed
+  });
 });
 
 describe('createHttpSyncPort.pull', () => {

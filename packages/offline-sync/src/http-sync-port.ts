@@ -126,6 +126,15 @@ export function createHttpSyncPort(options: {
   readonly getAccessToken: () => string | undefined;
   readonly fetch?: typeof fetch;
   readonly basePath?: string;
+  /**
+   * Recover a `401` once, then retry (audit M-2, #188). The in-memory access token expires (~1 h); without
+   * this, a long-lived PWA session's sync silently fails with `Unauthorized` until the next reload. The
+   * composition root supplies a callback that attempts a refresh (the `HttpOnly` refresh cookie via
+   * `AuthPort.restore`) and resolves `true` if a fresh token is now available — on which the request is
+   * retried **once** (the retry re-reads the token via `getAccessToken`, so it picks up the new one). Kept
+   * optional so tests and non-refreshing callers behave exactly as before (a `401` maps straight through).
+   */
+  readonly onUnauthorized?: () => Promise<boolean>;
 }): SyncPort {
   const doFetch = options.fetch ?? globalThis.fetch.bind(globalThis);
   const basePath = options.basePath ?? '/api/v1/sync';
@@ -140,25 +149,54 @@ export function createHttpSyncPort(options: {
     return token ? { ...base, authorization: `Bearer ${token}` } : base;
   };
 
+  /**
+   * Send a request, and on a `401` attempt a **single** token refresh + retry (audit M-2). `buildInit` is a
+   * thunk (not a value) so the retry rebuilds the headers and re-reads the possibly-refreshed token. A
+   * whole-request transport failure maps to an Infrastructure `AppError`; otherwise the (possibly-retried)
+   * `Response` is returned for the caller to interpret its status.
+   * @param path       the endpoint path to fetch
+   * @param buildInit  builds the request init (called again for the retry so the new token is attached)
+   * @returns          the `Response`, or a transport `AppError`
+   */
+  const sendWithRetry = async (
+    path: string,
+    buildInit: () => RequestInit,
+  ): Promise<Result<Response, AppError>> => {
+    let res: Response;
+    try {
+      res = await doFetch(path, buildInit());
+    } catch {
+      // Offline / proxy down — a whole-request transport failure (distinct from a per-event conflict), so
+      // the caller keeps its work pending and retries later (ADR 0011 §7).
+      return err(appError('sync.upstream_unreachable', 'Infrastructure'));
+    }
+    if (res.status === 401 && options.onUnauthorized) {
+      const refreshed = await options.onUnauthorized();
+      if (refreshed) {
+        try {
+          res = await doFetch(path, buildInit());
+        } catch {
+          return err(appError('sync.upstream_unreachable', 'Infrastructure'));
+        }
+      }
+    }
+    return ok(res);
+  };
+
   return {
     async push(
       events: readonly EventEnvelope[],
     ): Promise<Result<readonly SyncPushResult[], AppError>> {
       // An empty batch never hits the network — nothing to replicate, and the server would just echo `[]`.
       if (events.length === 0) return ok([]);
-      let res: Response;
-      try {
-        res = await doFetch(`${basePath}/push`, {
-          method: 'POST',
-          credentials: 'include',
-          headers: authHeaders({ 'content-type': 'application/json' }),
-          body: JSON.stringify({ events }),
-        });
-      } catch {
-        // Offline / proxy down — a whole-request transport failure (distinct from a per-event conflict),
-        // so the caller keeps every event pending and retries later (ADR 0011 §7).
-        return err(appError('sync.upstream_unreachable', 'Infrastructure'));
-      }
+      const sent = await sendWithRetry(`${basePath}/push`, () => ({
+        method: 'POST',
+        credentials: 'include',
+        headers: authHeaders({ 'content-type': 'application/json' }),
+        body: JSON.stringify({ events }),
+      }));
+      if (!sent.ok) return err(sent.error);
+      const res = sent.value;
       if (res.status === 401) return err(appError('sync.unauthorized', 'Unauthorized'));
       if (!res.ok) return err(appError('sync.push_failed', 'Infrastructure'));
       // Parse + validate the success body in the error channel (audit F-09): invalid JSON (e.g. a proxy's
@@ -182,16 +220,13 @@ export function createHttpSyncPort(options: {
       // is a later refinement, so ignoring it here is safe (a superset, never a missing-event, result).
       _streams?: readonly EntityId[],
     ): Promise<Result<SyncPullPage, AppError>> {
-      let res: Response;
-      try {
-        res = await doFetch(`${basePath}/pull?since=${sincePosition}`, {
-          method: 'GET',
-          credentials: 'include',
-          headers: authHeaders({}),
-        });
-      } catch {
-        return err(appError('sync.upstream_unreachable', 'Infrastructure'));
-      }
+      const sent = await sendWithRetry(`${basePath}/pull?since=${sincePosition}`, () => ({
+        method: 'GET',
+        credentials: 'include',
+        headers: authHeaders({}),
+      }));
+      if (!sent.ok) return err(sent.error);
+      const res = sent.value;
       if (res.status === 401) return err(appError('sync.unauthorized', 'Unauthorized'));
       if (!res.ok) return err(appError('sync.pull_failed', 'Infrastructure'));
       // Same as push: a malformed/invalid page becomes an `AppError`, never a thrown parse error or a blind
