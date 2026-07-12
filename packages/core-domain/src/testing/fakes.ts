@@ -27,7 +27,29 @@ import type {
   SyncPort,
   SyncPushResult,
 } from '../application/ports';
-import { appError } from '../domain/errors';
+import { appError, EventIdMismatchError } from '../domain/errors';
+
+/**
+ * Whether two envelopes with the **same `id`** carry identical content — the test the append idempotency
+ * check uses to tell a harmless re-delivery (skip) from a corrupt id reuse (#151). Compares every persisted
+ * field; `payload`/`metadata` are compared structurally via canonical JSON (the event body is already
+ * JSON-serializable, ADR 0004 §2), so ordering-insensitive deep equality is not required.
+ * @param a  one envelope
+ * @param b  the other (already known to share `a`'s id)
+ * @returns  true iff all persisted fields match
+ */
+function sameEventContent(a: EventEnvelope, b: EventEnvelope): boolean {
+  return (
+    a.aggregateId === b.aggregateId &&
+    a.aggregateType === b.aggregateType &&
+    a.type === b.type &&
+    a.version === b.version &&
+    a.schemaVersion === b.schemaVersion &&
+    a.occurredAt === b.occurredAt &&
+    JSON.stringify(a.metadata ?? null) === JSON.stringify(b.metadata ?? null) &&
+    JSON.stringify(a.payload) === JSON.stringify(b.payload)
+  );
+}
 
 /**
  * An in-memory event store with the extra `replicate`/`snapshotAll` methods the sync harness needs.
@@ -48,6 +70,7 @@ export interface InMemoryEventStore extends EventStorePort {
 export function createInMemoryEventStore(): InMemoryEventStore {
   const byStream = new Map<string, PersistedEvent[]>();
   const seenIds = new Set<string>();
+  const byId = new Map<string, PersistedEvent>();
   const all: PersistedEvent[] = [];
   let position = 0;
 
@@ -59,6 +82,7 @@ export function createInMemoryEventStore(): InMemoryEventStore {
     byStream.set(event.aggregateId, [...stream, persisted]);
     all.push(persisted);
     seenIds.add(event.id);
+    byId.set(event.id, persisted);
     seenVersions.add(`${event.aggregateId}:${event.version}`);
     return persisted;
   };
@@ -69,13 +93,28 @@ export function createInMemoryEventStore(): InMemoryEventStore {
       expectedVersion,
       events,
     ): Promise<Result<void, ReturnType<typeof appError>>> {
+      // Idempotency pre-pass (#151, ADR 0005 §3): an event whose `id` is already stored *identically* is a
+      // no-op (a re-delivered event), while the same id with a *different* body is corruption (thrown, never
+      // a Result). Only genuinely-new events go on to the optimistic-concurrency check — so re-delivering an
+      // already-applied batch succeeds instead of failing the stale-version check.
+      const toInsert: EventEnvelope[] = [];
+      for (const event of events) {
+        const existing = byId.get(event.id);
+        if (existing) {
+          if (!sameEventContent(existing, event)) throw new EventIdMismatchError(event.id);
+          continue; // identical re-delivery → skip
+        }
+        toInsert.push(event);
+      }
+      if (toInsert.length === 0) return ok(undefined); // fully idempotent re-delivery
+
       const stream = byStream.get(streamId) ?? [];
       const current = stream.length > 0 ? (stream[stream.length - 1] as PersistedEvent).version : 0;
       if (current !== expectedVersion) {
         // Stale write → the caller rebases (ADR 0005 §4).
         return err(appError('store.version_conflict', 'Conflict'));
       }
-      for (const event of events) persist(event);
+      for (const event of toInsert) persist(event);
       return ok(undefined);
     },
     async readStream(streamId, fromVersion = 0) {
@@ -106,6 +145,7 @@ export function createInMemoryEventStore(): InMemoryEventStore {
     reset() {
       byStream.clear();
       seenIds.clear();
+      byId.clear();
       seenVersions.clear();
       all.length = 0;
       position = 0;

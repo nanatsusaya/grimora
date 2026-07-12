@@ -44,3 +44,29 @@ export function appError(
 ): AppError {
   return { code, category, messageKey };
 }
+
+/** The stable `code` carried by {@link EventIdMismatchError}, so callers/tests match it without an `instanceof`. */
+export const EVENT_ID_MISMATCH_CODE = 'store.event_id_mismatch';
+
+/**
+ * Thrown when an event whose `id` is already stored is appended with **different content** (issue #151) —
+ * a genuine data-integrity violation, never a normal outcome. Per ADR 0009 §1 such corruption is
+ * **thrown**, not returned as a `Result` error (which is reserved for *expected* failures like the
+ * optimistic-concurrency `Conflict`): the event log's core invariant is that an `id` immutably identifies
+ * one event, so the same id with a different body means a bug or tampering upstream, not a rebase. It is
+ * distinct from re-delivering the *identical* event, which is an idempotent no-op success (ADR 0005 §3).
+ * Carries a stable {@link EVENT_ID_MISMATCH_CODE} so every store adapter signals it identically and the
+ * shared `eventStoreContract` can assert it across engines without depending on the class itself.
+ */
+export class EventIdMismatchError extends Error {
+  /** Stable discriminator ({@link EVENT_ID_MISMATCH_CODE}) so callers match without cross-package `instanceof`. */
+  readonly code = EVENT_ID_MISMATCH_CODE;
+  /**
+   * @param id  the event id whose re-append carried a different body (included for diagnostics — an id is
+   *            an opaque UUID, not personal data, so it is safe to name in the message)
+   */
+  constructor(id: string) {
+    super(`event id ${id} already stored with different content (append is not idempotent for it)`);
+    this.name = 'EventIdMismatchError';
+  }
+}

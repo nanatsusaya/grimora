@@ -15,7 +15,7 @@
 
 import type { EntityId, EventEnvelope, IsoTimestamp } from '@grimora/shared-types';
 import type { EventStorePort } from '../application/ports';
-import type { AppError } from '../domain/errors';
+import { type AppError, EVENT_ID_MISMATCH_CODE } from '../domain/errors';
 
 /**
  * One named contract case over an already-constructed, empty store. `run` throws on a contract violation.
@@ -134,6 +134,56 @@ export function eventStoreContract(): readonly EventStoreContractCase[] {
         assertConflict(stale, 'stale expectedVersion on an existing stream');
         const events = await store.readStream('agg-1' as EntityId);
         assert(events.length === 1, 'the rejected second append must not persist');
+      },
+    },
+    {
+      name: 're-appending the identical event (same id + content) is an idempotent no-op, not Conflict (#151)',
+      run: async (store) => {
+        const event = makeEvent('agg-1', 1, 1);
+        assert((await store.append('agg-1' as EntityId, 0, [event])).ok, 'seed');
+        // Re-deliver the exact same event. The stream is already at version 1, so a naive optimistic check
+        // (expectedVersion 0 ≠ current 1) would return Conflict — but a re-delivered event must be an
+        // idempotent SUCCESS (ADR 0005 §3), and must not double-persist.
+        const redelivered = await store.append('agg-1' as EntityId, 0, [event]);
+        assert(
+          redelivered.ok,
+          're-delivering an identical event must succeed (idempotent), not Conflict',
+        );
+        const events = await store.readStream('agg-1' as EntityId);
+        assert(
+          events.length === 1,
+          `re-delivery must not duplicate — expected 1 event, got ${events.length}`,
+        );
+      },
+    },
+    {
+      name: 'appending an existing id with DIFFERENT content is corruption — throws, distinct from Conflict (#151)',
+      run: async (store) => {
+        const original = makeEvent('agg-1', 1, 1);
+        assert((await store.append('agg-1' as EntityId, 0, [original])).ok, 'seed');
+        // Same id, different body → a data-integrity violation (an id must immutably identify one event).
+        const tampered: EventEnvelope = { ...original, payload: { version: 1, seq: 999 } };
+        let threw: unknown;
+        try {
+          await store.append('agg-1' as EntityId, 1, [tampered]);
+        } catch (error) {
+          threw = error;
+        }
+        assert(
+          threw !== undefined,
+          'same id + different content must throw (corruption), not return a Result',
+        );
+        assert(
+          (threw as { code?: string }).code === EVENT_ID_MISMATCH_CODE,
+          `expected code '${EVENT_ID_MISMATCH_CODE}', got '${(threw as { code?: string }).code}'`,
+        );
+        // The corrupt append must persist nothing — the original stays, unchanged.
+        const events = await store.readStream('agg-1' as EntityId);
+        assert(events.length === 1, 'a rejected corrupt append must not persist');
+        assert(
+          JSON.stringify(events[0]?.payload) === JSON.stringify(original.payload),
+          'the original event body must be untouched',
+        );
       },
     },
     {
