@@ -27,7 +27,7 @@ const ctx = self as unknown as {
 
 /** The port methods the proxy is allowed to invoke, per target — an explicit allow-list, not open dispatch. */
 const ALLOWED_METHODS: Readonly<Record<StoreWorkerRequest['target'], readonly string[]>> = {
-  events: ['append', 'readStream', 'readAll'],
+  events: ['append', 'readStream', 'readAll', 'replicate'],
   reads: ['get', 'put', 'getCheckpoint', 'setCheckpoint', 'clear'],
 };
 

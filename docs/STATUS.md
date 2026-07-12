@@ -79,17 +79,24 @@ project and replicates its offline events to the cloud:
 - **#107 — cloud sync**, delivered in slices: **slice 1** the `events` table migration (#174, RLS as
   defense-in-depth), **slice 2** the `apps/api` sync endpoints + Postgres event store + JWKS JWT
   verification with hard actor-binding (#175, ADR 0024 §2), **slice 3a** the client `@grimora/offline-sync`
-  adapter (HTTP `SyncPort`) + push orchestration + the "Sync now" / push-on-login trigger. Each slice was
-  live-verified end-to-end against real `grimora-dev` (login → JWKS → Postgres push/pull/dedup/conflict;
-  and the client stack pushing real events attributed to the account).
+  adapter (HTTP `SyncPort`) + push orchestration + the "Sync now" trigger (#177), and **slice 3b** the
+  **pull** half — `pullPending` + the durable event-store `replicate` (idempotent local apply, on top of
+  the #151 idempotency fix) + the OPFS worker plumbing + the view re-projecting after a pull. Each slice was
+  live-verified end-to-end against real `grimora-dev` (login → JWKS → Postgres push/pull/dedup/conflict; the
+  client stack pushing real events attributed to the account; and a two-"device" round-trip: A pushes, B
+  pulls + applies).
 
 **Scope decision — "Option A" (owner-approved 2026-07-12), and its consequences.** Cloud sync ships in two
 capability steps rather than all at once:
 
-- **Now (slice 3a):** offline → cloud **push**. *Consequence:* a signed-in device durably backs up its
+- **Push (slice 3a, done):** offline → cloud. *Consequence:* a signed-in device durably backs up its
   locally-created events to the cloud, attributed to the account by the server (JWT → `owner_id`).
-- **Next (slice 3b):** cloud → local **pull** + idempotent local apply + projection rebuild → cross-device
-  **view**. Needs a new insert-by-id path in the local (OPFS) event store; its own PR (one concern per PR).
+- **Pull (slice 3b, done):** cloud → local **pull** + idempotent local apply (`replicate`) + the view
+  re-projects, so a signed-in device receives the account's cloud events into its local log and an **open**
+  character reflects cloud updates. **Remaining for *visible* cross-device view (slice 3c):** a minimal
+  **character list / picker** (a read-model index) to browse + open a *newly-pulled* character — today's
+  single-character UI can only show the one character in `localStorage`, so a freshly-pulled character is in
+  the local store + read model but not yet openable. Small UI follow-up, its own PR.
 - **Deferred (issue #176):** cross-device **co-editing**. *Consequence to be aware of:* under the ADR 0012
   §13 "Reading 2" device-principal model, a device can *view* an aggregate created on another device (the
   cloud attributes it to the account) but **cannot edit** it, because local owner-only authorization

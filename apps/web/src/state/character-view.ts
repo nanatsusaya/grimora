@@ -95,6 +95,14 @@ export interface CharacterView {
    * @returns resolves when the roll is stored and the history has updated
    */
   rollPerception(): Promise<void>;
+  /**
+   * Run a cloud sync (#107 slice 3): push local events, pull the account's cloud events + apply them
+   * locally, and — if the pull applied anything — re-run the projection and refresh the open sheet so the
+   * UI reflects cloud updates. Best-effort: a transport/auth failure is reported, never thrown. Also runs
+   * automatically when a session becomes current (login / cookie-restore).
+   * @returns a non-sensitive summary: whether both halves succeeded, and how many events were pushed/pulled
+   */
+  syncNow(): Promise<{ readonly ok: boolean; readonly pushed: number; readonly pulled: number }>;
 }
 
 /**
@@ -131,6 +139,27 @@ export function createCharacterView(composition: AppComposition): CharacterView 
     return (localStorage.getItem(CHARACTER_KEY) as EntityId | null) ?? undefined;
   }
 
+  /**
+   * Push local events to the cloud, pull the account's cloud events + apply them locally, and re-project +
+   * refresh the open sheet when the pull applied anything. A closure (not just the exposed method) so the
+   * login subscription in `init` can invoke it directly. Best-effort — never throws into the caller.
+   */
+  async function runSync(): Promise<{ ok: boolean; pushed: number; pulled: number }> {
+    await composition.ready;
+    const push = await composition.sync.pushPending();
+    const pull = await composition.sync.pullPending();
+    const pushed = push.ok ? push.value.accepted : 0;
+    const pulled = pull.ok ? pull.value.pulled : 0;
+    if (pulled > 0) {
+      // Cloud events landed in the local log → catch the read model up and re-publish the open sheet, so a
+      // change synced from elsewhere becomes visible (the projection is idempotent, so this is safe to re-run).
+      await project();
+      const characterId = currentCharacterId();
+      if (characterId) await refresh(characterId);
+    }
+    return { ok: push.ok && pull.ok, pushed, pulled };
+  }
+
   return {
     subscribe(listener) {
       listeners.add(listener);
@@ -149,6 +178,12 @@ export function createCharacterView(composition: AppComposition): CharacterView 
       const characterId = currentCharacterId();
       if (characterId) await refresh(characterId);
       setModel({ ready: true });
+      // Auto-sync whenever a session becomes current (fresh login, or a cookie-restore on boot): push local
+      // work and pull the account's cloud events. Best-effort and fire-and-forget — a failed/offline sync
+      // must never break the local-first UI. The subscription lives for the app's (single view's) lifetime.
+      composition.auth.onSessionChange((session) => {
+        if (session) void runSync().catch(() => undefined);
+      });
     },
 
     async createCharacter(name) {
@@ -217,6 +252,10 @@ export function createCharacterView(composition: AppComposition): CharacterView 
       }
       await project();
       await refresh(characterId);
+    },
+
+    syncNow() {
+      return runSync();
     },
   };
 }

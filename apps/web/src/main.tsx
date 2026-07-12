@@ -30,12 +30,7 @@ void view.init();
 
 createRoot(rootElement).render(
   <StrictMode>
-    <App
-      view={view}
-      auth={composition.auth}
-      sync={composition.sync}
-      onResetAll={() => resetAllAndReload(composition)}
-    />
+    <App view={view} auth={composition.auth} onResetAll={() => resetAllAndReload(composition)} />
   </StrictMode>,
 );
 

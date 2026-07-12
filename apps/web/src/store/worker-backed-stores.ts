@@ -18,10 +18,20 @@ import type {
   StoreWorkerResponse,
 } from './worker-protocol';
 
+/**
+ * The durable OPFS event store proxy — the `EventStorePort` plus `replicate` (the sync-pull apply path,
+ * #107 slice 3b), which is on the concrete store, not the pure port. The composition root passes this to
+ * the sync service so a pulled cloud page is applied locally by id (idempotent, ADR 0005 §3).
+ */
+export type WorkerBackedEventStore = EventStorePort & {
+  /** Apply cloud-pulled events into the local log, idempotent by `id` (see `@grimora/event-store`). */
+  replicate(events: readonly PersistedEvent[]): Promise<void>;
+};
+
 /** The pair of durable stores the composition root consumes, plus a readiness handle to await on boot. */
 export interface WorkerBackedStores {
-  /** the durable OPFS event store, proxied to the worker */
-  readonly events: EventStorePort;
+  /** the durable OPFS event store (+ `replicate`), proxied to the worker */
+  readonly events: WorkerBackedEventStore;
   /** the durable OPFS read-model store, proxied to the worker */
   readonly reads: ReadModelStorePort;
   /**
@@ -100,7 +110,7 @@ export function createWorkerBackedStores(): WorkerBackedStores {
     });
   }
 
-  const events: EventStorePort = {
+  const events: WorkerBackedEventStore = {
     append(streamId, expectedVersion, eventsToAppend): Promise<Result<void, AppError>> {
       return call('events', 'append', [streamId, expectedVersion, eventsToAppend]) as Promise<
         Result<void, AppError>
@@ -113,6 +123,9 @@ export function createWorkerBackedStores(): WorkerBackedStores {
     },
     readAll(fromPosition): Promise<readonly PersistedEvent[]> {
       return call('events', 'readAll', [fromPosition]) as Promise<readonly PersistedEvent[]>;
+    },
+    replicate(eventsToApply): Promise<void> {
+      return call('events', 'replicate', [eventsToApply]) as Promise<void>;
     },
   };
 

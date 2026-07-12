@@ -7,9 +7,15 @@
  */
 
 import type { AuthPort, AuthSession } from '@grimora/core-domain';
-import type { SyncService } from '@grimora/offline-sync';
 import { Button, Field } from '@grimora/ui';
 import { type FormEvent, useEffect, useState } from 'react';
+
+/** The non-sensitive outcome of a manual cloud sync (from the view's `syncNow`) — counts only, for display. */
+interface SyncOutcome {
+  readonly ok: boolean;
+  readonly pushed: number;
+  readonly pulled: number;
+}
 
 /**
  * Subscribe a component to the current auth session. The `AuthPort` is async by contract, so this bridges
@@ -37,19 +43,19 @@ function useAuthSession(auth: AuthPort): AuthSession | undefined {
 /**
  * The auth panel: a signed-in banner (with sign-out + a manual cloud-sync trigger) when authenticated,
  * otherwise an email+password login form.
- * @param props       the component props
- * @param props.auth  the client-side authentication port (from the composition root)
- * @param props.sync  optional client-side cloud push service (#107 slice 3a); when provided, the signed-in
- *                    banner shows a "Sync now" button. Optional so the panel renders without it (tests, or
- *                    before sync is wired)
- * @returns           the auth surface for the current session state
+ * @param props            the component props
+ * @param props.auth       the client-side authentication port (from the composition root)
+ * @param props.onSyncNow  optional manual cloud-sync trigger (the view's `syncNow`: push + pull + reproject,
+ *                         #107 slice 3); when provided, the signed-in banner shows a "Sync now" button.
+ *                         Optional so the panel renders without it (tests, or before sync is wired)
+ * @returns                the auth surface for the current session state
  */
 export function AuthPanel({
   auth,
-  sync,
+  onSyncNow,
 }: {
   readonly auth: AuthPort;
-  readonly sync?: SyncService;
+  readonly onSyncNow?: () => Promise<SyncOutcome>;
 }) {
   const session = useAuthSession(auth);
   const [email, setEmail] = useState('');
@@ -66,22 +72,22 @@ export function AuthPanel({
   };
 
   if (session) {
-    /** Trigger a cloud push and reflect the non-sensitive outcome (counts only) in the banner. */
+    /** Trigger a cloud sync (push + pull + reproject) and reflect the non-sensitive outcome in the banner. */
     const onSync = () => {
-      if (!sync) return;
+      if (!onSyncNow) return;
       setSyncing(true);
       setSyncStatus(undefined);
-      void sync.pushPending().then((result) => {
+      void onSyncNow().then((outcome) => {
         setSyncing(false);
-        if (!result.ok) {
+        if (!outcome.ok) {
           setSyncStatus('Sync failed — will retry later.');
           return;
         }
-        const { accepted, duplicates, conflicts } = result.value;
+        const { pushed, pulled } = outcome;
         setSyncStatus(
-          accepted === 0 && duplicates === 0 && conflicts === 0
+          pushed === 0 && pulled === 0
             ? 'Up to date.'
-            : `Synced: ${accepted} new, ${duplicates} already there${conflicts > 0 ? `, ${conflicts} deferred` : ''}.`,
+            : `Synced: ${pushed} sent, ${pulled} received.`,
         );
       });
     };
@@ -91,7 +97,7 @@ export function AuthPanel({
         <span style={{ fontFamily: 'var(--gr-font-sans)' }}>
           Signed in as <code>{session.userId}</code>
         </span>{' '}
-        {sync && (
+        {onSyncNow && (
           <Button disabled={syncing} onClick={onSync}>
             Sync now
           </Button>

@@ -21,6 +21,18 @@ import type { SqlDriver } from './sql-driver';
  * off the port and on the concrete adapter. Shared by the native and OPFS drivers.
  */
 export interface SqliteEventStore extends EventStorePort {
+  /**
+   * Apply events replicated **from the cloud** (a sync pull, #107 slice 3b) into the local log — insert-only
+   * and **idempotent by `id`** (ADR 0005 §3): an already-present event is a no-op, so re-pulling the same
+   * page never double-applies. Unlike {@link EventStorePort.append} this is **not** the optimistic-concurrency
+   * command path — replicated events carry their own cloud-assigned `version` and are not subject to an
+   * `expectedVersion` check; each gets a fresh **local** `position` (positions are store-local, ADR 0004 §2).
+   * A `(aggregate_id, version)` collision by a *different* id is genuine divergence (concurrent cross-device
+   * writers) — out of scope under Option A (only an origin device writes a stream) and deferred to #176; it
+   * surfaces here as a thrown error rather than silently overwriting.
+   * @param events  the cloud events to apply locally (each already persisted upstream, carrying its version)
+   */
+  replicate(events: readonly PersistedEvent[]): Promise<void>;
   /** Release the underlying database handle. After this the store must not be used again. */
   close(): void;
 }
@@ -149,6 +161,16 @@ export function createEventStoreOverDriver(driver: SqlDriver): SqliteEventStore 
        (id, aggregate_id, aggregate_type, type, version, schema_version, occurred_at, metadata, payload)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   );
+  // The replication insert (sync pull, #107 slice 3b): `ON CONFLICT(id) DO NOTHING` makes a re-pulled
+  // event an idempotent no-op (ADR 0005 §3 dedup-by-id). It deliberately targets ONLY the `id` conflict —
+  // a `(aggregate_id, version)` clash by a *different* id is NOT swallowed, so it still raises and surfaces
+  // as divergence (deferred to #176), rather than `INSERT OR IGNORE` which would hide it.
+  const insertReplicated = driver.prepare(
+    `INSERT INTO events
+       (id, aggregate_id, aggregate_type, type, version, schema_version, occurred_at, metadata, payload)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT (id) DO NOTHING`,
+  );
   const selectStream = driver.prepare(
     'SELECT * FROM events WHERE aggregate_id = ? AND version > ? ORDER BY version ASC',
   );
@@ -222,6 +244,41 @@ export function createEventStoreOverDriver(driver: SqlDriver): SqliteEventStore 
     async readAll(fromPosition = 0): Promise<readonly PersistedEvent[]> {
       // `position > fromPosition` — EXCLUSIVE, for the same reason on the projection/sync checkpoint side.
       return (selectAll.all(fromPosition) as unknown as EventRow[]).map(rowToEvent);
+    },
+
+    async replicate(events: readonly PersistedEvent[]): Promise<void> {
+      if (events.length === 0) return;
+      try {
+        // One transaction for the whole page: either all newly-seen events apply, or (on divergence) none —
+        // so a re-run pulls the same page cleanly. Each event keeps its cloud `version`; the local `position`
+        // is reassigned by AUTOINCREMENT (positions are store-local, ADR 0004 §2), so it is not inserted.
+        driver.transaction(() => {
+          for (const event of events) {
+            insertReplicated.run(
+              event.id,
+              event.aggregateId,
+              event.aggregateType,
+              event.type,
+              event.version,
+              event.schemaVersion,
+              event.occurredAt,
+              event.metadata === undefined ? null : JSON.stringify(event.metadata),
+              JSON.stringify(event.payload),
+            );
+          }
+        });
+      } catch (error) {
+        // A UNIQUE(aggregate_id, version) violation here means a *different* event already holds that
+        // (stream, version) locally — concurrent cross-device divergence, not an id re-delivery (those are
+        // absorbed by ON CONFLICT(id) DO NOTHING). That is the co-editing case deferred to #176; surface it
+        // loudly rather than silently dropping or overwriting. Anything else is unexpected infra → rethrow.
+        if (isUniqueViolation(error)) {
+          throw new Error(
+            'event-store replicate: divergent (aggregate_id, version) — concurrent cross-device write, deferred to #176',
+          );
+        }
+        throw error;
+      }
     },
 
     close(): void {

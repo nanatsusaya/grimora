@@ -4,33 +4,48 @@
  * It reads the local events accumulated since the last push checkpoint, ships them, and advances the
  * checkpoint over the contiguous run the cloud accepted.
  *
- * **Scope (Option A, owner-approved 2026-07-12, see `docs/STATUS.md` + issue #176):** this is the
- * offline → cloud **push** half. It does **not** re-apply intent on a `conflict` — full domain rebase is
- * deferred with cross-device co-editing (#176). Under Option A a given aggregate stream is only written on
- * its origin device, so concurrent writers — the sole source of `conflict` — do not arise in normal use;
- * a `conflict` is therefore treated **defensively**: the checkpoint stops at it so the conflicting event
- * (and everything after) stays pending and is **never dropped**, to be resolved once #176 lands.
- *
- * The pull half (cloud → local apply, cross-device *view*) is slice 3b and lives elsewhere.
+ * **Scope (Option A, owner-approved 2026-07-12, see `docs/STATUS.md` + issue #176):** `pushPending`
+ * (offline → cloud, slice 3a) and `pullPending` (cloud → local apply → cross-device *view*, slice 3b).
+ * Neither re-applies intent on a `conflict` — full domain **rebase** is deferred with cross-device
+ * co-editing (#176). Under Option A a given aggregate stream is only written on its origin device, so
+ * concurrent writers — the sole source of a `conflict`/divergence — do not arise in normal use; a push
+ * `conflict` is treated **defensively** (the checkpoint stops at it so the conflicting event and everything
+ * after stays pending, **never dropped**), and a pull divergence surfaces from `replicate` as a thrown error
+ * rather than a silent overwrite. Both are to be resolved once #176 lands.
  */
 
-import type { AppError, EventStorePort, SyncPort, SyncPushResult } from '@grimora/core-domain';
-import { type EntityId, err, ok, type Result } from '@grimora/shared-types';
+import type { AppError, SyncPort } from '@grimora/core-domain';
+import { type EntityId, err, ok, type PersistedEvent, type Result } from '@grimora/shared-types';
 
 /**
- * The persisted "how far have we pushed" cursor. `ReadModelStorePort` satisfies this structurally, so the
- * web composition passes its OPFS-backed read store; kept as a narrow interface so the service stays
- * decoupled from the full read-model surface and is trivially faked in tests (ADR 0017).
+ * The persisted "how far have we synced" cursor store. `ReadModelStorePort` satisfies this structurally, so
+ * the web composition passes its OPFS-backed read store; kept as a narrow interface so the service stays
+ * decoupled from the full read-model surface and is trivially faked in tests (ADR 0017). Separate cursors
+ * (push vs. pull) live under distinct names in the same store.
  */
 export interface SyncCheckpointStore {
-  /** the last local `position` confirmed replicated for the named cursor (0 = nothing pushed yet) */
+  /** the last confirmed cursor position for `cursor` (0 = nothing yet): a local `position` (push) or a cloud `position` (pull) */
   getCheckpoint(cursor: string): Promise<number>;
-  /** persist the advanced cursor after a successful push run */
+  /** persist the advanced cursor after a successful run */
   setCheckpoint(cursor: string, position: number): Promise<void>;
 }
 
-/** The checkpoint cursor name for the push side — distinct from any projection checkpoint sharing the store. */
+/**
+ * The slice of the local event store the sync service needs: `readAll` (to gather un-pushed events) and
+ * `replicate` (to apply a pulled cloud page idempotently by id, #107 slice 3b). Narrower than the full
+ * store interface so both the OPFS-backed proxy and the in-memory fake satisfy it, and tests stay light.
+ */
+export interface SyncEventLog {
+  /** events after `fromPosition` (EXCLUSIVE), in local `position` order — the un-pushed tail (ADR 0004 §4). */
+  readAll(fromPosition?: number): Promise<readonly PersistedEvent[]>;
+  /** apply cloud-pulled events into the local log, insert-only + idempotent by `id` (ADR 0005 §3). */
+  replicate(events: readonly PersistedEvent[]): Promise<void>;
+}
+
+/** The checkpoint cursor name for the push side — distinct from the pull cursor + any projection checkpoint. */
 const PUSH_CURSOR = 'sync:push';
+/** The checkpoint cursor name for the pull side — a **cloud** `position` (ADR 0005 §7), distinct from push. */
+const PULL_CURSOR = 'sync:pull';
 
 /**
  * The outcome of one {@link SyncService.pushPending} run — a non-sensitive summary for logging/UI. Counts
@@ -48,7 +63,19 @@ export interface SyncPushSummary {
   readonly checkpoint: number;
 }
 
-/** The client-side sync orchestrator. Slice 3a exposes the push half only (see the module header). */
+/**
+ * The outcome of one {@link SyncService.pullPending} run — a non-sensitive summary. `pulled` is how many
+ * cloud events the page returned; because the local apply is idempotent by id (ADR 0005 §3), some may have
+ * already been present. `checkpoint` is the cloud `position` the pull cursor now stands at.
+ */
+export interface SyncPullSummary {
+  /** cloud events returned by this pull page (applied locally idempotently; some may already have existed) */
+  readonly pulled: number;
+  /** the pull cursor (a cloud `position`) after the run */
+  readonly checkpoint: number;
+}
+
+/** The client-side sync orchestrator: push (offline → cloud) and pull (cloud → local apply), #107 slice 3. */
 export interface SyncService {
   /**
    * Replicate the local events accumulated since the last push checkpoint, then advance the checkpoint
@@ -59,6 +86,15 @@ export interface SyncService {
    *          failed (in which case the checkpoint is left untouched and every event stays pending)
    */
   pushPending(): Promise<Result<SyncPushSummary, AppError>>;
+  /**
+   * Pull the account's cloud events after the pull checkpoint and apply them to the local log idempotently
+   * by id (ADR 0005 §3), then advance the checkpoint to the page's cloud `position`. Idempotent to re-run:
+   * the advanced checkpoint means an already-pulled page is not re-requested, and a re-applied event is a
+   * no-op. The caller re-runs its read-model projection afterwards so the UI reflects the applied events.
+   * @returns a {@link SyncPullSummary} on success, or the transport/auth `AppError` when the pull failed
+   *          (in which case the checkpoint is left untouched)
+   */
+  pullPending(): Promise<Result<SyncPullSummary, AppError>>;
 }
 
 /**
@@ -71,7 +107,7 @@ export interface SyncService {
  */
 export function createSyncService(deps: {
   readonly syncPort: SyncPort;
-  readonly events: EventStorePort;
+  readonly events: SyncEventLog;
   readonly checkpoints: SyncCheckpointStore;
 }): SyncService {
   const { syncPort, events, checkpoints } = deps;
@@ -116,6 +152,21 @@ export function createSyncService(deps: {
 
       if (checkpoint > from) await checkpoints.setCheckpoint(PUSH_CURSOR, checkpoint);
       return ok({ accepted, duplicates, conflicts, checkpoint });
+    },
+
+    async pullPending(): Promise<Result<SyncPullSummary, AppError>> {
+      const from = await checkpoints.getCheckpoint(PULL_CURSOR);
+      const result = await syncPort.pull(from);
+      if (!result.ok) return err(result.error);
+      const { events: pulled, checkpoint } = result.value;
+
+      // Apply the page locally before advancing the checkpoint, so a failure mid-apply re-pulls the same
+      // page rather than skipping it. `replicate` is idempotent by id, so re-applying is safe (ADR 0005 §3).
+      if (pulled.length > 0) await events.replicate(pulled);
+      // The checkpoint is a CLOUD position and advances even when a stream filter returned fewer events than
+      // the server considered (ADR 0005 §7), so the client never re-requests a gap.
+      if (checkpoint > from) await checkpoints.setCheckpoint(PULL_CURSOR, checkpoint);
+      return ok({ pulled: pulled.length, checkpoint });
     },
   };
 }
