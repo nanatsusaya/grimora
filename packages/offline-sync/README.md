@@ -26,7 +26,7 @@ Cloud sync ships in capability steps, not all at once. This package implements *
 | --- | --- | --- |
 | Push (slice 3a) | offline → cloud replication of local events | **implemented here** |
 | Pull + local apply (slice 3b) | cloud → local, idempotent-by-id (`replicate`); the view re-projects | **implemented here** |
-| Character list / picker (slice 3c) | browse + open a *newly-pulled* cross-device character in the UI | next PR (a read-model index — needed to *see* a pulled character in today's single-character UI) |
+| Character list / picker (slice 3c) | browse + open a *newly-pulled* cross-device character in the UI | **done** (a read-model character index + a picker in `apps/web`) |
 | Co-editing (#176) | editing, on device B, an aggregate created on device A | **deferred** |
 
 ### Why co-editing is deferred — the consequence to know

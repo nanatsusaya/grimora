@@ -64,6 +64,45 @@ export function App({
             </p>
           )}
 
+          {/*
+           * Character picker: lists every character in the read-model index so any can be opened — in
+           * particular one that arrived via cloud pull from another device (#107 slice 3b), which has a
+           * sheet but was never this device's "current" character. Shown once at least one exists.
+           */}
+          {model.characters.length > 0 && (
+            <nav
+              data-testid="character-picker"
+              aria-label="Characters"
+              style={{ marginBottom: 'var(--gr-space-md)' }}
+            >
+              <h3 style={{ marginTop: 0 }}>Characters</h3>
+              <ul
+                style={{
+                  listStyle: 'none',
+                  padding: 0,
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: 'var(--gr-space-sm)',
+                }}
+              >
+                {model.characters.map((character) => {
+                  const isOpen = character.id === sheet?.characterId;
+                  return (
+                    <li key={character.id}>
+                      <Button
+                        disabled={isOpen}
+                        onClick={() => void view.openCharacter(character.id)}
+                      >
+                        {character.name}
+                        {isOpen ? ' (open)' : ''}
+                      </Button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </nav>
+          )}
+
           {!sheet ? (
             <form
               onSubmit={(event) => {
@@ -88,7 +127,6 @@ export function App({
               <h2 data-testid="character-name" style={{ marginTop: 0 }}>
                 {sheet.name}
               </h2>
-
               <h3>Traits</h3>
               {EDITABLE_TRAITS.map((trait) => (
                 <Field key={trait.id} label={trait.id}>
@@ -111,14 +149,12 @@ export function App({
                   />
                 </Field>
               ))}
-
               <h3>Derived</h3>
               {Object.entries(sheet.derived).map(([id, value]) => (
                 <Field key={id} label={id}>
                   <span data-testid={`derived-${id}`}>{value}</span>
                 </Field>
               ))}
-
               <h3>History</h3>
               <ul data-testid="history">
                 {sheet.history.map((line, index) => (
@@ -127,8 +163,8 @@ export function App({
                   <li key={index}>{line}</li>
                 ))}
               </ul>
-
-              <Button onClick={() => void view.rollPerception()}>Roll perception</Button>
+              <Button onClick={() => void view.rollPerception()}>Roll perception</Button>{' '}
+              <Button onClick={() => void view.newCharacter()}>New character</Button>
             </section>
           )}
         </>

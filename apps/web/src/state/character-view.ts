@@ -18,7 +18,11 @@
  */
 
 import {
+  CHARACTER_INDEX,
+  CHARACTER_INDEX_KEY,
   CHARACTER_SHEET,
+  type CharacterIndex,
+  type CharacterIndexEntry,
   type CharacterSheet,
   createCampaign as createCampaignCommand,
   createCharacter as createCharacterCommand,
@@ -55,6 +59,12 @@ export interface CharacterViewModel {
   readonly ready: boolean;
   /** the currently-open character's sheet, or undefined if none has been created yet */
   readonly sheet?: CharacterSheet;
+  /**
+   * all known characters (from the read-model index) so the UI can offer a picker — notably to open a
+   * character that arrived via cloud **pull** (#107 slice 3b) and so has a sheet but is not the local
+   * "current" one. Empty until the first projection runs.
+   */
+  readonly characters: readonly CharacterIndexEntry[];
   /** the last command's error code (e.g. an out-of-bounds attribute), shown inline; cleared on success */
   readonly error?: string;
 }
@@ -83,6 +93,21 @@ export interface CharacterView {
    * @returns     resolves when the sheet is created and shown
    */
   createCharacter(name: string): Promise<void>;
+  /**
+   * Open an existing character from the index (the picker) — makes it the current character (persisted so a
+   * reload re-opens it) and shows its sheet. This is how a character pulled from another device (#107 slice
+   * 3b) becomes visible: it has a read-model sheet but was never the local "current" one.
+   * @param characterId  the id of the character to open (from {@link CharacterViewModel.characters})
+   * @returns            resolves when the sheet is shown
+   */
+  openCharacter(characterId: EntityId): Promise<void>;
+  /**
+   * Clear the current selection so the create form reappears — the "New character" affordance, so a user
+   * who already has a sheet open can start another (without it, the picker could only ever list one
+   * locally-created character). Purely local view state; creates nothing until the form is submitted.
+   * @returns resolves once the create form is shown
+   */
+  newCharacter(): Promise<void>;
   /**
    * Set one trait value on the open character (a `character.setAttribute` command).
    * @param attributeId  the trait id (e.g. `COU`, `PER`)
@@ -115,7 +140,7 @@ export function createCharacterView(composition: AppComposition): CharacterView 
   const projectionDeps = { events: deps.events, reads, rules: deps.rules };
 
   const listeners = new Set<() => void>();
-  let model: CharacterViewModel = { ready: false };
+  let model: CharacterViewModel = { ready: false, characters: [] };
 
   /** Replace the model with a patched copy and notify subscribers (the single write path). */
   function setModel(patch: Partial<CharacterViewModel>): void {
@@ -132,6 +157,12 @@ export function createCharacterView(composition: AppComposition): CharacterView 
   async function refresh(characterId: EntityId): Promise<void> {
     const sheet = await reads.get<CharacterSheet>(CHARACTER_SHEET, characterId);
     setModel({ sheet, error: undefined });
+  }
+
+  /** Re-query the character index (all known characters) and publish it for the picker. */
+  async function loadCharacters(): Promise<void> {
+    const index = await reads.get<CharacterIndex>(CHARACTER_INDEX, CHARACTER_INDEX_KEY);
+    setModel({ characters: index?.characters ?? [] });
   }
 
   /** The currently-open character id from local view state, or undefined. */
@@ -151,9 +182,11 @@ export function createCharacterView(composition: AppComposition): CharacterView 
     const pushed = push.ok ? push.value.accepted : 0;
     const pulled = pull.ok ? pull.value.pulled : 0;
     if (pulled > 0) {
-      // Cloud events landed in the local log → catch the read model up and re-publish the open sheet, so a
-      // change synced from elsewhere becomes visible (the projection is idempotent, so this is safe to re-run).
+      // Cloud events landed in the local log → catch the read model up, refresh the picker (a pulled
+      // cross-device character now appears in it), and re-publish the open sheet so a change synced from
+      // elsewhere becomes visible (the projection is idempotent, so this is safe to re-run).
       await project();
+      await loadCharacters();
       const characterId = currentCharacterId();
       if (characterId) await refresh(characterId);
     }
@@ -175,6 +208,7 @@ export function createCharacterView(composition: AppComposition): CharacterView 
       // Catch the read model up to the durable event log, then re-open the persisted character (if any) —
       // this is what makes a reloaded character reappear from OPFS.
       await project();
+      await loadCharacters();
       const characterId = currentCharacterId();
       if (characterId) await refresh(characterId);
       setModel({ ready: true });
@@ -226,7 +260,18 @@ export function createCharacterView(composition: AppComposition): CharacterView 
 
       localStorage.setItem(CHARACTER_KEY, characterId);
       await project();
+      await loadCharacters();
       await refresh(characterId);
+    },
+
+    async openCharacter(characterId) {
+      localStorage.setItem(CHARACTER_KEY, characterId);
+      await refresh(characterId);
+    },
+
+    async newCharacter() {
+      localStorage.removeItem(CHARACTER_KEY);
+      setModel({ sheet: undefined, error: undefined });
     },
 
     async setTrait(attributeId, value) {

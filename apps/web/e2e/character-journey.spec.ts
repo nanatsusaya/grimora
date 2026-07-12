@@ -40,3 +40,34 @@ test('create a character, edit a trait, roll a check — all persists across a r
   await expect(page.getByLabel('COU')).toHaveValue('14');
   await expect(page.getByTestId('derived-LP')).toHaveText('31');
 });
+
+test('the character picker lists multiple characters and switches between them (#107 slice 3c)', async ({
+  page,
+}) => {
+  await page.goto('/');
+
+  // First character.
+  await page.getByLabel('Name').fill('Brumil');
+  await page.getByRole('button', { name: 'Create character' }).click();
+  await expect(page.getByTestId('character-name')).toHaveText('Brumil');
+
+  // The picker now lists the character (this is the surface that also reveals a pulled cross-device one).
+  const picker = page.getByTestId('character-picker');
+  await expect(picker).toBeVisible();
+  await expect(picker.getByRole('button', { name: /Brumil/ })).toBeVisible();
+
+  // Start + create a second character.
+  await page.getByRole('button', { name: 'New character' }).click();
+  await page.getByLabel('Name').fill('Gerbald');
+  await page.getByRole('button', { name: 'Create character' }).click();
+  await expect(page.getByTestId('character-name')).toHaveText('Gerbald');
+
+  // Both characters are now offerable in the picker; open the first one through it.
+  await expect(picker.getByRole('button', { name: /Gerbald/ })).toBeVisible();
+  await picker.getByRole('button', { name: /Brumil/ }).click();
+  await expect(page.getByTestId('character-name')).toHaveText('Brumil');
+
+  // The opened character persists across a reload (the picker set the localStorage current pointer).
+  await page.reload();
+  await expect(page.getByTestId('character-name')).toHaveText('Brumil');
+});
