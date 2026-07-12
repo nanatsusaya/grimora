@@ -22,6 +22,8 @@ import type {
   PolicyPort,
   ProposedToolCall,
   ReadModelStorePort,
+  SyncPort,
+  SyncPushResult,
 } from '../application/ports';
 import { appError } from '../domain/errors';
 
@@ -105,6 +107,66 @@ export function createInMemoryEventStore(): InMemoryEventStore {
       seenVersions.clear();
       all.length = 0;
       position = 0;
+    },
+  };
+}
+
+/**
+ * An in-memory {@link SyncPort} modelling the **cloud server** side of ADR 0005 §3 ingestion, so the sync
+ * contract (and, later, the rebase orchestration) can be exercised without a real Postgres / `apps/api`
+ * (ADR 0017 R1). Ingestion is insert-only: dedup-by-`id` → `duplicate`; a per-aggregate optimistic check →
+ * `conflict` on a stale/gapped `version`; otherwise `accepted` with a freshly assigned cloud `position`.
+ * `pull` returns the events after a checkpoint (optionally stream-scoped). `snapshot()` exposes the
+ * ingested cloud log for test inspection — it is not part of the {@link SyncPort} contract.
+ * @returns a fresh in-memory sync port whose cloud starts empty
+ */
+export function createInMemorySyncPort(): SyncPort & {
+  /** All ingested cloud events in canonical `position` order (test inspection only, not the port). */
+  snapshot(): readonly PersistedEvent[];
+} {
+  const all: PersistedEvent[] = [];
+  const seenIds = new Set<string>();
+  const versionByAggregate = new Map<string, number>();
+  let position = 0;
+
+  return {
+    async push(events) {
+      const results: SyncPushResult[] = [];
+      for (const event of events) {
+        if (seenIds.has(event.id)) {
+          // Idempotent no-op — an offline retry re-sending an accepted event (ADR 0005 §4).
+          results.push({ id: event.id, status: 'duplicate' });
+          continue;
+        }
+        const current = versionByAggregate.get(event.aggregateId) ?? 0;
+        if (event.version !== current + 1) {
+          // Stale or gapped version → the client rebases its intent onto `current` (ADR 0005 §4).
+          results.push({ id: event.id, status: 'conflict', currentVersion: current });
+          continue;
+        }
+        const persisted: PersistedEvent = { ...event, position: ++position };
+        all.push(persisted);
+        seenIds.add(event.id);
+        versionByAggregate.set(event.aggregateId, event.version);
+        results.push({ id: event.id, status: 'accepted', position: persisted.position });
+      }
+      return ok(results);
+    },
+    async pull(sincePosition, streams) {
+      // The checkpoint advances past every event the server *considered* — including ones a stream scope
+      // (or RLS, ADR 0005 §7) filtered out — so a scoped pull never leaves a gap the client re-requests.
+      const considered = all.filter((e) => e.position > sincePosition);
+      const events = streams
+        ? considered.filter((e) => streams.includes(e.aggregateId))
+        : considered;
+      const checkpoint =
+        considered.length > 0
+          ? (considered[considered.length - 1] as PersistedEvent).position
+          : sincePosition;
+      return ok({ events, checkpoint });
+    },
+    snapshot() {
+      return all;
     },
   };
 }

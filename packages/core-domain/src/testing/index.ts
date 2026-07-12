@@ -9,6 +9,7 @@ export {
   createFixedClock,
   createInMemoryEventStore,
   createInMemoryReadModelStore,
+  createInMemorySyncPort,
   createOwnerPolicy,
   createScriptedAiProvider,
   createSequentialIdGenerator,
@@ -19,3 +20,4 @@ export {
   readModelStoreContract,
 } from './read-model-store-contract';
 export { createSyncHarness, type HarnessClient, type SyncHarness } from './sync-harness';
+export { type SyncPortContractCase, syncPortContract } from './sync-port-contract';

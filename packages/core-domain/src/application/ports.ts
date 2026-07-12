@@ -65,6 +65,77 @@ export interface ReadModelStorePort {
   clear(): Promise<void>;
 }
 
+/**
+ * Per-event outcome of a {@link SyncPort.push} (ADR 0005 §3 / ADR 0011 §7). A push is deliberately
+ * **not** all-or-nothing: each event in the batch resolves on its own, so one stale event never blocks
+ * the rest (ADR 0011 §7 "partial success"). Discriminated on `status`:
+ * - `accepted`  — ingested; the cloud assigned the canonical global `position` (ADR 0005 §3 ordering).
+ * - `duplicate` — this `id` was already ingested → an idempotent no-op, so offline retries never
+ *                 double-apply (ADR 0005 §4 idempotency-by-`id`).
+ * - `conflict`  — a stale/gapped per-aggregate `version` (another writer advanced the stream first); the
+ *                 client rebases its command intent onto `currentVersion` and re-pushes (ADR 0005 §4).
+ */
+export type SyncPushResult =
+  | {
+      readonly id: EntityId;
+      readonly status: 'accepted';
+      /** The canonical global position the cloud assigned on ingest (ADR 0005 §3 ordering). */
+      readonly position: number;
+    }
+  | {
+      readonly id: EntityId;
+      readonly status: 'duplicate';
+    }
+  | {
+      readonly id: EntityId;
+      readonly status: 'conflict';
+      /** The stream's current cloud version — the base the client rebases its intent onto (ADR 0005 §4). */
+      readonly currentVersion: number;
+    };
+
+/**
+ * One page returned by {@link SyncPort.pull}: the authorized cloud events after the client's checkpoint,
+ * plus the new checkpoint to persist. The checkpoint is a **cloud `position`**, advanced past every event
+ * the server considered even if RLS filtered some out (ADR 0005 §7), so the client never re-requests a gap.
+ */
+export interface SyncPullPage {
+  /** Cloud events (each carrying its canonical `position`) to apply idempotently by `id` (ADR 0005 §3). */
+  readonly events: readonly PersistedEvent[];
+  /** The new last-pulled cloud `position` the client persists as its pull checkpoint. */
+  readonly checkpoint: number;
+}
+
+/**
+ * Client-side offline sync (ADR 0005 §3/§4, ADR 0003 §7): insert-only event replication with the cloud as
+ * the canonical merge authority. This port is the deliberate swap point (ADR 0005 §8) — a custom HTTP
+ * adapter over `apps/api` (ADR 0011 §7) today, PowerSync/Electric conceivable later. It is **transport
+ * only**: the domain **rebase** on a `conflict` (re-applying a command's intent through the use cases) is
+ * orchestrated one layer up, not here, so the port stays a thin, engine-agnostic, testable contract.
+ */
+export interface SyncPort {
+  /**
+   * Push un-synced local events to the cloud; each event resolves independently (ADR 0011 §7 partial
+   * success), so the caller can rebase only the conflicting ones.
+   * @param events  the local events to replicate. Envelopes, not persisted events: the cloud assigns its
+   *                own `position`, so a client-local `position` is irrelevant and not part of the contract.
+   * @returns       a per-event {@link SyncPushResult} (accepted+position / duplicate / conflict), or an
+   *                `AppError` when the whole request fails (transport/auth) rather than individual events.
+   */
+  push(events: readonly EventEnvelope[]): Promise<Result<readonly SyncPushResult[], AppError>>;
+  /**
+   * Pull authorized cloud events after a checkpoint, for local idempotent application (ADR 0005 §3).
+   * @param sincePosition  **exclusive** lower bound — the client's last-pulled cloud `position` (0 = from
+   *                       the start); returns events with `position > sincePosition`.
+   * @param streams        optional restriction to specific aggregate streams; when omitted, all streams the
+   *                       actor is authorized for (RLS-bounded server-side, ADR 0005 §7).
+   * @returns              a {@link SyncPullPage} (events + the new checkpoint), or an `AppError` on failure.
+   */
+  pull(
+    sincePosition: number,
+    streams?: readonly EntityId[],
+  ): Promise<Result<SyncPullPage, AppError>>;
+}
+
 /** Injected clock (ADR 0004 §9) — the Domain never reads wall-clock time directly. */
 export interface ClockPort {
   now(): IsoTimestamp;
