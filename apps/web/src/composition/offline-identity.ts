@@ -84,6 +84,61 @@ export function getAccountBinding(
 }
 
 /**
+ * The decision of the account-binding **sync guard** ({@link evaluateSyncGuard}). `allowed: false` carries
+ * the two account ids so the UI can explain the block precisely (which account the device belongs to vs.
+ * which is signed in) without the caller re-deriving them.
+ */
+export type SyncGuardDecision =
+  | { readonly allowed: true }
+  | {
+      /** blocked — a push/pull under this session would misattribute this device's local data */
+      readonly allowed: false;
+      /** the only block reason today: the signed-in account differs from the device's bound account */
+      readonly reason: 'account-mismatch';
+      /** the account this device (its local store) is bound to (ADR 0012 §13 first-bind) */
+      readonly boundAccountId: EntityId;
+      /** the account currently signed in, whose JWT a push would stamp as `owner_id` */
+      readonly sessionAccountId: EntityId;
+    };
+
+/**
+ * The interim **account-binding sync guard** (#185, audit finding F-01, ADR 0012 §13).
+ *
+ * Why this exists: the device is bound to the **first** account it logged into (first-writer-wins, see
+ * {@link recordFirstBind}), and its local event store therefore holds that account's data (plus the
+ * pre-login device's). Cloud sync stamps the cloud `owner_id` from the **current** session's verified JWT
+ * (ADR 0024 §2). So running a push/pull while signed into a **different** account would attribute this
+ * device's local events to the wrong cloud account — and mix that account's pulled events into this store.
+ * This pure predicate is the fail-safe interim gate: on a binding/session mismatch, **sync is blocked**.
+ * The full model (per-account local partitioning or an explicit account-switch migration) is tracked in
+ * #185; deciding it in code here is out of scope.
+ *
+ * It is deliberately permissive at the edges so it never blocks *legitimate* sync:
+ *   - **no current session** → nothing to sync *as*; the transport simply won't authenticate. Allow (no-op).
+ *   - **no binding yet** → first-bind is recorded on the first session, so an unbound device is at/before
+ *     its first login; there is no *prior* account to protect. Allow (this is the normal first-login path).
+ *
+ * @param binding  the device's recorded account binding (from {@link getAccountBinding}), or `undefined`
+ * @param session  the current auth session (`{ userId }`), or `undefined` when signed out
+ * @returns        a {@link SyncGuardDecision}: `allowed`, or a blocked decision naming both accounts
+ */
+export function evaluateSyncGuard(
+  binding: AccountBinding | undefined,
+  session: { readonly userId: EntityId } | undefined,
+): SyncGuardDecision {
+  if (!binding || !session) return { allowed: true };
+  if (binding.accountId !== session.userId) {
+    return {
+      allowed: false,
+      reason: 'account-mismatch',
+      boundAccountId: binding.accountId,
+      sessionAccountId: session.userId,
+    };
+  }
+  return { allowed: true };
+}
+
+/**
  * Record the **first** bind of this device to an account (ADR 0012 §13, #120 E4). Idempotent and
  * first-writer-wins: once a binding exists it is never overwritten — so a later login as a *different*
  * account on the same device does not silently re-own the device's existing local data (that multi-account
