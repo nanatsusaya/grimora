@@ -7,6 +7,7 @@
 export { type EventStoreContractCase, eventStoreContract } from './event-store-contract';
 export {
   createFixedClock,
+  createInMemoryAuthPort,
   createInMemoryEventStore,
   createInMemoryReadModelStore,
   createInMemorySyncPort,

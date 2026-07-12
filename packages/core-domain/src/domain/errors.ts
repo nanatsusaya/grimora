@@ -7,8 +7,19 @@
  * is not built here — the skeleton uses one flat shape.
  */
 
-/** The closed error-category subset the skeleton uses (ADR 0009 §1). */
-export type ErrorCategory = 'Validation' | 'NotFound' | 'Conflict' | 'Forbidden' | 'Infrastructure';
+/**
+ * The closed error-category subset the skeleton uses (ADR 0009 §1). `Unauthorized` (401 — missing/invalid
+ * authentication, distinct from `Forbidden`/403 authorization) is drawn from the same ADR-owned set as its
+ * first consumer, the `AuthPort` sign-in path (#120), appears — the subset grows toward the full taxonomy,
+ * never beyond it.
+ */
+export type ErrorCategory =
+  | 'Validation'
+  | 'NotFound'
+  | 'Conflict'
+  | 'Unauthorized'
+  | 'Forbidden'
+  | 'Infrastructure';
 
 /** A typed, expected failure carried in `Result`'s error channel. */
 export interface AppError {
