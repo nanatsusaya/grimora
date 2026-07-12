@@ -1,13 +1,17 @@
 # @grimora/api
 
 The Grimora backend — a **modular-monolith** HTTP service and the long-lived public integration boundary
-(ADR 0003 §8, ADR 0011). This directory currently holds a **minimal walking-skeleton scaffold** that
-validates the framework and structure decisions of **ADR 0027** with running code.
+(ADR 0003 §8, ADR 0011). It began as a walking-skeleton scaffold for **ADR 0027**, and as of Phase 2 (closed
+2026-07-12) carries the **real auth→cloud-sync vertical**.
 
-> **Status: scaffold only.** The *real* backend — the Postgres sync `EventStorePort` (#107), the `AuthPort`
-> adapter, deployment, and the full endpoint surface (sync / AI proxy / online services / full reads) — is
-> **trigger-gated to Phase 3+ (cloud sync)** per ADR 0014 §3. There is nothing to deploy yet. This scaffold
-> exists to prove the choices, not to serve real traffic.
+> **Status: real (dev).** Built and live-verified against the `grimora-dev` Supabase project: the **auth
+> proxy** (`/api/v1/auth/*`, #120 — access token in the response, refresh token in an `HttpOnly` cookie,
+> ADR 0012 §5), the **sync endpoints** (`POST/GET /api/v1/sync/*`, #107 — per-event push results + owner-scoped
+> pull), the **Postgres event store** (`pg-sync-store`), and **JWKS JWT verification** with server-side
+> actor-binding (ADR 0024 §2). Not yet done: deployment/IaC (ADR 0014 §3), a `SecretsPort`, the committed
+> OpenAPI drift-check, and the AI proxy / full online-read surface. **Audit follow-ups** (server-ingress
+> trust gates, limits/pagination, structured logging) are tracked in #187/#189/#194. Runs locally; no public
+> deployment yet.
 
 ## What ADR 0027 decided (and this scaffold demonstrates)
 
@@ -38,13 +42,16 @@ wired at the composition root, and it never contains domain logic or emits domai
 handler; JWTs are **validated** at this inbound adapter (ADR 0009 §3, ADR 0011 §9) — `apps/api` does not
 issue them (the client gets them from Supabase).
 
-## Endpoints (scaffold)
+## Endpoints
 
 | Method | Path | Purpose |
 | --- | --- | --- |
 | `GET` | `/health` | Liveness. |
 | `GET` | `/api/v1/rule-systems/{id}` | Read a rule system from the plugin catalog (master-data read, ADR 0011 §1.5/§6). `404` → `problem+json`. |
 | `GET` | `/api/v1/openapi.json` | The generated OpenAPI 3.1 document (the published contract SSOT). |
+| `POST` | `/api/v1/auth/sign-in` · `/sign-out` · `/refresh` | Auth proxy over Supabase Auth (#120). Access token in the body; refresh token in an `HttpOnly` cookie (ADR 0012 §5). |
+| `POST` | `/api/v1/sync/push` | Insert-only event push, **per-event** results (accepted/duplicate/conflict, ADR 0011 §7). Bearer-authenticated; `owner_id` from the verified JWT (ADR 0024 §2). |
+| `GET` | `/api/v1/sync/pull` | Owner-scoped events after a `?since=` checkpoint. Bearer-authenticated. |
 
 ## Run it
 
@@ -57,7 +64,9 @@ bun run --filter=@grimora/api test
 
 ## Deferred to the real build (trigger-gated, ADR 0014 §3)
 
-- The Postgres sync `EventStorePort` adapter + the `POST/GET /api/v1/sync/*` endpoints (#107, ADR 0011 §7).
-- The `AuthPort` adapter (Supabase/GoTrue) + real authorization enforcement (#106, #120).
+- Deployment as a Fly.io/Hetzner container + IaC/restore tests (ADR 0014 §3); config/secrets via a
+  `SecretsPort` (ADR 0010 §4).
 - Commit + CI drift-check of the generated `openapi.json` as the published SSOT (ADR 0027 §3).
-- Config/secrets via `SecretsPort` (ADR 0010 §4); deployment as a Fly.io/Hetzner container (ADR 0014 §3).
+- The AI proxy + full online-read surface (later phases).
+- **Sync-ingress hardening** — server-side schema/provenance/privacy-classification gates (#187), request
+  limits + pull pagination (#189), and a `LoggerPort` adapter (#194) — audit follow-ups, before public deploy.
