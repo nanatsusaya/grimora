@@ -23,6 +23,21 @@
   (`scripts/arch/` + `.dependency-cruiser.cjs`, wired as the CI `arch` step). "Done" here = the
   *architecture-ADR run + the walking-skeleton gate*; the operational carry-overs (#71/#72, #76 done
   2026-07-11) continue as tracked tickets outside the closed epic (see the close-out cut below).
+- **Phase 2 (core engine / first vertical slice):** ✅ **closed 2026-07-12** (epic #10; close-out tracked in
+  #181). The rule-agnostic offline-first core is a real app, built one PR at a time against the Phase-1
+  ports: local **event store** + rebuildable **read-model projections** (#103/#104, native `bun:sqlite` +
+  browser OPFS), the **`apps/web` PWA** with the DSA5 character-sheet flow + a character picker (#105), real
+  **authorization** (#106), **auth binding** (#120, email+password over the `apps/api` proxy, ADR 0012 §5 +
+  the §13 device→account first-bind), and **cloud sync end-to-end** (#107 — `apps/api` sync endpoints +
+  Postgres event store + JWKS actor-binding; the client `@grimora/offline-sync` push **and** pull with
+  idempotent local apply; a character index/picker for a visible cross-device view), all live-verified
+  against the real `grimora-dev` Supabase project. The owner-approved **Option A** (push + pull + visible
+  cross-device view) is fully delivered; cross-device **co-editing** + the domain **rebase** are the
+  deliberately-deferred next step (#176). **Deferred/gated, carried into the backlog** (not Phase-2 blockers):
+  #176, consent #73, DSAR #74, Impressum #72, the dev "Reset all" removal #134, the architecture-backlog
+  ADRs (#15/#18/#23/#82), the docs site (#82/#83), and the follow-ups this phase surfaced (#182 worker
+  structured errors, #183 stream-scoped pull). **Phase 3** opens from this audited baseline — see #181 for
+  the close-out checklist and the Phase-3 framing.
 - **Walking skeleton built (gate passed):** ✅ #61 / PR #64 — the **first real code beyond
   `shared-types`**: provisional-v0 `packages/plugin-sdk` + `packages/core-domain` (with a
   `/testing` fakes subpath) + minimal `plugins/dsa5` + an `apps/skeleton-walk` composition root and
@@ -267,11 +282,16 @@ starting Phase 2 — but the Phase-2 slice should stay a **real vertical slice**
 web shell, authz, privacy envelope), not "core engine in general", so the enforcement catches up with the
 ADRs rather than lagging them.
 
-### Phase 2 — first slice: in progress (planning done 2026-07-10; implementation underway)
+### Phase 2 — first slice: ✅ complete (closed 2026-07-12; the log below is the record)
 
-Epic **#10** (Phase 2 — Core engine) is **unblocked** and **implementation has begun**. The planning pass
-broke #10 into a small, ordered, *testable* ticket set for **one thin vertical slice** (proportionate,
-**not** a speculative dump); the first tickets are now **merged**.
+> **Status:** Epic **#10** is **done** — the vertical slice is complete through cloud sync (see the
+> *Phase 2 … closed* bullet under *Where we stand* and the close-out epic **#181**). The detailed
+> ticket-by-ticket log below is kept as the historical record of how the slice was built; it is no longer a
+> "next up" list.
+
+Epic **#10** (Phase 2 — Core engine) was **unblocked** and **implemented** one PR at a time. The planning
+pass broke #10 into a small, ordered, *testable* ticket set for **one thin vertical slice** (proportionate,
+**not** a speculative dump).
 
 **Settled first (it shaped the ticket scoping): offline-session identity.** Who is the local user on a
 cold offline start? Owner decision: the **device is an implicit local user** until the first successful
@@ -331,8 +351,10 @@ This is why #105 and #106 below explicitly incorporate it.
     → projection → notify → re-render (ADR 0012 §3); the view reads **only** through `ReadModelStorePort`
     (ADR 0012 §2/§11). DSA5 plugin now loaded at the composition root; new plain `Button`/`Field` primitives
     in `packages/ui`; a golden-journey Playwright test (create → edit → roll → reload) is green.
-  - **#120 (E, deferred)** — auth binding (AuthPort + login + §13 first-bind); the `apps/api`-vs-direct-Supabase
-    owner decision lives here.
+  - ✅ **#120 (E) — auth binding** (PRs #169/#171/#172/#173-era E1–E4) — `AuthPort` + the `apps/api` auth
+    proxy (access token in memory, refresh token in an `HttpOnly` cookie, ADR 0012 §5) + the web login UI +
+    the ADR 0012 §13 device→account first-bind. Owner decision settled: **email+password now** over a local
+    **`apps/api`** (OAuth-only is the deferred end state). Live-verified against real Supabase.
 
 **✅ Merged this slice, since (2026-07-11):**
 - ✅ **#106 — Real authorization** (PR #141) — `createRoleMatrixPolicy`
@@ -350,12 +372,16 @@ This is why #105 and #106 below explicitly incorporate it.
   query/sync layer, not this command port. The ADR 0012 §13 unbound-device identity needed no special
   case: it already satisfies the ordinary owner check for everything it creates locally.
 
-**Still open in the slice:**
-- **#107 — Sync adapter** — insert-only replication + domain rebase vs. Supabase, defining the `SyncPort`
-  interface (not yet in code) on the existing `sync-harness`. Prereq: a cloud-reachable `EventStorePort`
-  (Postgres/Supabase) distinct from #103's local adapter (i.e. `apps/api`). Also the prerequisite for
-  resolving #106's deferred `gm`/`player`/`spectator` `actorRole` resolution (needs campaign membership).
-- **#73 / #74 — Consent / DSAR** — need `ConsentPort` / `CryptoPort`; partly blocked.
+**✅ Completed since (2026-07-12) — the slice's final piece:**
+- ✅ **#107 — Sync adapter** (PRs #168/#174/#175/#177/#178/#179/#180) — the full cloud-sync vertical:
+  `apps/api` sync endpoints + Postgres event store + JWKS actor-binding (ADR 0024 §2); the client
+  `@grimora/offline-sync` adapter with **push** + **pull** (idempotent local apply via `replicate`, on the
+  #151 idempotency fix); a character index/picker for a visible cross-device view. Owner-approved **Option
+  A** delivered; co-editing + rebase deferred to **#176**. Stream-scoped pull → **#183**.
+
+**Still deferred / gated (carried into the backlog, not slice blockers):**
+- **#176** co-editing + Reading 1↔2 identity + rebase · **#73 / #74** Consent / DSAR (need
+  `ConsentPort` / `CryptoPort`) · **#182** worker structured errors · **#183** stream-scoped pull.
 
 **Ports catalog** — [`docs/ports-catalog.md`](ports-catalog.md) tracks every port's implementation status;
 `EventStorePort` and `ReadModelStorePort` are **Real** — native `bun:sqlite` (#103/#104) *and* browser
@@ -386,43 +412,36 @@ either **trigger-gated to Phase 3+** (ADR 0014 §3) or genuinely **owner-gated**
   never-persisted needs a realtime adapter, after #107).
 - **#73 / #74 — Consent / DSAR**: blocked on `ConsentPort`/`CryptoPort`, not yet built.
 
-### What's next (2026-07-12) — the agent-ready well is dry; everything left is owner-gated
+### What's next (2026-07-12) — Phase 2 closed; Phase 3 opens from an audited baseline
 
-**Session of 2026-07-11/12 cleared the entire cross-model-review backlog + the two flagged carry-overs:**
-#147/#148/#149/#150/#152 merged; **#153 decided _and_ implemented** (ADR 0028 Accepted + the new
-`@grimora/rules-contract` leaf, PR #163); #154 closed as redundant; #151 deferred to #107; and **#71** (the
-Art. 30 RoPA + processor/transfer register + DPIA screening scaffold) merged (PR #165). **No agent-ready,
-decision-free work remains** — every open item now needs an owner decision or owner input. In rough
-priority for the next session:
+**Phase 2's vertical slice is complete** (the whole auth → cloud-sync path shipped this session: Supabase
+provisioned; #120 auth binding; #107 sync push/pull/view; #151 idempotency fix). The **close-out pass is
+tracked in #181** (docs current, completed epics closed, deferred concerns each ticketed). What remains is
+**deliberately deferred or owner-gated** — nothing agent-ready and decision-free is waiting:
 
-1. **Provision Supabase (EU region) + secrets — the single biggest unblock.** First external-network
-   integration (a CLAUDE.md "stop and ask" regardless). Unblocks **#107** (sync adapter: the `SyncPort`
-   interface + `apps/api` sync endpoints + a cloud `EventStorePort`), **#120** (auth binding, ADR 0011 §9),
-   **#106's deferred `gm`/`player`/`spectator`** role resolution (needs a campaign-membership read model),
-   **#151** (event-store duplicate-`id` idempotency — belongs on the sync `replicate` path), and the two
-   `pending-fitness-functions.test.ts` placeholders (consent gate; realtime-never-persisted).
+1. **#176 — cross-device co-editing** + the Reading 1↔2 identity resolution + the domain **rebase** on
+   conflict/divergence. The deferred half of Option A and the natural first Phase-3 feature; needs the
+   identity decision before code (a CLAUDE.md "stop and ask"). Related tech follow-ups: **#182** (worker
+   structured errors), **#183** (stream-scoped pull, ADR 0024 §4).
 2. **#72 — Impressum + ToS.** The **only already-triggered** legal item (§5 DDG plausibly triggers on the
    public repo today, ADR 0015 R2/§9); **highest non-technical priority.** Owner/legal content, not code.
-3. **#71 legal TODOs.** The RoPA scaffold is merged; it now needs the owner's legal input —
-   controller identity, signed DPAs per processor, DPF-certification/TIA per US AI provider, retention
-   periods. All **go-live-gated** (not urgent while offline-only, no processor handles real data yet).
-4. **#73 / #74 — Consent (`ConsentPort`) / DSAR (`CryptoPort`).** Blocked on those ports (not built);
-   partly gated on the same cloud/auth work.
+3. **#71 legal TODOs.** The RoPA scaffold is merged; it needs owner legal input — controller identity,
+   signed DPAs per processor, DPF/TIA per US AI provider, retention periods. **Go-live-gated** (no processor
+   handles real personal data yet — the dev Supabase holds only fake smoke data).
+4. **#73 / #74 — Consent (`ConsentPort`) / DSAR (`CryptoPort`).** Blocked on those ports (not built); the
+   cloud/auth prerequisite they shared now exists, so these become buildable once their ports are designed.
 5. **Trigger-gated ADRs** (owner decides whether the trigger has fired): **#18 ADR 0016 A11y/i18n** is the
    most plausibly-relevant now (a real UI exists); then #15 (0013 perf), #23 (0019 analytics), #82 (0026
    user docs).
-6. **Housekeeping:** **#134** — remove the dev-only "Reset all" button before the first real deployment
-   (not now).
+6. **Housekeeping:** **#134** — remove the dev-only "Reset all" button before the first real deployment.
 
-**The clearest single next step is an owner decision**, most likely either **provision Supabase** (unblocks
-the whole sync/auth vertical — the biggest functional progress) or **#72 Impressum** (the already-triggered
-legal obligation). Everything else waits on one of those, on a port not yet built, or on a trigger firing.
+**The clearest single next step is an owner decision** — most likely the **#176 identity model** (to open
+Phase 3's co-editing work) or **#72 Impressum** (the already-triggered legal obligation).
 
-✅ **Done / not open:** `apps/web` e2e in CI (#130); the `apps/api` framework/structure decision + scaffold
-(ADR 0027 / #139); real authorization (#106 / PR #141); the remaining conformance fitness functions
-(#76 / PR #143). Outstanding trigger-gated follow-up: **#134** — remove/hide the dev-only "Reset all"
-button before the first real deployment (acted on at ADR 0014 hosting), not now. Housekeeping: issue
-**#116** (#105-A) was closed 2026-07-11 — implemented and merged (PR #121), just left open until now.
+✅ **Done / not open (this phase):** the full Phase-2 vertical (see the *Phase 2 … closed* bullet above);
+**#151** closed via #178; the completed epics **#10 / #105 / #107 / #120** closed at the 2026-07-12
+close-out. Live smoke scripts (`apps/{web,api}/scripts/*-smoke.ts`) are intentionally **out of CI** (they
+need `grimora-dev` secrets) and are run manually against real Supabase — their headers document this.
 
 ### Cross-model review (2026-07-11) — derived backlog
 
