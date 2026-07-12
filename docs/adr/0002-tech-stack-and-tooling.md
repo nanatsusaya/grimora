@@ -17,8 +17,10 @@ Cost goal: maximize free tiers. The stack was confirmed with the project owner.
 - **Package manager / monorepo:** **bun** workspaces (replaces pnpm) + **Turborepo** for task
   orchestration, caching and affected-detection.
 - **Lint / format:** **biome** (single tool for lint + format, ~25× faster in CI, biome 2.x type
-  inference). Keep a **minimal ESLint config only for `eslint-plugin-react-hooks`** in React/Expo
-  packages, since biome does not fully cover that rule set yet. Prettier is not used.
+  inference). **No separate ESLint** — biome's `recommended` set enforces the React-hooks rules
+  (`useExhaustiveDependencies` + `useHookAtTopLevel`, both `error`), which is all this project needs.
+  Prettier is not used. *(Amended 2026-07-12 — originally kept a minimal `eslint-plugin-react-hooks`
+  config; biome now covers it. See Amendments.)*
 - **Backend platform:** **Supabase** (Postgres + Auth + RLS + Storage), EU region.
 - **Frontend:** Web = **Vite + React** (SPA / offline-first PWA — see ADR 0012); Mobile = React Native /
   Expo; Desktop = Tauri (wraps the web app). *(Amended 2026-07-09 — was `Next.js`; see Amendments.)*
@@ -32,12 +34,12 @@ Cost goal: maximize free tiers. The stack was confirmed with the project owner.
 - **pnpm** — solid, but bun now has first-class Expo monorepo support and is faster; no reason to
   keep pnpm. See Expo monorepo docs and Turborepo+bun+Next+Expo examples.
 - **ESLint + Prettier** — unmatched plugin ecosystem, but slower and multi-tool. For a greenfield
-  2026 project biome is recommended; we bridge the one gap (react-hooks) with a tiny ESLint config.
+  2026 project biome is recommended. *(At decision time this said the react-hooks gap needed a tiny
+  ESLint config; biome's `recommended` set now covers it — see the 2026-07-12 amendment.)*
 
 ## Consequences
 
-- Fast installs and CI; one formatter/linter config.
-- One escape-hatch ESLint config to maintain for react-hooks.
+- Fast installs and CI; one formatter/linter tool (biome) — no ESLint to maintain (Amended 2026-07-12).
 - Production API must avoid bun-only APIs to stay node-compatible.
 
 ## References
@@ -47,6 +49,14 @@ Cost goal: maximize free tiers. The stack was confirmed with the project owner.
 
 ## Amendments
 
+- **2026-07-12** — *Authorized by the project owner.* **No separate ESLint — biome covers the react-hooks
+  rules.** The original decision kept "a minimal ESLint config only for `eslint-plugin-react-hooks`" because
+  "biome does not fully cover that rule set yet." An audit follow-up (#196, finding F-18) found that (a) no
+  ESLint is in fact configured anywhere in the repo, and (b) it is **no longer needed**: biome's
+  `recommended` set — which `biome.json` uses — enforces the React-hooks rules **`useExhaustiveDependencies`**
+  and **`useHookAtTopLevel`**, both at severity `error` (verified against the biome rule docs, biome 2.x).
+  **Decision:** the tech stack is **biome-only** for lint+format+react-hooks; the minimal-ESLint provision is
+  superseded. Doc-only — no code/tooling change (there was no ESLint config to remove).
 - **2026-07-09** — *Authorized by the project owner.* **Web framework: Next.js → Vite + React.** The
   original stack listed `Web = Next.js` with **no recorded rationale or alternatives** (the
   Evaluated-alternatives section covered only pnpm and ESLint). When ADR 0012 fixed the frontend as an
