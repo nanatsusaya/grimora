@@ -26,7 +26,7 @@ import type { IsoTimestamp } from '@grimora/shared-types';
 import { createHttpAuthPort } from '../auth/http-auth-port';
 import { createWorkerBackedStores } from '../store/worker-backed-stores';
 import { createUuidV7IdGenerator } from './id-generator';
-import { ensureOfflineIdentity } from './offline-identity';
+import { bindDeviceOnFirstLogin, ensureOfflineIdentity } from './offline-identity';
 
 /** The real system clock: the production `ClockPort`. Kept out of the Domain, which stays time-injected. */
 const systemClock: ClockPort = {
@@ -61,7 +61,7 @@ export interface AppComposition {
  * @returns the wired {@link AppComposition}
  */
 export function createAppComposition(): AppComposition {
-  const { events, reads, ready, terminate } = createWorkerBackedStores();
+  const { events, reads, ready, terminate: terminateStores } = createWorkerBackedStores();
   const ids = createUuidV7IdGenerator();
 
   // Load the DSA5 rule system into the in-process plugin host so character commands + the sheet
@@ -86,7 +86,20 @@ export function createAppComposition(): AppComposition {
   // from the HttpOnly refresh cookie if present, but must never block boot or the offline path — when
   // apps/api is unreachable (pure offline) it silently no-ops and the §13 device identity carries on.
   const auth = createHttpAuthPort();
+  // Record the device → account binding on the first session (ADR 0012 §13 first-bind, #120 E4). Installed
+  // BEFORE restore() so a session recovered from the refresh cookie is bound too; idempotent thereafter.
+  const unbindFirstLogin = bindDeviceOnFirstLogin(auth, actor.userId, () => systemClock.now());
   void auth.restore();
 
-  return { deps, reads, actor, auth, ready, terminate };
+  return {
+    deps,
+    reads,
+    actor,
+    auth,
+    ready,
+    terminate() {
+      unbindFirstLogin();
+      terminateStores();
+    },
+  };
 }
