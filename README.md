@@ -98,6 +98,12 @@ public issue.
 
 ## Licensing & legal note
 
-The DSA5 plugin ships **only rule mechanics/structure** (schema, roll/formula logic). It contains
-**no** copyrighted Ulisses Spiele texts or values — users enter their own content. See
+Grimora's own code is licensed **MIT** (see [`LICENSE`](LICENSE)). The DSA5 plugin ships **only rule
+mechanics/structure** (schema, roll/formula logic). It contains **no** copyrighted Ulisses Spiele texts
+or values — users enter their own content. See
 [`docs/legal/dsa5-content-boundary.md`](docs/legal/dsa5-content-boundary.md).
+
+## Author
+
+**Daniel Wagner** · nanatsusaya-grimora@gmx.net
+© 2026 Daniel Wagner
