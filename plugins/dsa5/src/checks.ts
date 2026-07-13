@@ -14,6 +14,7 @@ import type {
   RollOutcome,
 } from '@grimora/plugin-sdk';
 import { err, ok, type Result } from '@grimora/shared-types';
+import { TALENTS } from './talents';
 
 /** The DSA5 quality-level / success outcome (the opaque plugin `value`, ADR 0020 / 0021 R3). */
 interface Dsa5CheckOutcome {
@@ -107,26 +108,17 @@ function resolveSkillCheck(
 }
 
 /**
- * The checks contributed by the plugin — each a 3d20 skill check delegating to the parameterised
- * {@link resolveSkillCheck}, differing only in its attribute triple / skill id. Perception (SGC/INT/INT,
- * PER) and Body Control (AGI/AGI/CON, BODY_CONTROL) demonstrate the shared mechanic across talents; both
- * triples are the canonical DSA5 ones (Sinnesschärfe = KL/IN/IN, Körperbeherrschung = GE/GE/KO).
+ * The checks contributed by the plugin — **one 3d20 skill check per catalog talent**, each delegating to
+ * the parameterised {@link resolveSkillCheck} with its own attribute triple + skill id. Derived from
+ * `TALENTS` (single source of truth); a talent's name key `dsa5.skill.*` becomes its check's
+ * `dsa5.check.*`. All triples are the canonical DSA5 ones from the Regel-Wiki (e.g. Perception SGC/INT/INT,
+ * Body Control AGI/AGI/CON).
  */
-export const CHECKS: readonly CheckDefinition[] = [
-  {
-    id: 'perception',
-    labelKey: 'dsa5.check.perception',
-    attributeIds: ['SGC', 'INT', 'INT'],
-    skillId: 'PER',
-    terms: [{ sides: 20, count: 3 }],
-    resolve: (input) => resolveSkillCheck(input, ['SGC', 'INT', 'INT'], 'PER'),
-  },
-  {
-    id: 'body-control',
-    labelKey: 'dsa5.check.bodyControl',
-    attributeIds: ['AGI', 'AGI', 'CON'],
-    skillId: 'BODY_CONTROL',
-    terms: [{ sides: 20, count: 3 }],
-    resolve: (input) => resolveSkillCheck(input, ['AGI', 'AGI', 'CON'], 'BODY_CONTROL'),
-  },
-];
+export const CHECKS: readonly CheckDefinition[] = TALENTS.map((talent) => ({
+  id: talent.checkId,
+  labelKey: talent.labelKey.replace('.skill.', '.check.'),
+  attributeIds: talent.attributeIds,
+  skillId: talent.id,
+  terms: [{ sides: 20, count: 3 }],
+  resolve: (input) => resolveSkillCheck(input, talent.attributeIds, talent.id),
+}));

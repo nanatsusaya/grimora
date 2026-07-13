@@ -59,7 +59,7 @@ const STARTING_TRAITS: readonly (readonly [string, number])[] = [
   ['AGI', 12],
   ['CON', 12],
   ['STR', 12],
-  ['PER', 6],
+  ['PERCEPTION', 6],
   ['BODY_CONTROL', 6],
 ];
 
@@ -120,7 +120,7 @@ export interface CharacterView {
   newCharacter(): Promise<void>;
   /**
    * Set one trait value on the open character (a `character.setAttribute` command).
-   * @param attributeId  the trait id (e.g. `COU`, `PER`)
+   * @param attributeId  the trait id (e.g. `COU`, `PERCEPTION`)
    * @param value        the new value; a rule-bounds violation surfaces as `error`, not a throw
    * @returns            resolves when the projection + sheet have updated
    */

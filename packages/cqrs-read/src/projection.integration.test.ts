@@ -78,7 +78,12 @@ async function seedRealEventStore(): Promise<{
       await setAttribute(command, { characterId, attributeId: 'SGC', value: 13, actor: owner }),
       await setAttribute(command, { characterId, attributeId: 'AGI', value: 12, actor: owner }),
       await setAttribute(command, { characterId, attributeId: 'INT', value: 13, actor: owner }),
-      await setAttribute(command, { characterId, attributeId: 'PER', value: 6, actor: owner }),
+      await setAttribute(command, {
+        characterId,
+        attributeId: 'PERCEPTION',
+        value: 6,
+        actor: owner,
+      }),
       await rollCheck(command, { characterId, checkId: 'perception', actor: owner }),
     ];
     for (const step of steps) {
@@ -105,7 +110,7 @@ describe('character-sheet projection over the real SQLite adapters (#104)', () =
 
       const sheet = await projection.reads.get<CharacterSheet>(CHARACTER_SHEET, characterId);
       expect(sheet?.name).toBe('Alrik');
-      expect(sheet?.attributes).toEqual({ COU: 14, SGC: 13, AGI: 12, INT: 13, PER: 6 });
+      expect(sheet?.attributes).toEqual({ COU: 14, SGC: 13, AGI: 12, INT: 13, PERCEPTION: 6 });
       // LP is a formula-derived value (never stored) recomputed by the interpreter (ADR 0020/0021);
       // the DSA5 skeleton formula is LP = 5 + COU + AGI (matches the golden-path walk).
       expect(sheet?.derived.LP).toBe(5 + 14 + 12);

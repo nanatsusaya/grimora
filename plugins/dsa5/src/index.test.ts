@@ -26,7 +26,7 @@ function ruleSystem(): RuleSystemDefinition {
 const ctx: BehaviourContext = { rng: { rollDie: () => 1, next: () => 0 }, log: () => {} };
 
 describe('dsa5 plugin composition', () => {
-  it('assembles the dsa5 rule system from all modules (8 attributes, 2 skills, 3 derived, 2 checks)', () => {
+  it('assembles the dsa5 rule system from all modules (8 attributes, the 59-talent catalog, 3 derived)', () => {
     const rs = ruleSystem();
     expect(rs.id).toBe('dsa5');
 
@@ -34,9 +34,14 @@ describe('dsa5 plugin composition', () => {
       acc[t.kind] = (acc[t.kind] ?? 0) + 1;
       return acc;
     }, {});
-    expect(countByKind).toEqual({ attribute: 8, skill: 2, derivedValue: 3 });
+    // 8 attributes + the 59 catalog skills + 3 derived values.
+    expect(countByKind).toEqual({ attribute: 8, skill: 59, derivedValue: 3 });
 
-    expect(rs.checks.map((c) => c.id).sort()).toEqual(['body-control', 'perception']);
+    // One check per catalog talent; spot-check that the derived checks include known ones.
+    expect(rs.checks).toHaveLength(59);
+    const checkIds = rs.checks.map((c) => c.id);
+    expect(checkIds).toContain('perception');
+    expect(checkIds).toContain('body-control');
   });
 
   it('resolves a check through the assembled rule system (perception smoke)', () => {
@@ -44,7 +49,7 @@ describe('dsa5 plugin composition', () => {
     if (!perception) throw new Error('perception check missing');
 
     const result = perception.resolve(
-      { rolls: [[5, 5, 5]], targets: { SGC: 14, INT: 13, PER: 6 } },
+      { rolls: [[5, 5, 5]], targets: { SGC: 14, INT: 13, PERCEPTION: 6 } },
       ctx,
     );
     expect(result.ok).toBe(true);

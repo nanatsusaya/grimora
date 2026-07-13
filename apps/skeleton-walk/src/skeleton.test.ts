@@ -67,7 +67,7 @@ async function driveGoldenPath(deps: CommandDeps): Promise<void> {
     ['SGC', 13],
     ['AGI', 12],
     ['INT', 13],
-    ['PER', 6],
+    ['PERCEPTION', 6],
   ] as const) {
     await setAttribute(deps, { characterId, attributeId, value, actor: owner });
   }
@@ -82,7 +82,7 @@ describe('golden path (steps 1–8)', () => {
 
     const sheet = await reads.get<CharacterSheet>(CHARACTER_SHEET, characterId);
     expect(sheet).toBeDefined();
-    expect(sheet?.attributes).toEqual({ COU: 14, SGC: 13, AGI: 12, INT: 13, PER: 6 });
+    expect(sheet?.attributes).toEqual({ COU: 14, SGC: 13, AGI: 12, INT: 13, PERCEPTION: 6 });
     // Derived value LP = 5 + COU + AGI, computed by the core formula interpreter over the plugin's AST.
     expect(sheet?.derived.LP).toBe(5 + 14 + 12);
     // History includes the roll (rendered via the plugin's outcome labelKey).
@@ -177,7 +177,7 @@ describe('offline sync (pass criteria 3 & 4)', () => {
       ['SGC', 13],
       ['AGI', 12],
       ['INT', 14],
-      ['PER', 5],
+      ['PERCEPTION', 5],
     ] as const) {
       await setAttribute(a.deps, { characterId: charId, attributeId, value, actor: userA });
     }
