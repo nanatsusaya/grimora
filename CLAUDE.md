@@ -123,9 +123,10 @@ Owner/GM/Player/Spectator, enforced in the Application layer); RLS is defense-in
   the branch. See recent history (ADR 0008/0009) for the pattern in practice.
 - **`plugins/dsa5` ships self-implemented rule mechanics/structure only** — abstract game mechanics
   aren't copyrightable, so we re-implement formulas/logic in our own code (i18n-key labels); but **no**
-  verbatim rule/flavour text, tables, artwork, official logos/look-and-feel, or **bulk data
-  compilations** (those come via user import/content packs), and DSA-derived content is **not** placed
-  under our OSS/CC license. Grimora is a **free, non-commercial fan project**; a comprehensive
+  verbatim rule/flavour text, tables, artwork, official logos/look-and-feel, or **data-rich
+  compilations** — descriptions/values/effects (those come via user import/content packs; the bare
+  mechanical **roster** — names + attribute triples + category + improvement factor — *does* ship), and
+  DSA-derived content is **not** placed under our OSS/CC license. Grimora is a **free, non-commercial fan project**; a comprehensive
   database/character-generator, any commercial turn, or shipping DSA data in the OSS repo each require
   **written Ulisses permission first** (`docs/legal/dsa5-content-boundary.md` — the binding, revised
   boundary). `rulebooks/` is git-ignored (only its README is tracked) — never commit rulebook PDFs.
