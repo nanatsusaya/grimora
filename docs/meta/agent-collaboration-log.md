@@ -976,3 +976,61 @@ item. (3) The verify-not-defer discipline ([[cross-model-review-pattern]]) scale
 across two sources: dedupe first, then a per-finding verdict against the code, then stage-calibrated
 severity, then route only the true decisions to the owner. Outputs: 12 DoR tickets (#185–#196), 3 PRs (docs
 accuracy #197, the F-01 gate #198, the ADR-0024 amendment + hardening #199), and a #107 scope-annotation.
+
+## 2026-07-13 — First parallel spec-driven subagent runs, and where central verification earned its keep
+
+**Trigger:** The owner opened Phase 3 by choosing the **public DSA5-plugin buildout** over the
+co-editing/identity work (#176), partly on a methodological basis he named directly: Phases 1–2
+(architecture-as-ADRs, a correctness-critical auth→sync slice) had given him little *distinctive* AI-agent
+experience, because both pulled toward tight, read-every-step review rather than delegation. He picked
+**parallel spec-driven subagents** as the method to practice, and the DSA5 plugin — bounded, sandboxed,
+low-blast-radius — as the vehicle that finally permits it (see [[phase3-direction-dsa5-plugin]],
+[[owner-two-plugin-public-private-dsa-vision]]).
+
+**Method:** Two parallel-subagent runs, each preceded by orchestrator-owned scaffolding so the agents
+could not collide. **Tier-1** (#211): a behaviour-neutral **module-split prep PR** first (one file per
+concern), then **3 agents** — attributes / derived values / generalized skill-check — each editing only
+its own file + test, behind a hard legal-discipline block (read the owner's private DSA5 vault as
+reference; commit only self-implemented mechanics + i18n keys, never verbatim text). The **59-talent
+catalog** (#214): I wrote the `Talent` type scaffold first, then **5 agents**, one per category page of
+the official English *The Dark Eye* Regel-Wiki, each fetching its page into a typed data file. I owned the
+scaffold, integration, the shared test files, and all end-to-end verification.
+
+**Impact — what central orchestration caught that no single agent could:**
+- **A cross-cutting coherence bug.** Tier-1 added a derived value (`Wound Threshold = round(CON/2)`)
+  referencing CON, but the app's character-creation seed set only three attributes → CON missing → the
+  value could not compute. Invisible to the derived-values agent (its file was correct) and to the app;
+  visible only at integration.
+- **A subagent data hallucination.** A catalog agent's `WebFetch` (which runs a small summariser) reported
+  "18/20 craft skills"; an independent re-fetch confirmed **17** (the enumerated list). Subagent-extracted
+  data is a first draft to verify against source, not ground truth.
+- **A flake correctly diagnosed, not blamed.** The Tier-1 golden-path e2e failed once on reload; rather
+  than assume my change broke it, I read the DOM (an auth/loading state) and re-ran → a pre-existing
+  OPFS + auth-refresh timing flake, unrelated to the change.
+- **Two errors in my *own* output, caught by the owner's external cross-checks.** (a) I had made
+  **Scriptorium** the *licensing basis* for shipping DSA content; his ChatGPT legal analysis (which I then
+  verified against Ulisses's primary sources) showed Scriptorium is a marketplace-publication programme,
+  not a web-app/OSS licence — corrected to a fan-project / mechanics-not-copyrightable basis. (b) I kept
+  the skeleton's **Perception triple (COU/AGI/INT)** and had added an unsourced **Wound Threshold**; his
+  pointer to the official English Regel-Wiki + his vault proved canonical Perception is **SGC/INT/INT** and
+  Wound Threshold is not a core derived value at all — both fixed, the fix rippling through every seed/roll
+  site.
+
+**Governance discipline:** twice I **stopped rather than proceed against the merged content-boundary doc**
+— first when leaning on Scriptorium, then when the owner asked to ship the full talent roster (the doc
+said "full talent lists → import"). Each became an explicit owner decision, and the boundary doc was
+refined *with authorization* (mechanical roster ships; descriptions/values stay import-only), not silently
+reinterpreted — the 2026-07-09 provenance lesson, now applied to a doc I had written days earlier.
+
+**Lessons learned:** (1) **Parallel subagents scale the surface area of work; quality comes from the
+orchestrator.** Agents are strong on a bounded single file behind a sharp spec, but structurally blind to
+cross-cutting coherence (the CON seed) and to "is this failure a flake?" — so good specs + one file per
+agent + a hard discipline block + the orchestrator owning the scaffold, the shared files, integration and
+end-to-end verification is what makes the pattern safe. The delegation is real; the review just moves from
+per-step to per-integration. (2) **A subagent's web extraction needs the same verify-not-defer treatment
+as an external review** ([[cross-model-review-pattern]]): produce-then-verify against the source caught
+the "20 craft skills" miscount. (3) **Primary sources settle rules-accuracy where generalization is subtly
+wrong** — I would have shipped Perception's wrong attributes on my own; the owner's official-wiki
+cross-check is exactly the instrument that catches an *inherited* error that looks settled. (4) **Never
+quietly read a merged governance doc in the permissive direction** — surface the boundary decision and
+amend with authorization, even when the owner's request implies the permissive reading.
