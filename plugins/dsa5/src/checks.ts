@@ -29,6 +29,17 @@ function die(pips: readonly number[], index: number): number {
 }
 
 /**
+ * The DSA5 quality level from the skill points left over after covering the shortfalls: every 3 leftover
+ * points raise the QL, a bare success (0 left) is still QL 1, and the QL is capped at **6** (the DSA5
+ * scale is 1–6). Kept separate so the cap/step rule is stated once and reused by the success paths.
+ * @param remaining  skill points left after offsetting shortfalls (only meaningful when ≥ 0)
+ * @returns          the quality level, clamped to 1…6
+ */
+function qualityLevel(remaining: number): number {
+  return Math.min(6, Math.max(1, Math.ceil(remaining / 3)));
+}
+
+/**
  * The DSA5 skill-check mechanic, *parameterised* over which three attributes and which skill it tests
  * (this is the *plugin's* mechanic, ADR 0020): roll three d20 under the three given attribute ratings;
  * each die exceeding its attribute is a shortfall; the skill's points offset the total. Success iff
@@ -74,7 +85,7 @@ function resolveSkillCheck(
   } else if (ones >= 2) {
     outcome = {
       success: true,
-      quality: Math.max(1, Math.ceil(remaining / 3)),
+      quality: qualityLevel(remaining),
       critical: true,
       botch: false,
     };
@@ -82,7 +93,7 @@ function resolveSkillCheck(
     const success = remaining >= 0;
     outcome = {
       success,
-      quality: success ? Math.max(1, Math.ceil(remaining / 3)) : 0,
+      quality: success ? qualityLevel(remaining) : 0,
       critical: false,
       botch: false,
     };
@@ -97,17 +108,18 @@ function resolveSkillCheck(
 
 /**
  * The checks contributed by the plugin — each a 3d20 skill check delegating to the parameterised
- * {@link resolveSkillCheck}, differing only in its attribute triple / skill id. Perception (COU/AGI/INT,
- * PER) and Body Control (AGI/AGI/CON, BODY_CONTROL) demonstrate the shared mechanic across talents.
+ * {@link resolveSkillCheck}, differing only in its attribute triple / skill id. Perception (SGC/INT/INT,
+ * PER) and Body Control (AGI/AGI/CON, BODY_CONTROL) demonstrate the shared mechanic across talents; both
+ * triples are the canonical DSA5 ones (Sinnesschärfe = KL/IN/IN, Körperbeherrschung = GE/GE/KO).
  */
 export const CHECKS: readonly CheckDefinition[] = [
   {
     id: 'perception',
     labelKey: 'dsa5.check.perception',
-    attributeIds: ['COU', 'AGI', 'INT'],
+    attributeIds: ['SGC', 'INT', 'INT'],
     skillId: 'PER',
     terms: [{ sides: 20, count: 3 }],
-    resolve: (input) => resolveSkillCheck(input, ['COU', 'AGI', 'INT'], 'PER'),
+    resolve: (input) => resolveSkillCheck(input, ['SGC', 'INT', 'INT'], 'PER'),
   },
   {
     id: 'body-control',

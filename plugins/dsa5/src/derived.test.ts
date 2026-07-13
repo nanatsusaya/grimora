@@ -14,7 +14,6 @@
  * `f.round` rounds ties away from zero, matching DSA5's commercial rounding of derived values):
  *   - DODGE = round(AGI / 2):            AGI 12 → 6;  AGI 13 → round(6.5) = 7;  AGI 15 → round(7.5) = 8
  *   - INI   = round((COU + AGI) / 2):    COU 13 + AGI 12 → round(12.5) = 13;  COU 15 + AGI 12 → round(13.5) = 14
- *   - WT    = round(CON / 2):            CON 11 → round(5.5) = 6;  CON 12 → 6
  * An interpreter-backed evaluation of these belongs in a `core-domain` test (that package owns the
  * interpreter); a plugin cannot import it without breaking the ADR 0003 dependency rule.
  */
@@ -54,8 +53,8 @@ function traitRef(traitId: string): FormulaAst {
 }
 
 describe('DSA5 DERIVED_VALUES', () => {
-  it('registers exactly LP plus the three pure-attribute derived values, all kind derivedValue', () => {
-    expect(DERIVED_VALUES.map((d) => d.id)).toEqual(['LP', 'DODGE', 'INI', 'WT']);
+  it('registers exactly LP plus the two pure-attribute derived values, all kind derivedValue', () => {
+    expect(DERIVED_VALUES.map((d) => d.id)).toEqual(['LP', 'DODGE', 'INI']);
     for (const d of DERIVED_VALUES) expect(d.kind).toBe('derivedValue');
   });
 
@@ -81,11 +80,5 @@ describe('DSA5 DERIVED_VALUES', () => {
     expect(ini.kind === 'derivedValue' && ini.formula).toEqual(
       halfRounded({ kind: 'add', left: traitRef('COU'), right: traitRef('AGI') }),
     );
-  });
-
-  it('WT = round(CON / 2) — CON 11 → round(5.5) = 6', () => {
-    const wt = derived('WT');
-    expect(wt.labelKey).toBe('dsa5.derived.woundThreshold');
-    expect(wt.kind === 'derivedValue' && wt.formula).toEqual(halfRounded(traitRef('CON')));
   });
 });

@@ -30,7 +30,7 @@ const ctx: BehaviourContext = { rng: { rollDie: () => 1, next: () => 0 }, log: (
 describe('dsa5 skill-check resolver (via registered checks)', () => {
   const perception = () => check('perception');
   const bodyControl = () => check('body-control');
-  const targets = { COU: 14, AGI: 12, INT: 13, CON: 13, PER: 6, BODY_CONTROL: 6 };
+  const targets = { SGC: 14, INT: 13, AGI: 12, CON: 13, PER: 6, BODY_CONTROL: 6 };
 
   it('succeeds with no shortfall (all dice under the attributes)', () => {
     const result = perception().resolve({ rolls: [[5, 5, 5]], targets }, ctx);
@@ -85,10 +85,10 @@ describe('dsa5 skill-check resolver (via registered checks)', () => {
 
   it('resolves Body Control against AGI/AGI/CON, a different triple than Perception', () => {
     // Same dice + targets, but only the AGI/AGI/CON triple is high enough to pass: Body Control
-    // succeeds while Perception (COU/AGI/INT, with COU=INT=1) fails — proving the resolver reads the
+    // succeeds while Perception (SGC/INT/INT, with SGC=INT=1) fails — proving the resolver reads the
     // per-check attribute triple rather than a hardcoded one.
     const rolls = [[10, 10, 10]] as const;
-    const distinguishing = { COU: 1, AGI: 18, INT: 1, CON: 18, PER: 0, BODY_CONTROL: 0 };
+    const distinguishing = { SGC: 1, INT: 1, AGI: 18, CON: 18, PER: 0, BODY_CONTROL: 0 };
 
     const bc = bodyControl().resolve({ rolls, targets: distinguishing }, ctx);
     expect(bc.ok).toBe(true);

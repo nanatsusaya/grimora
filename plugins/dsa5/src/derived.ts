@@ -12,12 +12,14 @@ import { f, type TraitDefinition } from '@grimora/plugin-sdk';
  * i18n-key labels, no rulebook text or proprietary values — see the legal boundary), re-evaluated by
  * the core formula interpreter (ADR 0021) whenever an input attribute changes.
  *
- * DODGE/INI/WT depend on **attributes only** (no species base value, no advantage/disadvantage modifier),
- * which is precisely why they are content-boundary-safe to ship here: they encode a generic arithmetic
- * relationship, not a proprietary per-species table. Values that carry a species-derived base (life
- * energy proper, astral/karma energy, soul power, toughness, speed) are intentionally **not** modelled
- * here. All three use `f.round` — DSA5 rounds derived values commercially (ties away from zero, e.g.
- * an odd attribute halved rounds up: 15/2 → 8), which is exactly the tie rule `f.round` implements.
+ * DODGE and INI depend on **attributes only** (no species base value, no advantage/disadvantage modifier),
+ * which is precisely why they are content-boundary-safe to ship here and why they are the two derived
+ * values we model now: they encode a generic arithmetic relationship, not a proprietary per-species
+ * table. Values that carry a species-derived base (life energy proper, astral/karma energy, soul power,
+ * toughness, speed) are intentionally **not** modelled here. Both formulas match the official DSA5
+ * calculations verbatim (Dodge = Agility / 2, Initiative = (Courage + Agility) / 2) and use `f.round` —
+ * DSA5 rounds derived values commercially (ties away from zero, e.g. 15 / 2 → 8), which is exactly the
+ * tie rule `f.round` implements.
  */
 export const DERIVED_VALUES: readonly TraitDefinition[] = [
   {
@@ -39,13 +41,5 @@ export const DERIVED_VALUES: readonly TraitDefinition[] = [
     id: 'INI',
     labelKey: 'dsa5.derived.initiative',
     formula: f.round(f.div(f.add(f.trait('COU'), f.trait('AGI')), f.const(2))),
-  },
-  {
-    // Wound Threshold (Wundschwelle/WT): round(CON / 2). Only the pure constitution-derived part is
-    // modelled — the optional wound rule's species/advantage modifiers are deliberately out of scope.
-    kind: 'derivedValue',
-    id: 'WT',
-    labelKey: 'dsa5.derived.woundThreshold',
-    formula: f.round(f.div(f.trait('CON'), f.const(2))),
   },
 ];

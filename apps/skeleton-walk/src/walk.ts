@@ -85,6 +85,7 @@ async function main(): Promise<void> {
   );
   for (const [attributeId, value] of [
     ['COU', 14],
+    ['SGC', 13],
     ['AGI', 12],
     ['INT', 13],
     ['PER', 6],
@@ -160,6 +161,7 @@ async function walkSync(): Promise<void> {
   );
   for (const [attributeId, value] of [
     ['COU', 13],
+    ['SGC', 13],
     ['AGI', 12],
     ['INT', 14],
     ['PER', 5],

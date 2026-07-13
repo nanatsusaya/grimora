@@ -44,11 +44,11 @@ const RULE_SYSTEM_ID = 'dsa5';
 
 /**
  * Starting trait values stamped on a freshly-created character so the sheet immediately shows the full
- * attribute set and every computed derived value. All **eight** DSA5 attributes are seeded (not just the
- * three the earlier skeleton set), so that derived values referencing any of them — e.g. Wound Threshold
- * = round(CON / 2) — actually resolve rather than showing a missing input. Values sit within the DSA5
- * bounds (attributes 8–20, skills 0–25); a real character-creation flow is out of scope for this minimal
- * milestone.
+ * attribute set and every computed derived value / usable check. All **eight** DSA5 attributes are seeded
+ * (not just the three the earlier skeleton set), so that any trait referencing them resolves rather than
+ * showing a missing input — e.g. the Body Control check reads CON, which the three-attribute skeleton
+ * never set. Values sit within the DSA5 bounds (attributes 8–20, skills 0–25); a real character-creation
+ * flow is out of scope for this minimal milestone.
  */
 const STARTING_TRAITS: readonly (readonly [string, number])[] = [
   ['COU', 12],
