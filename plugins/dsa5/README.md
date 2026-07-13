@@ -5,12 +5,18 @@ that spans **different trait kinds** (attributes, a formula-derived value, a ski
 **check** with the DSA5 dice mechanic (three d20, roll-under, skill points offset shortfalls) — ADR 0022
 R2. Broader DSA5 content is Phase-3 work, gated by the frozen plugin-SDK v0 (ADR 0025).
 
-## Legal boundary (`docs/legal/dsa5-content-boundary.md`)
+## Legal boundary (`docs/legal/dsa5-content-boundary.md` — binding, revised 2026-07-13)
 
-Mechanics/structure **only** — **no** copyrighted Ulisses Spiele text or values. Trait ids are abstract
-(`COU`, `AGI`, `INT`, `PER`, `LP`); display names are **i18n keys** (`dsa5.attr.courage`, …), not book
-text; the 3d20 roll-under mechanic is the system's rule, not copyrightable expression. No stat blocks,
-tables, or rulebook prose. Proprietary values/texts are user-provided content packs (ADR 0006 §8).
+**Self-implemented rule mechanics/structure only.** Abstract game mechanics aren't copyrightable, so the
+formulas/logic are re-implemented as our own code; trait ids stay abstract (`COU`, `AGI`, `INT`, `PER`,
+`LP`) and display names are **i18n keys** (`dsa5.attr.courage`, …), never embedded rulebook prose; the
+3d20 roll-under mechanic is the system's rule, not protected expression. **Excluded:** verbatim
+rule/flavour text, tables, artwork, official logos/look-and-feel, bulk data compilations (full
+spell/talent/item lists → user import/content packs, ADR 0006 §8), and DSA-derived content under our
+OSS/CC license. Grimora is a **free, non-commercial fan project**; the official **DSA Regel-Wiki**
+(<https://dsa.ulisses-regelwiki.de/>) is a *reference to link to*, not a data source. A comprehensive
+database/generator, any commercial turn, or shipping DSA data in the repo need **written Ulisses
+permission first** (see the boundary doc's *Written permission required* gates).
 
 ## Dependency position
 
