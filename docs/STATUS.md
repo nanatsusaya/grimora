@@ -566,9 +566,11 @@ Repeatable procedures under `.claude/skills/` (checked into the repo, invoked as
 - **Accepted ADRs** may only be changed with **explicit owner authorization** → recorded in the
   *Amendments* section (ADR 0001).
 - **Bugs before features.**
-- **DSA5 plugin:** rule mechanics/structure + functional rule values from the official **DSA Regel-Wiki**
-  (Scriptorium helper-program posture) — **no** verbatim flavour prose, artwork, or non-Regel-Wiki
-  sources; Scriptorium attribution required (`docs/legal/dsa5-content-boundary.md`, revised 2026-07-13).
+- **DSA5 plugin:** self-implemented rule mechanics/structure only (mechanics aren't copyrightable) —
+  **no** verbatim rule/flavour text, tables, artwork, logos/look-and-feel, or bulk data compilations
+  (those via user import); free non-commercial fan project; comprehensive DB/generator, commercial turn,
+  or DSA data in the OSS repo need written Ulisses permission first
+  (`docs/legal/dsa5-content-boundary.md`, revised 2026-07-13).
 - **`rulebooks/`** is git-ignored (only the README tracked) — **never** commit rulebook PDFs.
 - **Secrets/API keys** only at the composition root, never in Domain/plugins/logs.
 - **AI:** external providers only after consent; AI has no privileged path (tools = public API).

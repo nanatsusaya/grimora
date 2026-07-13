@@ -7,14 +7,16 @@ R2. Broader DSA5 content is Phase-3 work, gated by the frozen plugin-SDK v0 (ADR
 
 ## Legal boundary (`docs/legal/dsa5-content-boundary.md` — binding, revised 2026-07-13)
 
-Rule **mechanics/structure + functional rule values** sourced from the official **DSA Regel-Wiki**
-(<https://dsa.ulisses-regelwiki.de/>) are permitted: Grimora is a "Hilfsprogramm/Charaktergenerator",
-which the Scriptorium content guidelines explicitly exclude from the "digital games" prohibition, and
-the Regel-Wiki is Ulisses's sanctioned rules source. Trait ids stay abstract (`COU`, `AGI`, `INT`,
-`PER`, `LP`); display names are **i18n keys** (`dsa5.attr.courage`, …), never embedded prose; the 3d20
-roll-under mechanic is the system's rule, not copyrightable expression. **Excluded:** verbatim
-descriptive/flavour prose, artwork, and non-Regel-Wiki sources (DSA4.1, book PDFs); **Scriptorium
-attribution** is required. Bulk third-party data comes via user content packs / import (ADR 0006 §8).
+**Self-implemented rule mechanics/structure only.** Abstract game mechanics aren't copyrightable, so the
+formulas/logic are re-implemented as our own code; trait ids stay abstract (`COU`, `AGI`, `INT`, `PER`,
+`LP`) and display names are **i18n keys** (`dsa5.attr.courage`, …), never embedded rulebook prose; the
+3d20 roll-under mechanic is the system's rule, not protected expression. **Excluded:** verbatim
+rule/flavour text, tables, artwork, official logos/look-and-feel, bulk data compilations (full
+spell/talent/item lists → user import/content packs, ADR 0006 §8), and DSA-derived content under our
+OSS/CC license. Grimora is a **free, non-commercial fan project**; the official **DSA Regel-Wiki**
+(<https://dsa.ulisses-regelwiki.de/>) is a *reference to link to*, not a data source. A comprehensive
+database/generator, any commercial turn, or shipping DSA data in the repo need **written Ulisses
+permission first** (see the boundary doc's *Written permission required* gates).
 
 ## Dependency position
 
