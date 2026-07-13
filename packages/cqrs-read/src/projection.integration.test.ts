@@ -75,6 +75,7 @@ async function seedRealEventStore(): Promise<{
         actor: owner,
       }),
       await setAttribute(command, { characterId, attributeId: 'COU', value: 14, actor: owner }),
+      await setAttribute(command, { characterId, attributeId: 'SGC', value: 13, actor: owner }),
       await setAttribute(command, { characterId, attributeId: 'AGI', value: 12, actor: owner }),
       await setAttribute(command, { characterId, attributeId: 'INT', value: 13, actor: owner }),
       await setAttribute(command, { characterId, attributeId: 'PER', value: 6, actor: owner }),
@@ -104,12 +105,12 @@ describe('character-sheet projection over the real SQLite adapters (#104)', () =
 
       const sheet = await projection.reads.get<CharacterSheet>(CHARACTER_SHEET, characterId);
       expect(sheet?.name).toBe('Alrik');
-      expect(sheet?.attributes).toEqual({ COU: 14, AGI: 12, INT: 13, PER: 6 });
+      expect(sheet?.attributes).toEqual({ COU: 14, SGC: 13, AGI: 12, INT: 13, PER: 6 });
       // LP is a formula-derived value (never stored) recomputed by the interpreter (ADR 0020/0021);
       // the DSA5 skeleton formula is LP = 5 + COU + AGI (matches the golden-path walk).
       expect(sheet?.derived.LP).toBe(5 + 14 + 12);
-      // create + 4 attribute sets + 1 roll = 6 history lines folded in.
-      expect(sheet?.history.length).toBe(6);
+      // create + 5 attribute sets + 1 roll = 7 history lines folded in.
+      expect(sheet?.history.length).toBe(7);
 
       // The checkpoint advanced to the last event's position (a non-zero, positive high-water mark).
       const checkpoint = await projection.reads.getCheckpoint(CHARACTER_SHEET);
@@ -171,8 +172,8 @@ describe('character-sheet projection over the real SQLite adapters (#104)', () =
       await runCharacterSheetProjection(projection);
 
       const after = await projection.reads.get<CharacterSheet>(CHARACTER_SHEET, characterId);
-      // Without the per-sheet `lastPosition` watermark this re-appended every history line (6 → 12).
-      expect(after?.history.length).toBe(6);
+      // Without the per-sheet `lastPosition` watermark this re-appended every history line (7 → 14).
+      expect(after?.history.length).toBe(7);
       expect(after).toEqual(before);
       expect(await projection.reads.getCheckpoint(CHARACTER_SHEET)).toBe(head);
     } finally {

@@ -23,9 +23,16 @@ test('create a character, edit a trait, roll a check — all persists across a r
   await expect(page.getByTestId('character-name')).toHaveText('Brumil');
   await expect(page.getByTestId('derived-LP')).toHaveText('29');
 
+  // The Tier-1 pure-attribute derived values compute through the same core interpreter (all eight
+  // attributes seed to 12): DODGE = round(AGI/2) = 6, INI = round((COU+AGI)/2) = 12.
+  await expect(page.getByTestId('derived-DODGE')).toHaveText('6');
+  await expect(page.getByTestId('derived-INI')).toHaveText('12');
+
   // Edit a trait → command → projection → UI re-renders with the recomputed derived value (5 + 14 + 12 = 31).
   await page.getByLabel('COU').fill('14');
   await expect(page.getByTestId('derived-LP')).toHaveText('31');
+  // INI also depends on COU, so it recomputes reactively too: round((14 + 12) / 2) = 13.
+  await expect(page.getByTestId('derived-INI')).toHaveText('13');
 
   // Roll a check → a new history line is appended.
   const historyLines = page.getByTestId('history').locator('li');

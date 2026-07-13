@@ -19,4 +19,12 @@ export const SKILLS: readonly TraitDefinition[] = [
     max: 25,
     defaultValue: 0,
   },
+  {
+    kind: 'skill',
+    id: 'BODY_CONTROL',
+    labelKey: 'dsa5.skill.bodyControl',
+    min: 0,
+    max: 25,
+    defaultValue: 0,
+  },
 ];

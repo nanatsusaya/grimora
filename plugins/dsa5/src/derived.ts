@@ -8,8 +8,18 @@
 import { f, type TraitDefinition } from '@grimora/plugin-sdk';
 
 /**
- * Derived values contributed by the plugin. Life points = 5 + COU + AGI — a self-implemented mechanic
- * (abstract ids, no rulebook text; see the legal boundary), re-evaluated by the core interpreter.
+ * Derived values contributed by the plugin. Each is a self-implemented mechanic (abstract trait ids,
+ * i18n-key labels, no rulebook text or proprietary values — see the legal boundary), re-evaluated by
+ * the core formula interpreter (ADR 0021) whenever an input attribute changes.
+ *
+ * DODGE and INI depend on **attributes only** (no species base value, no advantage/disadvantage modifier),
+ * which is precisely why they are content-boundary-safe to ship here and why they are the two derived
+ * values we model now: they encode a generic arithmetic relationship, not a proprietary per-species
+ * table. Values that carry a species-derived base (life energy proper, astral/karma energy, soul power,
+ * toughness, speed) are intentionally **not** modelled here. Both formulas match the official DSA5
+ * calculations verbatim (Dodge = Agility / 2, Initiative = (Courage + Agility) / 2) and use `f.round` —
+ * DSA5 rounds derived values commercially (ties away from zero, e.g. 15 / 2 → 8), which is exactly the
+ * tie rule `f.round` implements.
  */
 export const DERIVED_VALUES: readonly TraitDefinition[] = [
   {
@@ -17,5 +27,19 @@ export const DERIVED_VALUES: readonly TraitDefinition[] = [
     id: 'LP',
     labelKey: 'dsa5.derived.lifePoints',
     formula: f.add(f.add(f.const(5), f.trait('COU')), f.trait('AGI')),
+  },
+  {
+    // Dodge (Ausweichen/AW): round(AGI / 2). Pure agility-derived defence value; no species base.
+    kind: 'derivedValue',
+    id: 'DODGE',
+    labelKey: 'dsa5.derived.dodge',
+    formula: f.round(f.div(f.trait('AGI'), f.const(2))),
+  },
+  {
+    // Initiative (INI): round((COU + AGI) / 2). Turn-order value from the courage+agility average.
+    kind: 'derivedValue',
+    id: 'INI',
+    labelKey: 'dsa5.derived.initiative',
+    formula: f.round(f.div(f.add(f.trait('COU'), f.trait('AGI')), f.const(2))),
   },
 ];
