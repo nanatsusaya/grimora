@@ -88,7 +88,7 @@ async function main(): Promise<void> {
     ['SGC', 13],
     ['AGI', 12],
     ['INT', 13],
-    ['PER', 6],
+    ['PERCEPTION', 6],
   ] as const) {
     ensureOk(
       await setAttribute(deps, { characterId, attributeId, value, actor: owner }),
@@ -164,7 +164,7 @@ async function walkSync(): Promise<void> {
     ['SGC', 13],
     ['AGI', 12],
     ['INT', 14],
-    ['PER', 5],
+    ['PERCEPTION', 5],
   ] as const) {
     ensureOk(
       await setAttribute(a.deps, { characterId: charId, attributeId, value, actor: userA }),

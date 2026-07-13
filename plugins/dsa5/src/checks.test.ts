@@ -30,7 +30,7 @@ const ctx: BehaviourContext = { rng: { rollDie: () => 1, next: () => 0 }, log: (
 describe('dsa5 skill-check resolver (via registered checks)', () => {
   const perception = () => check('perception');
   const bodyControl = () => check('body-control');
-  const targets = { SGC: 14, INT: 13, AGI: 12, CON: 13, PER: 6, BODY_CONTROL: 6 };
+  const targets = { SGC: 14, INT: 13, AGI: 12, CON: 13, PERCEPTION: 6, BODY_CONTROL: 6 };
 
   it('succeeds with no shortfall (all dice under the attributes)', () => {
     const result = perception().resolve({ rolls: [[5, 5, 5]], targets }, ctx);
@@ -45,8 +45,8 @@ describe('dsa5 skill-check resolver (via registered checks)', () => {
 
   it('fails when the shortfall exceeds the skill points', () => {
     // Every die over its attribute (but no two 20s/1s, so this is the plain-failure branch), and
-    // PER=0 cannot offset the shortfall.
-    const lean = { ...targets, PER: 0 };
+    // PERCEPTION=0 cannot offset the shortfall.
+    const lean = { ...targets, PERCEPTION: 0 };
     const result = perception().resolve({ rolls: [[20, 19, 18]], targets: lean }, ctx);
     expect(result.ok).toBe(true);
     if (result.ok) {
@@ -88,7 +88,7 @@ describe('dsa5 skill-check resolver (via registered checks)', () => {
     // succeeds while Perception (SGC/INT/INT, with SGC=INT=1) fails — proving the resolver reads the
     // per-check attribute triple rather than a hardcoded one.
     const rolls = [[10, 10, 10]] as const;
-    const distinguishing = { SGC: 1, INT: 1, AGI: 18, CON: 18, PER: 0, BODY_CONTROL: 0 };
+    const distinguishing = { SGC: 1, INT: 1, AGI: 18, CON: 18, PERCEPTION: 0, BODY_CONTROL: 0 };
 
     const bc = bodyControl().resolve({ rolls, targets: distinguishing }, ctx);
     expect(bc.ok).toBe(true);
