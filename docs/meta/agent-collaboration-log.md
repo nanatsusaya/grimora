@@ -1034,3 +1034,39 @@ wrong** — I would have shipped Perception's wrong attributes on my own; the ow
 cross-check is exactly the instrument that catches an *inherited* error that looks settled. (4) **Never
 quietly read a merged governance doc in the permissive direction** — surface the boundary decision and
 amend with authorization, even when the owner's request implies the permissive reading.
+
+## 2026-07-13 — Owner named the product end-goal: the platform is *also* a wanted personal assistant, not only the AI-agent vehicle
+
+**Trigger:** Winding the DSA5 work down, the owner articulated what he wants to *achieve* with Grimora — a
+real **personal DSA campaign assistant** (AI agents that build enemies/NPCs, keep adventure logs, offer
+creative ideas), realised as a **two-plugin public/private split**: this public mechanics-only project + a
+separate **private** DSA worldbuilding knowledge base + a planned **private, content-rich plugin** on the
+SDK. He asked to record it, to reference the second (private) project, and — "auf jeden Fall" — to log it
+here.
+
+**Action / method:** Two threads. (1) **Placement:** he offered STATUS / CLAUDE / README; I recommended
+the *canonical* home — `docs/vision.md` — as primary (with a CLAUDE.md "What this is" pointer and a
+public-appropriate README line), because product vision belongs in the vision doc, not the state file or
+the operating-rules file. He took all three plus `vision.md`. (2) **Public-repo sensitivity:** before
+writing, I flagged that STATUS / CLAUDE / README / this log are all in the **public** repo while the second
+project is **private** — so I referenced it **conceptually, no URL**, and avoided any "ships the full
+copyrighted texts" framing that, out of context, could read as infringement-planning (the plan is private,
+personal, non-distributed use, which the content boundary already covers). He chose exactly that.
+
+**Impact:** `docs/vision.md` gained a **North Star** section (PR #218) framing the assistant end-goal + the
+public/private split as the plugin architecture (ADR 0006/0020) working as intended; CLAUDE.md + README
+carry pointers; STATUS records the second project as handoff context; a `project` memory
+([[owner-two-plugin-public-private-dsa-vision]]) already held the operational version. This **nuances this
+log's own intro**: the RPG platform is not *only* the vehicle for the owner's AI-agent skill-building — it
+is a genuinely wanted deliverable, and that end-goal is the *driver* of the architecture (the strict
+content boundary and the SDK contract exist precisely because a private content plugin must consume the
+public surface).
+
+**Lessons learned:** (1) When documenting an owner's vision, the **canonical doc** (here `vision.md`) is the
+primary home; STATUS is state and CLAUDE is operating rules — putting vision there is a category error even
+when it is offered. (2) A **public repo referencing a private project** is a "surface it first" moment:
+describe the *pattern* (a private plugin on the public SDK, for personal use) conceptually, keep private
+URLs + copyrighted-content framing out of public docs, and let the owner set the exact exposure, informed.
+(3) The owner's end-goal is worth capturing not just as product scope but as **collaboration context** — it
+explains *why* he chose the DSA5-plugin direction and the parallel-subagent practice (see the sibling
+2026-07-13 entry), which a future agent would otherwise read as arbitrary.
