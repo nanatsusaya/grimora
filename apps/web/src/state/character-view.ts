@@ -43,15 +43,24 @@ const CHARACTER_KEY = 'grimora.current-character';
 const RULE_SYSTEM_ID = 'dsa5';
 
 /**
- * Starting trait values stamped on a freshly-created character so the sheet immediately shows attributes
- * and a computed derived value (DSA5 LP = 5 + COU + AGI). Within the DSA5 bounds (attributes 8–20, the
- * PER skill 0–25); a real character-creation flow is out of scope for this minimal milestone.
+ * Starting trait values stamped on a freshly-created character so the sheet immediately shows the full
+ * attribute set and every computed derived value. All **eight** DSA5 attributes are seeded (not just the
+ * three the earlier skeleton set), so that derived values referencing any of them — e.g. Wound Threshold
+ * = round(CON / 2) — actually resolve rather than showing a missing input. Values sit within the DSA5
+ * bounds (attributes 8–20, skills 0–25); a real character-creation flow is out of scope for this minimal
+ * milestone.
  */
 const STARTING_TRAITS: readonly (readonly [string, number])[] = [
   ['COU', 12],
-  ['AGI', 12],
+  ['SGC', 12],
   ['INT', 12],
+  ['CHA', 12],
+  ['DEX', 12],
+  ['AGI', 12],
+  ['CON', 12],
+  ['STR', 12],
   ['PER', 6],
+  ['BODY_CONTROL', 6],
 ];
 
 /** The immutable snapshot the UI renders. A new object is built only on an actual state change. */
