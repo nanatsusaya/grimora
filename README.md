@@ -88,6 +88,14 @@ Every significant technology/architecture decision is recorded as an ADR in
 [`docs/adr/`](docs/adr/). The living project-state snapshot is [`docs/STATUS.md`](docs/STATUS.md);
 legal boundaries (e.g. DSA5 content) live in [`docs/legal/`](docs/legal/).
 
+## Contributing & conduct
+
+Grimora is currently developed by its owner with AI agents and is **not yet open to outside
+contributions**. The working conventions (branch/PR flow, Conventional Commits, Definition of Done) live
+in [`CLAUDE.md`](CLAUDE.md); all interaction is governed by the [Code of Conduct](CODE_OF_CONDUCT.md).
+For security issues, use **private vulnerability reporting** (see [`SECURITY.md`](SECURITY.md)) — never a
+public issue.
+
 ## Licensing & legal note
 
 The DSA5 plugin ships **only rule mechanics/structure** (schema, roll/formula logic). It contains
