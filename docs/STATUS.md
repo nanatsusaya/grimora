@@ -1,6 +1,6 @@
 # Grimora — Project status & next steps
 
-> Living handoff note between working sessions. Last updated: **2026-07-12**.
+> Living handoff note between working sessions. Last updated: **2026-07-13**.
 > The binding architecture lives in the ADRs (`docs/adr/`); this file is only the progress/handoff overview.
 > Stable working rules (not the current state) live in `CLAUDE.md`.
 >
@@ -38,6 +38,17 @@
   ADRs (#15/#18/#23/#82), the docs site (#82/#83), and the follow-ups this phase surfaced (#182 worker
   structured errors, #183 stream-scoped pull). **Phase 3** opens from this audited baseline — see #181 for
   the close-out checklist and the Phase-3 framing.
+- **Phase 3 (DSA5-plugin buildout):** ▶ **in progress, then paused 2026-07-13.** The public DSA5 plugin
+  grew from the walking-skeleton slice toward a usable rule system, all built via **parallel spec-driven
+  subagents**: the content boundary was refined to a **fan-project / mechanics-not-copyrightable** basis
+  and clarified so the mechanical roster ships (#209/#216); the plugin was module-split (#213); **Tier-1
+  mechanics** landed — the full 8 attributes, pure-attribute derived values (Dodge, Initiative) and a
+  generalised 3d20 skill check, Perception corrected to SGC/INT/INT (#211); and the **full 59-talent
+  catalog** (data-driven `plugins/dsa5/src/talents/`) from the official **English Regel-Wiki**
+  (#214). **Paused** pending the owner's *separate, private* DSA worldbuilding knowledge base maturing —
+  further plugin **content** here (talent descriptions/values → import/content-packs) is gated on it. Next
+  piece when resumed: **#212** (Tier-2 SDK — `ability`/`resource` kinds, spell/combat). See the **North
+  Star** + public/private split in `docs/vision.md`.
 - **External audit follow-up (2026-07-12):** two independent AI audits of the auth→sync vertical (both at
   `738abf8`) were **verified against the code** (not taken at face value) and triaged into DoR tickets
   **#185–#196**. No critical code defect; the local DoD chain stays green. Highest-priority items: **#185**
@@ -473,6 +484,29 @@ alongside the already-triggered **#72 Impressum** (owner/legal).
 **#151** closed via #178; the completed epics **#10 / #105 / #107 / #120** closed at the 2026-07-12
 close-out. Live smoke scripts (`apps/{web,api}/scripts/*-smoke.ts`) are intentionally **out of CI** (they
 need `grimora-dev` secrets) and are run manually against real Supabase — their headers document this.
+
+### What's next (2026-07-13) — Phase 3 opened (DSA5-plugin buildout), then paused for the private vault
+
+The **Phase-3 direction decision** the 2026-07-12 section flagged as the clearest next step **was made on
+2026-07-13**: deepen the **public DSA5 plugin** (over #176 co-editing), chosen partly as the owner's
+vehicle for practising **delegated / parallel AI-agent workflows** (Phases 1–2 allowed little of that).
+The buildout landed in a single session — see the *Where we stand* Phase-3 bullet for the merged tickets
+(#209/#216 boundary, #213 split, #211 Tier-1, #214 the 59-talent catalog), and the 2026-07-13 entry in
+`docs/meta/agent-collaboration-log.md` for the method retrospective (parallel subagents + primary-source
+verification catches).
+
+**The second, private project (context, no repo linked here).** The richer half of the vision lives
+**outside** this public repo: the owner maintains a **separate private DSA worldbuilding knowledge base**
+and plans a **private, content-rich DSA plugin** built on Grimora's SDK, for personal use — together with
+the public mechanics plugin, his ultimate personal DSA AI assistant (`docs/vision.md` *North Star*).
+
+**Paused (owner, 2026-07-13):** we wait for that private knowledge base to mature before doing more DSA5
+plugin **content** here (talent descriptions/values arrive via the import / content-pack path, not shipped).
+**When work resumes**, the natural next piece is **#212 — the Tier-2 SDK extension** (`ability`/`resource`
+trait kinds, spell/combat check shapes; an ADR 0025 amendment) — the SDK surface the owner's private
+content plugin will consume. #212's SDK *design* does **not** need the private vault; building concrete
+content on top of it does. The **owner-gated / trigger-gated** items from the 2026-07-12 list (above) —
+#72 Impressum, the #200 gate remainder, the trigger-gated ADRs — remain as they were.
 
 ### Cross-model review (2026-07-11) — derived backlog
 

@@ -12,6 +12,10 @@ the reference example — but Grimora aims to support any pen-&-paper rule syste
 > the mobile/desktop clients. `docs/STATUS.md` is the authoritative current-state snapshot; this README is
 > an orientation, and where it says *(planned)* the feature is decided but not yet implemented.
 
+- **North Star** *(direction)* — a campaign-management **AI assistant**: agents help the game master
+  build enemies/NPCs, keep adventure logs and spark creative ideas — always over the *same* public API,
+  never a privileged path. The public project stays **mechanics-only**; richer rule content is
+  user-supplied (see the licensing note). Full vision in [`docs/vision.md`](docs/vision.md).
 - **Engine-agnostic core** — rule systems are plugins (DSA5 first); themes and content extend on top.
 - **Offline-first** — the web app runs and persists fully on localhost, and replicates to **cloud sync**
   (Supabase) through the `apps/api` backend; local-first always works, cloud is additive.
