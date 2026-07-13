@@ -42,18 +42,28 @@ may **not** copy the rule texts, tables, examples, or bulk data compilations tha
   **formulas and their functional numeric constants**, written as our own code (mechanics are rules,
   not protected expression);
 - data **schemas** — which attributes / skills / derived values / abilities *exist* and their types;
+- the **mechanical roster** of the rule system — *which* skills / spells / abilities exist together with
+  their **mechanical parameters** (a skill's governing attribute triple, its category, its improvement
+  factor; a spell's mechanical fields) and their names as **i18n keys** — but **without** their
+  descriptions, application/flavour text, values-with-expression or example content. This is rules
+  structure (an extension of "which … exist and their types" above), not the data-rich compilation the
+  *must-not* list bars;
 - neutral, functional labels as **i18n keys** (`dsa5.attr.courage`), never embedded rulebook prose;
 - **our own-words** short explanations where a hint is needed, and **links to the official DSA Regel-Wiki**
-  (<https://dsa.ulisses-regelwiki.de/>) for the authoritative rule detail instead of reproducing it.
+  (German <https://dsa.ulisses-regelwiki.de/>, English *The Dark Eye* <https://tde.ulisses-regelwiki.de/> —
+  both official Ulisses references) for the authoritative rule detail instead of reproducing it.
 
 It **must not** contain:
 
 - **verbatim rule / flavour / setting text**, headings, examples, or tables copied from the books or the
   Regel-Wiki (the Regel-Wiki is a *reference to link to and re-word*, **not** a data source to import);
 - **artwork, official logos, or the products' look-and-feel** (the UI stays our own, neutral design);
-- **bulk data compilations** shipped as data (full spell / talent / special-ability / item lists) —
-  those are a compilation-right and permission concern; bulk third-party data comes via the user
-  **import** path / content packs (ADR 0006 §8), not shipped in the repo;
+- **bulk *data-rich* compilations** shipped as data — the **descriptions, effect / flavour text,
+  values-with-expression, stat blocks, and improvement-cost prose** behind the entries (full spell /
+  talent / special-ability / item *content*). Those are the compilation-right / permission concern; they
+  come via the user **import** path / content packs (ADR 0006 §8), not shipped in the repo. (The bare
+  mechanical *roster* — names + attribute triples + category + improvement factor — is **not** this; see
+  the *may* list above.)
 - DSA-derived content placed **under Grimora's OSS license, CC, or any other license** (the Fan-Richtlinie
   forbids re-licensing DSA material — the repo license must not purport to cover it).
 

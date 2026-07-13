@@ -567,9 +567,10 @@ Repeatable procedures under `.claude/skills/` (checked into the repo, invoked as
   *Amendments* section (ADR 0001).
 - **Bugs before features.**
 - **DSA5 plugin:** self-implemented rule mechanics/structure only (mechanics aren't copyrightable) —
-  **no** verbatim rule/flavour text, tables, artwork, logos/look-and-feel, or bulk data compilations
-  (those via user import); free non-commercial fan project; comprehensive DB/generator, commercial turn,
-  or DSA data in the OSS repo need written Ulisses permission first
+  **no** verbatim rule/flavour text, tables, artwork, logos/look-and-feel, or data-rich compilations
+  — descriptions/values/effects (those via user import; the bare mechanical roster — names + attribute
+  triples + category + improvement factor — does ship); free non-commercial fan project; comprehensive
+  DB/generator, commercial turn, or DSA data in the OSS repo need written Ulisses permission first
   (`docs/legal/dsa5-content-boundary.md`, revised 2026-07-13).
 - **`rulebooks/`** is git-ignored (only the README tracked) — **never** commit rulebook PDFs.
 - **Secrets/API keys** only at the composition root, never in Domain/plugins/logs.
