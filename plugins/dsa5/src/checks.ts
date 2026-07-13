@@ -29,14 +29,22 @@ function die(pips: readonly number[], index: number): number {
 }
 
 /**
- * The DSA5 skill-check mechanic (this is the *plugin's* mechanic, ADR 0020): roll three d20 under
- * COU/AGI/INT; each die exceeding its attribute is a shortfall; skill points (PER) offset the total.
- * Success iff points cover the shortfalls; quality level scales with the remainder. Two 1s = critical,
- * two 20s = botch. Pure and deterministic given the rolled pips.
- * @param input  the rolled pips (`rolls[0]` = three d20) and the target attribute/skill ratings
- * @returns      a `RollOutcome` carrying the opaque DSA5 outcome, or a `Validation` `PluginError`
+ * The DSA5 skill-check mechanic, *parameterised* over which three attributes and which skill it tests
+ * (this is the *plugin's* mechanic, ADR 0020): roll three d20 under the three given attribute ratings;
+ * each die exceeding its attribute is a shortfall; the skill's points offset the total. Success iff
+ * points cover the shortfalls; quality level scales with the remainder. Two 1s = critical, two 20s =
+ * botch. Pure and deterministic given the rolled pips — every DSA5 talent reuses this one resolver,
+ * differing only in the attribute triple / skill id passed in.
+ * @param input         the rolled pips (`rolls[0]` = three d20) and the target attribute/skill ratings
+ * @param attributeIds  the three attribute trait ids to test against, one per d20 (order matters)
+ * @param skillId       the skill trait id whose points offset the shortfalls
+ * @returns             a `RollOutcome` carrying the opaque DSA5 outcome, or a `Validation` `PluginError`
  */
-function resolvePerceptionCheck(input: ResolveCheckInput): Result<RollOutcome, PluginError> {
+function resolveSkillCheck(
+  input: ResolveCheckInput,
+  attributeIds: readonly string[],
+  skillId: string,
+): Result<RollOutcome, PluginError> {
   const pips = input.rolls[0];
   if (pips?.length !== 3) {
     return err({
@@ -45,8 +53,8 @@ function resolvePerceptionCheck(input: ResolveCheckInput): Result<RollOutcome, P
       category: 'Validation',
     });
   }
-  const attributes = [input.targets.COU ?? 0, input.targets.AGI ?? 0, input.targets.INT ?? 0];
-  const skill = input.targets.PER ?? 0;
+  const attributes = attributeIds.map((id) => input.targets[id] ?? 0);
+  const skill = input.targets[skillId] ?? 0;
 
   let shortfall = 0;
   let ones = 0;
@@ -88,8 +96,9 @@ function resolvePerceptionCheck(input: ResolveCheckInput): Result<RollOutcome, P
 }
 
 /**
- * The checks contributed by the plugin. One check today: a Perception skill check (3d20 under
- * COU/AGI/INT, PER as skill points).
+ * The checks contributed by the plugin — each a 3d20 skill check delegating to the parameterised
+ * {@link resolveSkillCheck}, differing only in its attribute triple / skill id. Perception (COU/AGI/INT,
+ * PER) and Body Control (AGI/AGI/CON, BODY_CONTROL) demonstrate the shared mechanic across talents.
  */
 export const CHECKS: readonly CheckDefinition[] = [
   {
@@ -98,6 +107,14 @@ export const CHECKS: readonly CheckDefinition[] = [
     attributeIds: ['COU', 'AGI', 'INT'],
     skillId: 'PER',
     terms: [{ sides: 20, count: 3 }],
-    resolve: (input) => resolvePerceptionCheck(input),
+    resolve: (input) => resolveSkillCheck(input, ['COU', 'AGI', 'INT'], 'PER'),
+  },
+  {
+    id: 'body-control',
+    labelKey: 'dsa5.check.bodyControl',
+    attributeIds: ['AGI', 'AGI', 'CON'],
+    skillId: 'BODY_CONTROL',
+    terms: [{ sides: 20, count: 3 }],
+    resolve: (input) => resolveSkillCheck(input, ['AGI', 'AGI', 'CON'], 'BODY_CONTROL'),
   },
 ];

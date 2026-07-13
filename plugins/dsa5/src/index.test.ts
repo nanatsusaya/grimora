@@ -1,16 +1,13 @@
 /**
- * DSA5 plugin-behaviour tests (ADR 0017 §1): the check's resolution *mechanic* is pure and
- * deterministic given the rolled pips + targets. Exercises the plugin through its SDK surface only
- * (register → find the check → call `resolve`), with no dependency on the core.
+ * DSA5 plugin **composition** tests: assert that `index.ts` assembles the rule system from every
+ * per-concern module (attributes / derived values / skills / checks) into the expected whole, and that
+ * a check resolves through the assembled system. The per-mechanic detail (attribute set, formula ASTs,
+ * the skill-check branches) lives in the colocated per-module tests; this file guards the *assembly*.
+ * Exercised through the SDK surface only (register → inspect / resolve), with no dependency on the core.
  */
 
 import { describe, expect, it } from 'bun:test';
-import type {
-  BehaviourContext,
-  CheckDefinition,
-  PluginRegistry,
-  RuleSystemDefinition,
-} from '@grimora/plugin-sdk';
+import type { BehaviourContext, PluginRegistry, RuleSystemDefinition } from '@grimora/plugin-sdk';
 import dsa5 from './index';
 
 /** Capture the registered DSA5 rule system by calling the plugin's `register`. */
@@ -26,46 +23,31 @@ function ruleSystem(): RuleSystemDefinition {
   return captured;
 }
 
-function perceptionCheck(): CheckDefinition {
-  const check = ruleSystem().checks.find((c) => c.id === 'perception');
-  if (!check) throw new Error('perception check missing');
-  return check;
-}
-
 const ctx: BehaviourContext = { rng: { rollDie: () => 1, next: () => 0 }, log: () => {} };
-const targets = { COU: 14, AGI: 12, INT: 13, PER: 6 };
 
-describe('dsa5 perception check', () => {
-  it('registers attributes, a skill, a derived value and the check', () => {
+describe('dsa5 plugin composition', () => {
+  it('assembles the dsa5 rule system from all modules (8 attributes, 2 skills, 4 derived, 2 checks)', () => {
     const rs = ruleSystem();
-    expect(rs.traits.map((t) => t.kind).sort()).toEqual([
-      'attribute',
-      'attribute',
-      'attribute',
-      'derivedValue',
-      'skill',
-    ]);
-    expect(rs.checks).toHaveLength(1);
+    expect(rs.id).toBe('dsa5');
+
+    const countByKind = rs.traits.reduce<Record<string, number>>((acc, t) => {
+      acc[t.kind] = (acc[t.kind] ?? 0) + 1;
+      return acc;
+    }, {});
+    expect(countByKind).toEqual({ attribute: 8, skill: 2, derivedValue: 4 });
+
+    expect(rs.checks.map((c) => c.id).sort()).toEqual(['body-control', 'perception']);
   });
 
-  it('succeeds when dice roll under the attributes (no shortfall)', () => {
-    const result = perceptionCheck().resolve({ rolls: [[5, 5, 5]], targets }, ctx);
+  it('resolves a check through the assembled rule system (perception smoke)', () => {
+    const perception = ruleSystem().checks.find((c) => c.id === 'perception');
+    if (!perception) throw new Error('perception check missing');
+
+    const result = perception.resolve(
+      { rolls: [[5, 5, 5]], targets: { COU: 14, AGI: 12, INT: 13, PER: 6 } },
+      ctx,
+    );
     expect(result.ok).toBe(true);
-    if (result.ok) {
-      expect((result.value.value as { success: boolean }).success).toBe(true);
-      expect(result.value.labelKey).toBe('dsa5.check.success');
-    }
-  });
-
-  it('botches on two 20s', () => {
-    const result = perceptionCheck().resolve({ rolls: [[20, 20, 5]], targets }, ctx);
-    expect(result.ok).toBe(true);
-    if (result.ok) expect((result.value.value as { botch: boolean }).botch).toBe(true);
-  });
-
-  it('rejects malformed dice (Validation)', () => {
-    const result = perceptionCheck().resolve({ rolls: [[1, 2]], targets }, ctx);
-    expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error.category).toBe('Validation');
+    if (result.ok) expect(result.value.labelKey).toBe('dsa5.check.success');
   });
 });
