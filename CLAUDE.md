@@ -121,9 +121,12 @@ Owner/GM/Player/Spectator, enforced in the Application layer); RLS is defense-in
   `docs/adr/README.md`) → open a PR with open review questions for the owner → owner merges → sync
   `main`, flip `Proposed → Accepted` (ADR file + index) as a direct follow-up commit on `main`, delete
   the branch. See recent history (ADR 0008/0009) for the pattern in practice.
-- **`plugins/dsa5` ships mechanics/structure only** — no copyrighted Ulisses Spiele text or values
-  (`docs/legal/dsa5-content-boundary.md`). `rulebooks/` is git-ignored (only its README is tracked) —
-  never commit rulebook PDFs.
+- **`plugins/dsa5` ships rule mechanics/structure + functional rule values sourced from the official
+  DSA Regel-Wiki** (Ulisses's sanctioned source; Grimora is a "Hilfsprogramm/Charaktergenerator", not a
+  "digital game", so the Scriptorium content guidelines apply) — but **no** verbatim descriptive/flavour
+  prose, artwork, or non-Regel-Wiki sources, and **Scriptorium attribution** is required
+  (`docs/legal/dsa5-content-boundary.md` — the binding, revised boundary). `rulebooks/` is git-ignored
+  (only its README is tracked) — never commit rulebook PDFs.
 - **Secrets only at the composition root** (`apps/*`) — never in Domain, Application, plugins, or logs.
 - **AI**: external providers (Claude/OpenAI) are opt-in after explicit user consent; local Ollama is
   the no-consent default. AI output is always labelled as AI-generated (EU AI Act Art. 50).
