@@ -51,7 +51,13 @@ may **not** copy the rule texts, tables, examples, or bulk data compilations tha
 - neutral, functional labels as **i18n keys** (`dsa5.attr.courage`), never embedded rulebook prose;
 - **our own-words** short explanations where a hint is needed, and **links to the official DSA Regel-Wiki**
   (German <https://dsa.ulisses-regelwiki.de/>, English *The Dark Eye* <https://tde.ulisses-regelwiki.de/> —
-  both official Ulisses references) for the authoritative rule detail instead of reproducing it.
+  both official Ulisses references) for the authoritative rule detail instead of reproducing it;
+- **source references** on each implemented mechanic pointing at the **DSA5 rule-fidelity SSOT**
+  ([ADR 0029](../adr/0029-dsa5-rule-fidelity-ssot.md)) — a two-layer pointer: the public Regel-Wiki id
+  (above) plus the note path in the owner's **private** DSA5 vault (`github.com/nanatsusaya/dsa5`), which
+  share one stable `regelwiki:` key. These are **pointers only**: the private vault (which does hold
+  verbatim copyrighted text) is **never imported, vendored, or reproduced** into this repo — referencing
+  a stable id/path carries no protected expression, consistent with the Regel-Wiki-link allowance above.
 
 It **must not** contain:
 
