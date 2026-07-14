@@ -219,3 +219,10 @@ weaker until it lands — acceptable only while plugins are first-party and revi
   payload-embedded roll types from this package's `0.x` "may break" latitude (§1), which is what closes
   the event-payload durability hazard ADR 0028 identified. **No `0.x` freeze policy changed** — only where
   the types are defined.
+- **2026-07-15** — *Authorized by the project owner.* Added a cross-reference to
+  [ADR 0029](0029-dsa5-rule-fidelity-ssot.md): plugin traits/checks derived from the frozen SDK surface
+  (e.g. the DSA5 `TraitDefinition`/`CheckDefinition`s) are verified for **fidelity** against the DSA5
+  vault SSOT. Because the frozen SDK types (§2) cannot carry a DSA-specific provenance field, that
+  reference lives in the **plugin** (a structured `regelwiki`/`vaultNote` field on the plugin-internal
+  `Talent` model, and module/entry doc comments) — **not** on the SDK types. **No SDK surface or freeze
+  policy changed.**

@@ -124,21 +124,22 @@ checkable against one authority.
 - **No formal SSOT (status quo — ad-hoc comments).** Rejected: this is precisely what let the wrong LP
   formula ship unnoticed.
 
-## Open questions (for owner review)
+## Resolved questions (owner decisions, 2026-07-15)
 
-- **O1 — cross-reference amendments.** After this ADR is Accepted, should we add one-line pointers to it
-  from **ADR 0020** (Plugin references) and **ADR 0025** (SDK), and extend the **content-boundary** doc's
-  "link to the Regel-Wiki" bullet to name the vault as the private SSOT? *Recommendation: yes to all three
-  — light pointers, recorded as owner-authorized amendments (ADR 0001).*
-- **O2 — talent reference mechanism.** Structured field (`regelwiki` + optional `vaultNote`) on the
-  `Talent` model, vs. doc-comment only? *Recommendation: structured field (machine-checkable, future arch
-  fitness function).*
-- **O3 — enforce now or later?** Add the arch fitness function (every catalog talent carries a source
-  reference) in this rollout, or defer until all references are in place? *Recommendation: defer — add the
-  references first (PR 2), then land the assertion, to avoid a red `arch` gate mid-rollout.*
-- **O4 — reference a private repo at all?** Confirm we reference the vault by URL + note path (accepting
-  the link is owner-only-resolvable), rather than by the public Regel-Wiki id alone. *Recommendation: keep
-  both — Regel-Wiki id is the public/normative citation, the vault path is the additive private anchor.*
+- **R1 (was O1) — cross-reference amendments: yes, all three.** The owner explicitly authorized amending
+  the Accepted ADRs. **ADR 0020** and **ADR 0025** receive owner-authorized amendment pointers to this ADR
+  (recorded in their *Amendments* sections, ADR 0001), and the **content-boundary** doc's "link to the
+  Regel-Wiki" bullet is extended to name the vault as the private SSOT. Applied in this PR.
+- **R2 (was O2) — talent reference mechanism: structured field.** The `Talent` model gains a `regelwiki`
+  field (+ optional `vaultNote`), so the reference is machine-readable and a future arch fitness function
+  can assert its presence. Attributes/derived values/the check mechanic carry the reference in the module
+  doc header + per-entry comment (they derive frozen SDK types that cannot hold a DSA-specific field).
+- **R3 (was O3) — enforcement: defer.** The references land first (PR 2); the arch fitness function
+  (every catalog talent carries a source reference) follows once the set is complete, to avoid a red
+  `arch` gate mid-rollout.
+- **R4 (was O4) — reference the private repo: keep both layers.** The public Regel-Wiki id is the
+  normative, contributor-resolvable citation; the private vault note path is the additive owner anchor;
+  the shared `regelwiki:` id joins them. No verbatim text crosses vault → plugin.
 
 ## References
 

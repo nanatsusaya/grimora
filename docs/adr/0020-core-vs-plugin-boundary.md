@@ -107,3 +107,13 @@ risk — mitigated by the revisitation clause and by validating against DSA5 fir
 - [ADR 0003](0003-overall-architecture.md) (DDD §9, bounded contexts), ADR 0006 (plugin SDK — gated by
   this), ADR 0004 (events), [`docs/research/rule-systems-comparison.md`](../research/rule-systems-comparison.md).
   Issue #26.
+
+## Amendments
+
+- **2026-07-15** — *Authorized by the project owner.* Added a cross-reference to
+  [ADR 0029](0029-dsa5-rule-fidelity-ssot.md): the concrete rule system a plugin implements (the "Plugin
+  (rule-specific)" section above — attribute set, derived-value formulas, the dice mechanic, templates)
+  is verified for **fidelity** against the DSA5 vault as the rule-fidelity Single Source of Truth, and
+  every implemented DSA5 mechanic carries a two-layer source reference. **No decision changed** — this
+  boundary (core = meta-model, plugin = concrete rules) is untouched; ADR 0029 only adds *how the plugin's
+  rule content is checked against its source*.
