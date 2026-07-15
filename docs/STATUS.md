@@ -521,15 +521,32 @@ become the **Single Source of Truth for the DSA rules**.
 - ✅ **ADR 0029 — Accepted** (#220, PR #221): the vault is the rule-fidelity authority (reference layer, no
   dependency); every implemented mechanic carries a two-layer source reference; owner-authorized cross-ref
   amendments to ADR 0020 + ADR 0025 + the content-boundary doc. Owner decisions **R1–R4**.
-- 🔄 **#222 — SSOT source references** on all implemented rules (attributes, DODGE/INI, the check mechanic,
-  all 59 talents; structured `regelwiki`/`vaultNote` fields on `Talent`, doc comments for the SDK-derived
-  traits since the frozen SDK types cannot carry a provenance field).
-- 🔄 **#223 — the LP defect** (bugs before features): `LP = 5 + COU + AGI` is **not a DSA5 rule**; the rule
-  is *species LE base + 2×CON*. Interim fix `5 + 2×CON` (human LE base 5, documented, vault-referenced);
-  proper species modelling — which also raises the boundary question of whether the per-species base table
-  may ship in the OSS repo — is a **later, owner-gated** step.
-- **The methodological point:** three of ~70 mechanics were checkable only because an authority now exists.
-  Two passed, one was silently wrong for weeks. Fidelity is now verified, not asserted.
+- ✅ **#222 — SSOT source references** (PR #224): all implemented rules cite their source (attributes,
+  DODGE/INI, the check mechanic, all 59 talents; structured `regelwiki`/`vaultNote` fields on `Talent`, doc
+  comments for the SDK-derived traits since the frozen SDK types cannot carry a provenance field). The 59
+  references were **extracted from the vault**, not hand-typed, which produced the first cross-check as a
+  by-product: **0 mismatches** on every talent's attribute triple and improvement cost.
+- ✅ **#223 — the LP defect fixed** (PR #226, bugs before features): `LP = 5 + COU + AGI` was **not a DSA5
+  rule**; the rule is *species LE base + 2×CON*. Now `5 + 2×CON` (human LE base 5 as a **documented
+  interim** — correct for every character the app can create today). Proper species modelling, which also
+  raises whether the per-species base table may ship in the OSS repo, stays a **later, owner-gated** step.
+  Three fixtures and the web sheet never set `CON` at all — a small tell of how disconnected the
+  placeholder was from the rules.
+- ✅ **#225 — the sheet's dead `PER` field** (PR #227), found in passing: the UI rendered a field for a
+  trait id the plugin does not define (`PERCEPTION`), orphaned by the #211/#214 catalog work. The event log
+  was never at risk (the `setAttribute` use-case already validates against the rule system), so this was a
+  dead field, not corruption. Fixed **structurally**: the sheet's trait fields are now resolved from the
+  loaded rule system (ids *and* bounds), so a field can no longer name a trait that does not exist — the
+  app refuses to boot instead.
+- ✅ **ADR 0029 R3 — the fitness function** (`scripts/arch/dsa5-source-references.test.ts`): now that the
+  reference set is complete, the deferred assertion is live — every talent must cite a **distinct, official**
+  Regel-Wiki URL. The `regelwiki` field is already type-required, so this catches what typing cannot: empty
+  strings, placeholders, unofficial hosts, and copy-paste. Provenance can no longer erode silently.
+- **The methodological point:** of the mechanics an authority made checkable, the talent catalog passed
+  cleanly (59/59) and DODGE/INI were confirmed — but LP had been silently wrong for weeks. The pattern
+  generalises beyond the vault: #225 was the *same* failure one layer up (the UI restating rule facts away
+  from the rule system) and got the same treatment. **A fact duplicated away from its authority degrades
+  into an assertion** — so either derive it, or assert it in CI.
 
 **Paused (owner, 2026-07-13):** we wait for that private knowledge base to mature before doing more DSA5
 plugin **content** here (talent descriptions/values arrive via the import / content-pack path, not shipped).
