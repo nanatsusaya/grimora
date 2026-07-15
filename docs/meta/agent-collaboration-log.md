@@ -1070,3 +1070,51 @@ URLs + copyrighted-content framing out of public docs, and let the owner set the
 (3) The owner's end-goal is worth capturing not just as product scope but as **collaboration context** — it
 explains *why* he chose the DSA5-plugin direction and the parallel-subagent practice (see the sibling
 2026-07-13 entry), which a future agent would otherwise read as arbitrary.
+
+## 2026-07-15 — I asserted twice from a partial read; the owner's pushback became an ADR (fidelity must be *checkable*)
+
+**Trigger:** The owner pointed the session at his private DSA5 vault and asked a simple question: *can you
+find the rules the plugin already implements in it?* My answer contained two confident claims that were
+both wrong. First, that the vault had migrated only the German Grundregelwerk, with the English one merely
+archived — the owner replied "schau mal in irgendeine zufällige Notiz", and every note turned out to be
+**bilingual** (`## Deutsch` / `## English` in one note, `source:` listing both works). Second, I reported
+that the *Abgeleitete Werte* note's English half "breaks off after two bullets". The owner's response was
+sharp and correct: **"behauptest du gerade, dass diese Wissensdatenbank nicht korrekt sei?"**
+
+**Action / method:** Re-read rather than argue. The bilingual claim was simply my misreading (I had inferred
+from the `Archiv/` folder instead of opening a note). The truncation claim did not survive a full re-read
+either — the note was complete — so I retracted it outright. The owner then did something better than
+correcting me: he **added the missing derived-value formulas to the note** and said "prüfe nochmals",
+turning the disagreement into a concrete test. With `Lebensenergie = Speziesbasis + 2×KO`,
+`Ausweichen = GE/2`, `Initiative = (MU+GE)/2` now written down, the plugin could finally be *checked*
+instead of discussed: DODGE and INI matched exactly — and `LP = 5 + COU + AGI` matched **nothing**.
+
+**Impact:** The owner directed that the vault become the **Single Source of Truth for the DSA rules**,
+which became **ADR 0029** (Accepted the same day, #220/PR #221) — the vault as a *reference layer* (no
+dependency), with every implemented mechanic carrying a two-layer source reference (public Regel-Wiki id +
+private vault note path, pointers only). Its first scripted cross-check (#222/PR #224) verified all **59
+talents** — triples and improvement costs, **0 mismatches** — and confirmed **LP as a real defect** (#223)
+that had shipped and passed review for weeks.
+
+**Lessons learned:**
+
+1. **Report what you observed, not what it means.** Both errors were the same failure: a partial/careless
+   read turned into a *claim about the owner's artifact*. "The English section is truncated" is a verdict;
+   "my read returned only two bullets" is an observation. The owner's question — are you claiming my
+   knowledge base is wrong? — was the right challenge, because a confident wrong claim about someone
+   else's work doesn't just cost that claim, it taxes every other claim in the same message. When
+   something looks broken in an artifact you did not build, **re-read completely, then describe the
+   observation and ask.**
+2. **A constraint that forbids copying the source also removes the ability to check against it.** This is
+   the structural insight worth carrying: the content boundary (mechanics-only, no verbatim text) means
+   fidelity *cannot* be verified by text comparison — so without a deliberately introduced authority it
+   silently degrades into assertion. That is exactly how LP survived review. The boundary didn't cause
+   the bug; the **missing authority** did. Any future rule-system plugin inherits this and needs its own
+   SSOT (ADR 0029's shape generalises).
+3. **Verification by construction beats verification by review.** The 59 references were *extracted from*
+   the vault by script, not typed and then reviewed — which made transcription drift structurally
+   impossible and produced the full cross-check as a by-product. Reviewing 59 hand-typed URLs would have
+   been slower and weaker.
+4. **The owner's correction style is worth naming:** he did not supply the answer, he supplied a *pointer*
+   ("look at any note") and then *data* (the formulas) — forcing re-derivation instead of accepting a
+   patch. Cheaper for him, and it produced a durable decision (an ADR) rather than a one-off fix.
