@@ -88,6 +88,9 @@ async function main(): Promise<void> {
     ['SGC', 13],
     ['AGI', 12],
     ['INT', 13],
+    // CON drives the LP derived value (5 + 2×CON, #223) — without it LP has no input and the
+    // pass criterion below cannot be evaluated.
+    ['CON', 12],
     ['PERCEPTION', 6],
   ] as const) {
     ensureOk(
@@ -108,7 +111,7 @@ async function main(): Promise<void> {
   check(sheet !== undefined, '8. character-sheet read model built');
   if (sheet) {
     check(
-      sheet.derived.LP === 5 + 14 + 12,
+      sheet.derived.LP === 5 + 2 * 12,
       `8. derived value LP computed via formula = ${sheet.derived.LP}`,
     );
     console.log(`     attributes: ${JSON.stringify(sheet.attributes)}`);

@@ -78,6 +78,8 @@ async function seedRealEventStore(): Promise<{
       await setAttribute(command, { characterId, attributeId: 'SGC', value: 13, actor: owner }),
       await setAttribute(command, { characterId, attributeId: 'AGI', value: 12, actor: owner }),
       await setAttribute(command, { characterId, attributeId: 'INT', value: 13, actor: owner }),
+      // CON drives LP (5 + 2×CON, #223); without it the derived value has no input.
+      await setAttribute(command, { characterId, attributeId: 'CON', value: 12, actor: owner }),
       await setAttribute(command, {
         characterId,
         attributeId: 'PERCEPTION',
@@ -110,12 +112,19 @@ describe('character-sheet projection over the real SQLite adapters (#104)', () =
 
       const sheet = await projection.reads.get<CharacterSheet>(CHARACTER_SHEET, characterId);
       expect(sheet?.name).toBe('Alrik');
-      expect(sheet?.attributes).toEqual({ COU: 14, SGC: 13, AGI: 12, INT: 13, PERCEPTION: 6 });
+      expect(sheet?.attributes).toEqual({
+        COU: 14,
+        SGC: 13,
+        AGI: 12,
+        INT: 13,
+        CON: 12,
+        PERCEPTION: 6,
+      });
       // LP is a formula-derived value (never stored) recomputed by the interpreter (ADR 0020/0021);
-      // the DSA5 skeleton formula is LP = 5 + COU + AGI (matches the golden-path walk).
-      expect(sheet?.derived.LP).toBe(5 + 14 + 12);
-      // create + 5 attribute sets + 1 roll = 7 history lines folded in.
-      expect(sheet?.history.length).toBe(7);
+      // the DSA5 formula is LP = 5 + 2×CON (human LE base + 2×CON, #223 — matches the golden-path walk).
+      expect(sheet?.derived.LP).toBe(5 + 2 * 12);
+      // create + 6 attribute sets + 1 roll = 8 history lines folded in.
+      expect(sheet?.history.length).toBe(8);
 
       // The checkpoint advanced to the last event's position (a non-zero, positive high-water mark).
       const checkpoint = await projection.reads.getCheckpoint(CHARACTER_SHEET);
@@ -177,8 +186,8 @@ describe('character-sheet projection over the real SQLite adapters (#104)', () =
       await runCharacterSheetProjection(projection);
 
       const after = await projection.reads.get<CharacterSheet>(CHARACTER_SHEET, characterId);
-      // Without the per-sheet `lastPosition` watermark this re-appended every history line (7 → 14).
-      expect(after?.history.length).toBe(7);
+      // Without the per-sheet `lastPosition` watermark this re-appended every history line (8 → 16).
+      expect(after?.history.length).toBe(8);
       expect(after).toEqual(before);
       expect(await projection.reads.getCheckpoint(CHARACTER_SHEET)).toBe(head);
     } finally {

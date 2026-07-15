@@ -15,7 +15,14 @@ import { useState, useSyncExternalStore } from 'react';
 import { AuthPanel } from './auth/AuthPanel';
 import type { CharacterView } from './state/character-view';
 
-/** The DSA5 traits this minimal sheet lets the user edit (attributes 8–20, the PER skill 0–25). */
+/**
+ * The DSA5 traits this minimal sheet lets the user edit (attributes 8–20, the perception skill 0–25).
+ *
+ * A deliberate **subset** of the plugin's traits, not the full DSA5 sheet — enough to exercise the
+ * vertical slice. The subset is not arbitrary, though: it must cover every input of a rendered derived
+ * value, otherwise the sheet shows a number the user cannot influence. `CON` is here for exactly that
+ * reason — it is the sole input of `LP` (5 + 2×CON, #223).
+ */
 const EDITABLE_TRAITS: readonly {
   readonly id: string;
   readonly min: number;
@@ -24,6 +31,7 @@ const EDITABLE_TRAITS: readonly {
   { id: 'COU', min: 8, max: 20 },
   { id: 'AGI', min: 8, max: 20 },
   { id: 'INT', min: 8, max: 20 },
+  { id: 'CON', min: 8, max: 20 },
   { id: 'PER', min: 0, max: 25 },
 ];
 

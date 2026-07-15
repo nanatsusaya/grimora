@@ -19,20 +19,25 @@ test('create a character, edit a trait, roll a check — all persists across a r
   await page.getByLabel('Name').fill('Brumil');
   await page.getByRole('button', { name: 'Create character' }).click();
 
-  // The sheet appears with the created name and the DSA5 derived LP = 5 + COU(12) + AGI(12) = 29.
+  // The sheet appears with the created name and the DSA5 derived values, all eight attributes seeded to
+  // 12: LP = 5 + 2×CON(12) = 29 (human LE base + 2×CON, #223), DODGE = round(AGI/2) = 6,
+  // INI = round((COU+AGI)/2) = 12 — each computed through the core interpreter from the plugin's AST.
   await expect(page.getByTestId('character-name')).toHaveText('Brumil');
   await expect(page.getByTestId('derived-LP')).toHaveText('29');
-
-  // The Tier-1 pure-attribute derived values compute through the same core interpreter (all eight
-  // attributes seed to 12): DODGE = round(AGI/2) = 6, INI = round((COU+AGI)/2) = 12.
   await expect(page.getByTestId('derived-DODGE')).toHaveText('6');
   await expect(page.getByTestId('derived-INI')).toHaveText('12');
 
-  // Edit a trait → command → projection → UI re-renders with the recomputed derived value (5 + 14 + 12 = 31).
+  // Edit a trait → command → projection → UI re-renders (ADR 0012 §3 one-way reactivity).
   await page.getByLabel('COU').fill('14');
-  await expect(page.getByTestId('derived-LP')).toHaveText('31');
-  // INI also depends on COU, so it recomputes reactively too: round((14 + 12) / 2) = 13.
+  // INI depends on COU, so it recomputes: round((14 + 12) / 2) = 13.
   await expect(page.getByTestId('derived-INI')).toHaveText('13');
+  // ...but LP must NOT move: it depends on CON alone. This is the #223 regression guard — the old,
+  // wrong formula (5 + COU + AGI) would show 31 here, so this assertion fails loudly if it ever returns.
+  await expect(page.getByTestId('derived-LP')).toHaveText('29');
+
+  // Editing CON is what actually drives LP: 5 + 2×14 = 33.
+  await page.getByLabel('CON').fill('14');
+  await expect(page.getByTestId('derived-LP')).toHaveText('33');
 
   // Roll a check → a new history line is appended.
   const historyLines = page.getByTestId('history').locator('li');
@@ -45,7 +50,8 @@ test('create a character, edit a trait, roll a check — all persists across a r
   await page.reload();
   await expect(page.getByTestId('character-name')).toHaveText('Brumil');
   await expect(page.getByLabel('COU')).toHaveValue('14');
-  await expect(page.getByTestId('derived-LP')).toHaveText('31');
+  await expect(page.getByLabel('CON')).toHaveValue('14');
+  await expect(page.getByTestId('derived-LP')).toHaveText('33');
 });
 
 test('the character picker lists multiple characters and switches between them (#107 slice 3c)', async ({
