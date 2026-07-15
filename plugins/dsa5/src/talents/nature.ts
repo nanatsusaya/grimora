@@ -2,8 +2,11 @@
  * The **nature** DSA5 talent group (*Naturtalente*) as mechanical roster entries — one `Talent` per
  * skill, carrying only the boundary-permitted data (name via i18n key + attribute triple + category +
  * improvement cost + encumbrance + application-name slugs; **no** descriptions/flavour/values). Sourced
- * from the official English *The Dark Eye* Regel-Wiki
- * (<https://tde.ulisses-regelwiki.de/nature-skills.html>).
+ * from the official English *The Dark Eye* Regel-Wiki (<https://tde.ulisses-regelwiki.de/nature-skills.html>).
+ *
+ * **Fidelity SSOT (ADR 0029):** verified against the owner's DSA5 vault — each entry carries its own
+ * `regelwiki` id (public, normative) + `vaultNote` path (private anchor), so its mechanics can be
+ * re-checked against the authority instead of trusted. Pointers only; no rule text is copied here.
  *
  * Kept as plain data (see `types.ts`): the SDK `TraitDefinition`/`CheckDefinition` are *derived* from
  * these entries (`skills.ts` / `checks.ts`), so the DSA5-specific fields live here in the plugin while
@@ -22,6 +25,8 @@ export const NATURE_TALENTS: readonly Talent[] = [
     id: 'ANIMAL_LORE',
     checkId: 'animal-lore',
     labelKey: 'dsa5.skill.animalLore',
+    regelwiki: 'https://dsa.ulisses-regelwiki.de/talent.html?talent=Tierkunde',
+    vaultNote: '01 Regeln/Talente/Naturtalente/Tierkunde.md',
     attributeIds: ['COU', 'COU', 'CHA'],
     category: 'nature',
     improvementCost: 'C',
@@ -32,6 +37,8 @@ export const NATURE_TALENTS: readonly Talent[] = [
     id: 'FISHING',
     checkId: 'fishing',
     labelKey: 'dsa5.skill.fishing',
+    regelwiki: 'https://dsa.ulisses-regelwiki.de/talent.html?talent=Fischen+%26+Angeln',
+    vaultNote: '01 Regeln/Talente/Naturtalente/Fischen & Angeln.md',
     attributeIds: ['DEX', 'AGI', 'CON'],
     category: 'nature',
     improvementCost: 'A',
@@ -42,6 +49,8 @@ export const NATURE_TALENTS: readonly Talent[] = [
     id: 'ORIENTING',
     checkId: 'orienting',
     labelKey: 'dsa5.skill.orienting',
+    regelwiki: 'https://dsa.ulisses-regelwiki.de/talent.html?talent=Orientierung',
+    vaultNote: '01 Regeln/Talente/Naturtalente/Orientierung.md',
     attributeIds: ['SGC', 'INT', 'INT'],
     category: 'nature',
     improvementCost: 'B',
@@ -52,6 +61,8 @@ export const NATURE_TALENTS: readonly Talent[] = [
     id: 'PLANT_LORE',
     checkId: 'plant-lore',
     labelKey: 'dsa5.skill.plantLore',
+    regelwiki: 'https://dsa.ulisses-regelwiki.de/talent.html?talent=Pflanzenkunde',
+    vaultNote: '01 Regeln/Talente/Naturtalente/Pflanzenkunde.md',
     attributeIds: ['SGC', 'DEX', 'CON'],
     category: 'nature',
     improvementCost: 'C',
@@ -62,6 +73,8 @@ export const NATURE_TALENTS: readonly Talent[] = [
     id: 'ROPES',
     checkId: 'ropes',
     labelKey: 'dsa5.skill.ropes',
+    regelwiki: 'https://dsa.ulisses-regelwiki.de/talent.html?talent=Fesseln',
+    vaultNote: '01 Regeln/Talente/Naturtalente/Fesseln.md',
     attributeIds: ['SGC', 'DEX', 'STR'],
     category: 'nature',
     improvementCost: 'A',
@@ -72,6 +85,8 @@ export const NATURE_TALENTS: readonly Talent[] = [
     id: 'SURVIVAL',
     checkId: 'survival',
     labelKey: 'dsa5.skill.survival',
+    regelwiki: 'https://dsa.ulisses-regelwiki.de/talent.html?talent=Wildnisleben',
+    vaultNote: '01 Regeln/Talente/Naturtalente/Wildnisleben.md',
     attributeIds: ['COU', 'AGI', 'CON'],
     category: 'nature',
     improvementCost: 'C',
@@ -82,6 +97,8 @@ export const NATURE_TALENTS: readonly Talent[] = [
     id: 'TRACKING',
     checkId: 'tracking',
     labelKey: 'dsa5.skill.tracking',
+    regelwiki: 'https://dsa.ulisses-regelwiki.de/talent.html?talent=F%C3%A4hrtensuchen',
+    vaultNote: '01 Regeln/Talente/Naturtalente/Fährtensuchen.md',
     attributeIds: ['COU', 'INT', 'AGI'],
     category: 'nature',
     improvementCost: 'C',

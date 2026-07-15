@@ -6,6 +6,17 @@
  *
  * Own module so the resolver can be generalised (skeleton: a hardcoded perception check → a
  * parameterised check reused across talents, issue #211) without touching the trait modules.
+ *
+ * **Fidelity SSOT (ADR 0029)** — the whole mechanic below (3d20, skill points offsetting shortfalls,
+ * quality levels, double-1 / double-20) is verified against:
+ * - Regel-Wiki (public, normative): <https://dsa.ulisses-regelwiki.de/GR_Proben/fertigkeiten.html>
+ *   (skill checks) and <https://dsa.ulisses-regelwiki.de/GR_Proben.html> (the underlying check roll)
+ * - DSA5 vault (private anchor): `01 Regeln/Grundregeln/Fertigkeiten.md` and
+ *   `01 Regeln/Grundregeln/Proben.md`
+ *
+ * Verified 2026-07-15: every element of this resolver matches the rule as written, including the
+ * deliberate absence of confirmation rolls (the rule states skill checks have none, unlike attribute
+ * checks). Pointers only — no rule text is reproduced.
  */
 import type {
   CheckDefinition,
@@ -33,6 +44,12 @@ function die(pips: readonly number[], index: number): number {
  * The DSA5 quality level from the skill points left over after covering the shortfalls: every 3 leftover
  * points raise the QL, a bare success (0 left) is still QL 1, and the QL is capped at **6** (the DSA5
  * scale is 1–6). Kept separate so the cap/step rule is stated once and reused by the success paths.
+ *
+ * This arithmetic is a **closed-form reproduction of the rule's QL table**, not an approximation — worth
+ * stating because the table is what a reader will check it against. Verified row-by-row against the SSOT
+ * (ADR 0029; vault `01 Regeln/Grundregeln/Fertigkeiten.md`, table *Qualitätsstufen*): 0–3→1, 4–6→2,
+ * 7–9→3, 10–12→4, 13–15→5, 16+→6. The `max(1, …)` is the rule's explicit "a check passed with 0 SP still
+ * counts as QL 1" clause, not a defensive clamp.
  * @param remaining  skill points left after offsetting shortfalls (only meaningful when ≥ 0)
  * @returns          the quality level, clamped to 1…6
  */
@@ -113,6 +130,10 @@ function resolveSkillCheck(
  * `TALENTS` (single source of truth); a talent's name key `dsa5.skill.*` becomes its check's
  * `dsa5.check.*`. All triples are the canonical DSA5 ones from the Regel-Wiki (e.g. Perception SGC/INT/INT,
  * Body Control AGI/AGI/CON).
+ *
+ * Because the triples come from `TALENTS`, their provenance is each talent's own `regelwiki`/`vaultNote`
+ * reference (ADR 0029) — there is nothing to duplicate here. A vault cross-check of all 59 triples ran
+ * clean on 2026-07-15.
  */
 export const CHECKS: readonly CheckDefinition[] = TALENTS.map((talent) => ({
   id: talent.checkId,

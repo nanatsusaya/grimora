@@ -8,6 +8,10 @@
  * (<https://tde.ulisses-regelwiki.de/social-skills.html>); attribute order matches the wiki's printed
  * triple. Kept as plain data so the SDK trait/check definitions can be *derived* from it (see `types.ts`),
  * keeping the core rule-agnostic (ADR 0020).
+ *
+ * **Fidelity SSOT (ADR 0029):** verified against the owner's DSA5 vault — each entry carries its own
+ * `regelwiki` id (public, normative) + `vaultNote` path (private anchor), so its mechanics can be
+ * re-checked against the authority instead of trusted. Pointers only; no rule text is copied here.
  */
 
 import type { Talent } from './types';
@@ -23,6 +27,8 @@ export const SOCIAL_TALENTS: readonly Talent[] = [
     id: 'DISGUISE',
     checkId: 'disguise',
     labelKey: 'dsa5.skill.disguise',
+    regelwiki: 'https://dsa.ulisses-regelwiki.de/talent.html?talent=Verkleiden',
+    vaultNote: '01 Regeln/Talente/Gesellschaftstalente/Verkleiden.md',
     attributeIds: ['INT', 'CHA', 'AGI'],
     category: 'social',
     improvementCost: 'B',
@@ -33,6 +39,8 @@ export const SOCIAL_TALENTS: readonly Talent[] = [
     id: 'EMPATHY',
     checkId: 'empathy',
     labelKey: 'dsa5.skill.empathy',
+    regelwiki: 'https://dsa.ulisses-regelwiki.de/talent.html?talent=Menschenkenntnis',
+    vaultNote: '01 Regeln/Talente/Gesellschaftstalente/Menschenkenntnis.md',
     attributeIds: ['SGC', 'INT', 'CHA'],
     category: 'social',
     improvementCost: 'C',
@@ -43,6 +51,8 @@ export const SOCIAL_TALENTS: readonly Talent[] = [
     id: 'ETIQUETTE',
     checkId: 'etiquette',
     labelKey: 'dsa5.skill.etiquette',
+    regelwiki: 'https://dsa.ulisses-regelwiki.de/talent.html?talent=Etikette',
+    vaultNote: '01 Regeln/Talente/Gesellschaftstalente/Etikette.md',
     attributeIds: ['SGC', 'INT', 'CHA'],
     category: 'social',
     improvementCost: 'B',
@@ -53,6 +63,8 @@ export const SOCIAL_TALENTS: readonly Talent[] = [
     id: 'FAST_TALK',
     checkId: 'fast-talk',
     labelKey: 'dsa5.skill.fastTalk',
+    regelwiki: 'https://dsa.ulisses-regelwiki.de/talent.html?talent=%C3%9Cberreden',
+    vaultNote: '01 Regeln/Talente/Gesellschaftstalente/Überreden.md',
     attributeIds: ['COU', 'INT', 'CHA'],
     category: 'social',
     improvementCost: 'C',
@@ -70,6 +82,8 @@ export const SOCIAL_TALENTS: readonly Talent[] = [
     id: 'INTIMIDATION',
     checkId: 'intimidation',
     labelKey: 'dsa5.skill.intimidation',
+    regelwiki: 'https://dsa.ulisses-regelwiki.de/talent.html?talent=Einsch%C3%BCchtern',
+    vaultNote: '01 Regeln/Talente/Gesellschaftstalente/Einschüchtern.md',
     attributeIds: ['COU', 'INT', 'CHA'],
     category: 'social',
     improvementCost: 'B',
@@ -80,6 +94,8 @@ export const SOCIAL_TALENTS: readonly Talent[] = [
     id: 'PERSUASION',
     checkId: 'persuasion',
     labelKey: 'dsa5.skill.persuasion',
+    regelwiki: 'https://dsa.ulisses-regelwiki.de/talent.html?talent=Bekehren+%26+%C3%9Cberzeugen',
+    vaultNote: '01 Regeln/Talente/Gesellschaftstalente/Bekehren & Überzeugen.md',
     attributeIds: ['COU', 'SGC', 'CHA'],
     category: 'social',
     improvementCost: 'B',
@@ -90,6 +106,8 @@ export const SOCIAL_TALENTS: readonly Talent[] = [
     id: 'SEDUCTION',
     checkId: 'seduction',
     labelKey: 'dsa5.skill.seduction',
+    regelwiki: 'https://dsa.ulisses-regelwiki.de/talent.html?talent=Bet%C3%B6ren',
+    vaultNote: '01 Regeln/Talente/Gesellschaftstalente/Betören.md',
     attributeIds: ['COU', 'CHA', 'CHA'],
     category: 'social',
     improvementCost: 'B',
@@ -100,6 +118,8 @@ export const SOCIAL_TALENTS: readonly Talent[] = [
     id: 'STREETWISE',
     checkId: 'streetwise',
     labelKey: 'dsa5.skill.streetwise',
+    regelwiki: 'https://dsa.ulisses-regelwiki.de/talent.html?talent=Gassenwissen',
+    vaultNote: '01 Regeln/Talente/Gesellschaftstalente/Gassenwissen.md',
     attributeIds: ['SGC', 'INT', 'CHA'],
     category: 'social',
     improvementCost: 'C',
@@ -110,6 +130,8 @@ export const SOCIAL_TALENTS: readonly Talent[] = [
     id: 'WILLPOWER',
     checkId: 'willpower',
     labelKey: 'dsa5.skill.willpower',
+    regelwiki: 'https://dsa.ulisses-regelwiki.de/talent.html?talent=Willenskraft',
+    vaultNote: '01 Regeln/Talente/Gesellschaftstalente/Willenskraft.md',
     attributeIds: ['COU', 'INT', 'CHA'],
     category: 'social',
     improvementCost: 'D',

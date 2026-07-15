@@ -1,6 +1,6 @@
 # Grimora — Project status & next steps
 
-> Living handoff note between working sessions. Last updated: **2026-07-13**.
+> Living handoff note between working sessions. Last updated: **2026-07-15**.
 > The binding architecture lives in the ADRs (`docs/adr/`); this file is only the progress/handoff overview.
 > Stable working rules (not the current state) live in `CLAUDE.md`.
 >
@@ -49,6 +49,16 @@
   further plugin **content** here (talent descriptions/values → import/content-packs) is gated on it. Next
   piece when resumed: **#212** (Tier-2 SDK — `ability`/`resource` kinds, spell/combat). See the **North
   Star** + public/private split in `docs/vision.md`.
+  **Resumed 2026-07-15 on a different axis — rule *fidelity* (not content):** the private vault turned out
+  to be mature enough to serve as an **authority**, which is a separate question from shipping content
+  from it. **ADR 0029** (Accepted, #220/PR #221) makes it the **rule-fidelity SSOT**: every implemented
+  mechanic carries a two-layer source reference (public Regel-Wiki id + private vault note), pointers only.
+  The first cross-check against it immediately paid for itself: all **59 talent** triples + improvement
+  costs matched (0 mismatches) and `DODGE`/`INI` were confirmed correct, but **`LP = 5 + COU + AGI` is not
+  a DSA5 rule at all** (the rule is species LE base + 2×CON) — a walking-skeleton placeholder that had
+  passed review because nothing existed to check it against. References land in **#222**, the LP correction
+  in **#223**. This is the content boundary working as intended: mechanics-only means fidelity must be
+  *verified*, not asserted.
 - **External audit follow-up (2026-07-12):** two independent AI audits of the auth→sync vertical (both at
   `738abf8`) were **verified against the code** (not taken at face value) and triaged into DoR tickets
   **#185–#196**. No critical code defect; the local DoD chain stays green. Highest-priority items: **#185**
@@ -179,6 +189,7 @@ capability steps rather than all at once:
 | 0025 | Plugin-SDK v0 contract freeze: `0.x` semver line (not permanent), skeleton-validated surface frozen, hard security boundary, 1.0/registry trigger-gated (R1–R3) |
 | 0027 | apps/api backend framework & structure (Phase 2): Hono (runtime-portable, OpenAPI-first), code-first generated OpenAPI SSOT, apps/api as a composition root (route↔use-case, problem+json), Bun canonical + node-compatible; a minimal walking-skeleton scaffold validates it — full build trigger-gated to Phase 3+ (R1–R4) |
 | 0028 | Rules-execution contract dependency & event-payload type stability (Phase 2): re-home the shared rules-execution contract (formula/dice/roll/RNG + privacy helpers) into a new stable `@grimora/rules-contract` leaf that both `core-domain` and `plugin-sdk` depend on; SDK re-exports (plugin surface unchanged); fixes the Domain→plugin-sdk drift + the payload-typing durability hazard at the root; owner-authorized amendments to ADR 0003 §2.1/§3 + ADR 0025 §2 (R1–R4) |
+| 0029 | DSA5 rule-fidelity SSOT (Phase 3): the owner's **DSA5 vault** (private, `nanatsusaya/dsa5`) is the authority every `plugins/dsa5` mechanic is verified against — a **reference layer**, not a build/runtime/content dependency; each implemented rule carries a **two-layer source reference** (public Regel-Wiki id + private vault note path, one shared key), pointers only so no verbatim text crosses vault→plugin; owner-authorized cross-ref amendments to ADR 0020 + 0025 + the content-boundary doc (R1–R4) |
 
 ### New: EU/DE compliance matrix
 
@@ -499,6 +510,26 @@ verification catches).
 **outside** this public repo: the owner maintains a **separate private DSA worldbuilding knowledge base**
 and plans a **private, content-rich DSA plugin** built on Grimora's SDK, for personal use — together with
 the public mechanics plugin, his ultimate personal DSA AI assistant (`docs/vision.md` *North Star*).
+
+### What's next (2026-07-15) — the vault becomes the rule-fidelity SSOT
+
+The pause below is about **content**; 2026-07-15 opened a **different axis** the pause never blocked:
+using the vault as an **authority**. The owner reviewed the vault's state (Grundregelwerk fully migrated,
+bilingual de/en per note, ~1,150 notes, each keyed by its official `regelwiki:` id) and directed that it
+become the **Single Source of Truth for the DSA rules**.
+
+- ✅ **ADR 0029 — Accepted** (#220, PR #221): the vault is the rule-fidelity authority (reference layer, no
+  dependency); every implemented mechanic carries a two-layer source reference; owner-authorized cross-ref
+  amendments to ADR 0020 + ADR 0025 + the content-boundary doc. Owner decisions **R1–R4**.
+- 🔄 **#222 — SSOT source references** on all implemented rules (attributes, DODGE/INI, the check mechanic,
+  all 59 talents; structured `regelwiki`/`vaultNote` fields on `Talent`, doc comments for the SDK-derived
+  traits since the frozen SDK types cannot carry a provenance field).
+- 🔄 **#223 — the LP defect** (bugs before features): `LP = 5 + COU + AGI` is **not a DSA5 rule**; the rule
+  is *species LE base + 2×CON*. Interim fix `5 + 2×CON` (human LE base 5, documented, vault-referenced);
+  proper species modelling — which also raises the boundary question of whether the per-species base table
+  may ship in the OSS repo — is a **later, owner-gated** step.
+- **The methodological point:** three of ~70 mechanics were checkable only because an authority now exists.
+  Two passed, one was silently wrong for weeks. Fidelity is now verified, not asserted.
 
 **Paused (owner, 2026-07-13):** we wait for that private knowledge base to mature before doing more DSA5
 plugin **content** here (talent descriptions/values arrive via the import / content-pack path, not shipped).

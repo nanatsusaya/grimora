@@ -4,6 +4,10 @@
  * from this list, so adding or correcting a talent is a one-line data change with no wiring to touch.
  * Sourced from the official English *The Dark Eye* Regel-Wiki (<https://tde.ulisses-regelwiki.de/>);
  * mechanical roster only, per `docs/legal/dsa5-content-boundary.md`.
+ *
+ * **Fidelity SSOT (ADR 0029):** the owner's DSA5 vault is the authority these entries are verified
+ * against; every talent carries its own `regelwiki` + `vaultNote` reference. A vault cross-check of all
+ * 59 talents (attribute triples + improvement costs) ran clean on 2026-07-15.
  */
 import { CRAFT_TALENTS } from './craft';
 import { KNOWLEDGE_TALENTS } from './knowledge';
