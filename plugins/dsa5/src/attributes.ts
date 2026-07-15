@@ -4,6 +4,14 @@
  * Kept in its own module so the attribute set can grow (walking-skeleton COU/AGI/INT → the full DSA5
  * set, issue #211) without touching the derived-value, skill or check modules — which is what lets the
  * Tier-1 workstreams proceed as conflict-free parallel edits.
+ *
+ * **Fidelity SSOT (ADR 0029)** — the eight attributes below are verified against:
+ * - Regel-Wiki (public, normative): <https://dsa.ulisses-regelwiki.de/GR_Proben/eigenschaften.html>
+ * - DSA5 vault (private anchor): `01 Regeln/Grundregeln/Eigenschaften.md`
+ *
+ * The reference lives here in the module header rather than on the entries because these are SDK
+ * `TraitDefinition`s and the frozen SDK surface (ADR 0025) cannot carry a DSA-specific provenance
+ * field. Pointers only — no rule text is reproduced.
  */
 import type { TraitDefinition } from '@grimora/plugin-sdk';
 

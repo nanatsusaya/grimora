@@ -2,8 +2,11 @@
  * The **knowledge** DSA5 talent group (*Wissenstalente*) as mechanical roster entries — one `Talent` per
  * skill, carrying only the boundary-permitted data (name via i18n key + attribute triple + category +
  * improvement cost + encumbrance + application-name slugs; **no** descriptions/flavour/values). Sourced
- * from the official English *The Dark Eye* Regel-Wiki
- * (<https://tde.ulisses-regelwiki.de/knowledge-skills.html>).
+ * from the official English *The Dark Eye* Regel-Wiki (<https://tde.ulisses-regelwiki.de/knowledge-skills.html>).
+ *
+ * **Fidelity SSOT (ADR 0029):** verified against the owner's DSA5 vault — each entry carries its own
+ * `regelwiki` id (public, normative) + `vaultNote` path (private anchor), so its mechanics can be
+ * re-checked against the authority instead of trusted. Pointers only; no rule text is copied here.
  *
  * Kept as plain data (see `types.ts`): the SDK `TraitDefinition`/`CheckDefinition` are *derived* from
  * these entries (`skills.ts` / `checks.ts`), so the DSA5-specific fields live here in the plugin while
@@ -54,6 +57,8 @@ export const KNOWLEDGE_TALENTS: readonly Talent[] = [
     id: 'ASTRONOMY',
     checkId: 'astronomy',
     labelKey: 'dsa5.skill.astronomy',
+    regelwiki: 'https://dsa.ulisses-regelwiki.de/talent.html?talent=Sternkunde',
+    vaultNote: '01 Regeln/Talente/Wissenstalente/Sternkunde.md',
     attributeIds: ['SGC', 'SGC', 'INT'],
     category: 'knowledge',
     improvementCost: 'A',
@@ -64,6 +69,8 @@ export const KNOWLEDGE_TALENTS: readonly Talent[] = [
     id: 'GAMBLING',
     checkId: 'gambling',
     labelKey: 'dsa5.skill.gambling',
+    regelwiki: 'https://dsa.ulisses-regelwiki.de/talent.html?talent=Brett-+%26+Gl%C3%BCcksspiel',
+    vaultNote: '01 Regeln/Talente/Wissenstalente/Brett- & Glücksspiel.md',
     attributeIds: ['SGC', 'SGC', 'INT'],
     category: 'knowledge',
     improvementCost: 'A',
@@ -74,6 +81,8 @@ export const KNOWLEDGE_TALENTS: readonly Talent[] = [
     id: 'GEOGRAPHY',
     checkId: 'geography',
     labelKey: 'dsa5.skill.geography',
+    regelwiki: 'https://dsa.ulisses-regelwiki.de/talent.html?talent=Geographie',
+    vaultNote: '01 Regeln/Talente/Wissenstalente/Geographie.md',
     attributeIds: ['SGC', 'SGC', 'INT'],
     category: 'knowledge',
     improvementCost: 'B',
@@ -84,6 +93,8 @@ export const KNOWLEDGE_TALENTS: readonly Talent[] = [
     id: 'HISTORY',
     checkId: 'history',
     labelKey: 'dsa5.skill.history',
+    regelwiki: 'https://dsa.ulisses-regelwiki.de/talent.html?talent=Geschichtswissen',
+    vaultNote: '01 Regeln/Talente/Wissenstalente/Geschichtswissen.md',
     attributeIds: ['SGC', 'SGC', 'INT'],
     category: 'knowledge',
     improvementCost: 'B',
@@ -94,6 +105,8 @@ export const KNOWLEDGE_TALENTS: readonly Talent[] = [
     id: 'LAW',
     checkId: 'law',
     labelKey: 'dsa5.skill.law',
+    regelwiki: 'https://dsa.ulisses-regelwiki.de/talent.html?talent=Rechtskunde',
+    vaultNote: '01 Regeln/Talente/Wissenstalente/Rechtskunde.md',
     attributeIds: ['SGC', 'SGC', 'INT'],
     category: 'knowledge',
     improvementCost: 'A',
@@ -105,6 +118,8 @@ export const KNOWLEDGE_TALENTS: readonly Talent[] = [
     id: 'MAGICAL_LORE',
     checkId: 'magical-lore',
     labelKey: 'dsa5.skill.magicalLore',
+    regelwiki: 'https://dsa.ulisses-regelwiki.de/talent.html?talent=Magiekunde',
+    vaultNote: '01 Regeln/Talente/Wissenstalente/Magiekunde.md',
     attributeIds: ['SGC', 'SGC', 'INT'],
     category: 'knowledge',
     improvementCost: 'C',
@@ -115,6 +130,8 @@ export const KNOWLEDGE_TALENTS: readonly Talent[] = [
     id: 'MATH',
     checkId: 'math',
     labelKey: 'dsa5.skill.math',
+    regelwiki: 'https://dsa.ulisses-regelwiki.de/talent.html?talent=Rechnen',
+    vaultNote: '01 Regeln/Talente/Wissenstalente/Rechnen.md',
     attributeIds: ['SGC', 'SGC', 'INT'],
     category: 'knowledge',
     improvementCost: 'A',
@@ -131,6 +148,8 @@ export const KNOWLEDGE_TALENTS: readonly Talent[] = [
     id: 'MECHANICS',
     checkId: 'mechanics',
     labelKey: 'dsa5.skill.mechanics',
+    regelwiki: 'https://dsa.ulisses-regelwiki.de/talent.html?talent=Mechanik',
+    vaultNote: '01 Regeln/Talente/Wissenstalente/Mechanik.md',
     attributeIds: ['SGC', 'SGC', 'DEX'],
     category: 'knowledge',
     improvementCost: 'B',
@@ -141,6 +160,8 @@ export const KNOWLEDGE_TALENTS: readonly Talent[] = [
     id: 'MYTHS_AND_LEGENDS',
     checkId: 'myths-and-legends',
     labelKey: 'dsa5.skill.mythsAndLegends',
+    regelwiki: 'https://dsa.ulisses-regelwiki.de/talent.html?talent=Sagen+%26+Legenden',
+    vaultNote: '01 Regeln/Talente/Wissenstalente/Sagen & Legenden.md',
     attributeIds: ['SGC', 'SGC', 'INT'],
     category: 'knowledge',
     improvementCost: 'B',
@@ -151,6 +172,8 @@ export const KNOWLEDGE_TALENTS: readonly Talent[] = [
     id: 'RELIGIONS',
     checkId: 'religions',
     labelKey: 'dsa5.skill.religions',
+    regelwiki: 'https://dsa.ulisses-regelwiki.de/talent.html?talent=G%C3%B6tter+%26+Kulte',
+    vaultNote: '01 Regeln/Talente/Wissenstalente/Götter & Kulte.md',
     attributeIds: ['SGC', 'SGC', 'INT'],
     category: 'knowledge',
     improvementCost: 'B',
@@ -162,6 +185,8 @@ export const KNOWLEDGE_TALENTS: readonly Talent[] = [
     id: 'SPHERE_LORE',
     checkId: 'sphere-lore',
     labelKey: 'dsa5.skill.sphereLore',
+    regelwiki: 'https://dsa.ulisses-regelwiki.de/talent.html?talent=Sph%C3%A4renkunde',
+    vaultNote: '01 Regeln/Talente/Wissenstalente/Sphärenkunde.md',
     attributeIds: ['SGC', 'SGC', 'INT'],
     category: 'knowledge',
     improvementCost: 'B',
@@ -172,6 +197,8 @@ export const KNOWLEDGE_TALENTS: readonly Talent[] = [
     id: 'WARFARE',
     checkId: 'warfare',
     labelKey: 'dsa5.skill.warfare',
+    regelwiki: 'https://dsa.ulisses-regelwiki.de/talent.html?talent=Kriegskunst',
+    vaultNote: '01 Regeln/Talente/Wissenstalente/Kriegskunst.md',
     attributeIds: ['COU', 'SGC', 'INT'],
     category: 'knowledge',
     improvementCost: 'B',
