@@ -28,6 +28,7 @@ import { createHttpAuthPort } from '../auth/http-auth-port';
 import { createWorkerBackedStores } from '../store/worker-backed-stores';
 import { createUuidV7IdGenerator } from './id-generator';
 import { bindDeviceOnFirstLogin, ensureOfflineIdentity } from './offline-identity';
+import { resolveSheetTraits, type SheetTrait } from './sheet-traits';
 
 /** The real system clock: the production `ClockPort`. Kept out of the Domain, which stays time-injected. */
 const systemClock: ClockPort = {
@@ -35,6 +36,13 @@ const systemClock: ClockPort = {
     return new Date().toISOString() as IsoTimestamp;
   },
 };
+
+/**
+ * The rule system this app binds characters to. It lives here because *which* plugin is loaded is a
+ * composition decision (`rules.load(dsa5)` below) — every other module must read it from the composition
+ * rather than restate it, or the two can disagree.
+ */
+export const RULE_SYSTEM_ID = 'dsa5';
 
 /** Everything a `apps/web` surface needs from the wired hexagon: the command ports, the actor, and boot state. */
 export interface AppComposition {
@@ -47,6 +55,12 @@ export interface AppComposition {
   readonly reads: ReadModelStorePort;
   /** the implicit local identity every offline use case runs as (ADR 0012 §13) */
   readonly actor: Actor;
+  /**
+   * the trait fields the sheet renders, resolved from the loaded rule system (ids + its own bounds).
+   * Wired here rather than listed in the UI so a field can never name a trait the rule system does not
+   * define, and so bounds are never duplicated away from the authority that enforces them (#225)
+   */
+  readonly sheetTraits: readonly SheetTrait[];
   /** the client-side authentication port (login/session over the `apps/api` proxy, ADR 0012 §5) */
   readonly auth: AuthPort;
   /**
@@ -76,6 +90,10 @@ export function createAppComposition(): AppComposition {
   // allowed to import a plugin together with core + adapters (ADR 0003 §2).
   const rules = createPluginHost();
   rules.load(dsa5);
+
+  // Resolve the sheet's trait fields against the rule system now that it is loaded: this throws if a
+  // field names a trait DSA5 does not define, so that class of bug cannot reach a running app (#225).
+  const sheetTraits = resolveSheetTraits(rules, RULE_SYSTEM_ID);
 
   const deps: CommandDeps = {
     events,
@@ -123,6 +141,7 @@ export function createAppComposition(): AppComposition {
     deps,
     reads,
     actor,
+    sheetTraits,
     auth,
     sync,
     ready,

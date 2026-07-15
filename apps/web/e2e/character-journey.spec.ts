@@ -39,6 +39,12 @@ test('create a character, edit a trait, roll a check — all persists across a r
   await page.getByLabel('CON').fill('14');
   await expect(page.getByTestId('derived-LP')).toHaveText('33');
 
+  // The perception skill field addresses a trait the rule system actually defines (#225). It used to be
+  // labelled 'PER' — an id DSA5 does not define — so every edit was rejected as an unknown attribute and
+  // nothing persisted. The absent error banner is the assertion that matters here.
+  await page.getByLabel('PERCEPTION').fill('8');
+  await expect(page.getByTestId('error')).toHaveCount(0);
+
   // Roll a check → a new history line is appended.
   const historyLines = page.getByTestId('history').locator('li');
   const before = await historyLines.count();
@@ -52,6 +58,8 @@ test('create a character, edit a trait, roll a check — all persists across a r
   await expect(page.getByLabel('COU')).toHaveValue('14');
   await expect(page.getByLabel('CON')).toHaveValue('14');
   await expect(page.getByTestId('derived-LP')).toHaveText('33');
+  // The skill edit persisted too — proof the write reached the event store, not just the input's DOM.
+  await expect(page.getByLabel('PERCEPTION')).toHaveValue('8');
 });
 
 test('the character picker lists multiple characters and switches between them (#107 slice 3c)', async ({
