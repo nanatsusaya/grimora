@@ -39,8 +39,23 @@ test('create a character, edit a trait, roll a check — all persists across a r
   await page.getByLabel('CON').fill('14');
   await expect(page.getByTestId('derived-LP')).toHaveText('33');
 
-  // Roll a check → a new history line is appended.
   const historyLines = page.getByTestId('history').locator('li');
+
+  // The perception skill field addresses a trait the rule system actually defines (#225). It used to be
+  // labelled 'PER' — an id DSA5 does not define — so every edit was rejected as an unknown attribute and
+  // nothing was written at all. A *committed* edit appends exactly one history line, so awaiting that line
+  // is the proof the write reached the event store (with 'PER' none would ever appear).
+  //
+  // It is also a required **barrier**: `setTrait` is async, and the assertions above happen to await the
+  // recomputed derived values, which is what keeps the earlier edits from racing. This edit changes no
+  // derived value, so without an explicit wait the roll's `before` count below samples a still-in-flight
+  // write and the count lands 2 higher instead of 1 — exactly how this flaked in CI.
+  const beforeSkillEdit = await historyLines.count();
+  await page.getByLabel('PERCEPTION').fill('8');
+  await expect(historyLines).toHaveCount(beforeSkillEdit + 1);
+  await expect(page.getByTestId('error')).toHaveCount(0);
+
+  // Roll a check → a new history line is appended (nothing else is in flight now).
   const before = await historyLines.count();
   await page.getByRole('button', { name: 'Roll perception' }).click();
   await expect(historyLines).toHaveCount(before + 1);
@@ -52,6 +67,8 @@ test('create a character, edit a trait, roll a check — all persists across a r
   await expect(page.getByLabel('COU')).toHaveValue('14');
   await expect(page.getByLabel('CON')).toHaveValue('14');
   await expect(page.getByTestId('derived-LP')).toHaveText('33');
+  // The skill edit persisted too — proof the write reached the event store, not just the input's DOM.
+  await expect(page.getByLabel('PERCEPTION')).toHaveValue('8');
 });
 
 test('the character picker lists multiple characters and switches between them (#107 slice 3c)', async ({

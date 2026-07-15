@@ -30,7 +30,12 @@ void view.init();
 
 createRoot(rootElement).render(
   <StrictMode>
-    <App view={view} auth={composition.auth} onResetAll={() => resetAllAndReload(composition)} />
+    <App
+      view={view}
+      traits={composition.sheetTraits}
+      auth={composition.auth}
+      onResetAll={() => resetAllAndReload(composition)}
+    />
   </StrictMode>,
 );
 

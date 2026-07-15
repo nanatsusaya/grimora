@@ -13,43 +13,29 @@ import type { AuthPort } from '@grimora/core-domain';
 import { AppShell, Button, Field } from '@grimora/ui';
 import { useState, useSyncExternalStore } from 'react';
 import { AuthPanel } from './auth/AuthPanel';
+import type { SheetTrait } from './composition/sheet-traits';
 import type { CharacterView } from './state/character-view';
 
 /**
- * The DSA5 traits this minimal sheet lets the user edit (attributes 8–20, the perception skill 0–25).
- *
- * A deliberate **subset** of the plugin's traits, not the full DSA5 sheet — enough to exercise the
- * vertical slice. The subset is not arbitrary, though: it must cover every input of a rendered derived
- * value, otherwise the sheet shows a number the user cannot influence. `CON` is here for exactly that
- * reason — it is the sole input of `LP` (5 + 2×CON, #223).
- */
-const EDITABLE_TRAITS: readonly {
-  readonly id: string;
-  readonly min: number;
-  readonly max: number;
-}[] = [
-  { id: 'COU', min: 8, max: 20 },
-  { id: 'AGI', min: 8, max: 20 },
-  { id: 'INT', min: 8, max: 20 },
-  { id: 'CON', min: 8, max: 20 },
-  { id: 'PER', min: 0, max: 25 },
-];
-
-/**
  * The application shell + character-sheet flow.
- * @param props             the component props
- * @param props.view        the reactive character-sheet view store (from the composition root)
- * @param props.auth        the client-side authentication port (renders the login / signed-in panel)
- * @param props.onResetAll  dev-only full local-state reset (wired in `main.tsx`); the button is rendered
- *                          only in development builds
- * @returns                 the current screen, rendered from the view model
+ * @param props              the component props
+ * @param props.view         the reactive character-sheet view store (from the composition root)
+ * @param props.traits       the trait fields to render, already resolved against the loaded rule system
+ *                           by the composition root — the component neither names traits nor knows their
+ *                           bounds, so it cannot drift from the rule the use-case enforces (#225)
+ * @param props.auth         the client-side authentication port (renders the login / signed-in panel)
+ * @param props.onResetAll   dev-only full local-state reset (wired in `main.tsx`); the button is rendered
+ *                           only in development builds
+ * @returns                  the current screen, rendered from the view model
  */
 export function App({
   view,
+  traits,
   auth,
   onResetAll,
 }: {
   readonly view: CharacterView;
+  readonly traits: readonly SheetTrait[];
   readonly auth: AuthPort;
   readonly onResetAll: () => void;
 }) {
@@ -136,7 +122,7 @@ export function App({
                 {sheet.name}
               </h2>
               <h3>Traits</h3>
-              {EDITABLE_TRAITS.map((trait) => (
+              {traits.map((trait) => (
                 <Field key={trait.id} label={trait.id}>
                   <input
                     type="number"

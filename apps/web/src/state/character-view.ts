@@ -31,7 +31,7 @@ import {
   setAttribute as setAttributeCommand,
 } from '@grimora/core-domain';
 import type { EntityId } from '@grimora/shared-types';
-import type { AppComposition } from '../composition/composition-root';
+import { type AppComposition, RULE_SYSTEM_ID } from '../composition/composition-root';
 import { evaluateSyncGuard, getAccountBinding } from '../composition/offline-identity';
 
 /** `localStorage` key for the currently-open campaign (created once, reused across reloads). */
@@ -39,8 +39,8 @@ const CAMPAIGN_KEY = 'grimora.current-campaign';
 /** `localStorage` key for the currently-open character, so a reload re-opens the same sheet. */
 const CHARACTER_KEY = 'grimora.current-character';
 
-/** The rule system this milestone binds characters to (loaded at the composition root, #105-D). */
-const RULE_SYSTEM_ID = 'dsa5';
+// The rule system id is owned by the composition root (it is the module that decides which plugin is
+// loaded) — imported rather than restated here, so the two cannot disagree (#225).
 
 /**
  * Starting trait values stamped on a freshly-created character so the sheet immediately shows the full
