@@ -1,7 +1,7 @@
 # ADR 0029 — DSA5 rule-fidelity Single Source of Truth (the DSA5 vault)
 
-- **Status:** Proposed
-- **Date:** 2026-07-14
+- **Status:** Accepted
+- **Date:** 2026-07-14 (accepted via PR #221, issue #220)
 - **Deciders:** project owner + AI agents
 - **Depends on:** [ADR 0020](0020-core-vs-plugin-boundary.md) (Plugin = concrete rule system) ·
   [ADR 0021](0021-rules-execution.md) (formula/dice/roll mechanic) ·

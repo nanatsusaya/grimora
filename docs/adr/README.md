@@ -38,7 +38,7 @@ listed here with a status.
 | 0026 | User documentation & docs-site architecture (Diátaxis, i18n) | Planned (issue #82) |
 | [0027](0027-apps-api-framework-structure.md) | apps/api backend: framework, structure & local runtime | Accepted |
 | [0028](0028-rules-contract-dependency.md) | Rules-execution contract dependency & event-payload type stability | Accepted |
-| [0029](0029-dsa5-rule-fidelity-ssot.md) | DSA5 rule-fidelity Single Source of Truth (the DSA5 vault) | Proposed |
+| [0029](0029-dsa5-rule-fidelity-ssot.md) | DSA5 rule-fidelity Single Source of Truth (the DSA5 vault) | Accepted |
 
 Status values: `Proposed` · `Accepted` · `Superseded` · `Planned` (ticketed, not yet written).
 
